@@ -13,7 +13,6 @@ Output:
 {
 	"v1": "...",
 	"v2": "...",
-	...
 }
 ```
 
@@ -24,22 +23,22 @@ Generates new task.
 Input:
 ```json
 {
-	challenge: "{challenge-id}",
-	team: "{team-id}",
-	round: "{round-id}",
-	round-start-at: "",
-	round-duration: "",
-	task-settings: ""
+	"challenge": "{challenge-id}",
+	"team": "{team-id}",
+	"round": "{round-id}",
+	"round-start-at": "",
+	"round-duration": "",
+	"task-settings": ""
 }
 ```
 
 Output:
 ```json
 {
-	statement-version: "v1",
-	value: "100",
-	input: "",
-	checker-hint: ""
+	"statement-version": "v1",
+	"value": "100",
+	"input": "",
+	"checker-hint": ""
 }
 ```
 
@@ -50,9 +49,9 @@ Checks the correctness of the solution.
 Input:
 ```json
 {
-	input: "",
-	checker-hint: "",
-	answer: ""
+	"input": "",
+	"checker-hint": "",
+	"answer": ""
 }
 ```
 
@@ -60,10 +59,10 @@ Output:
 ```json
 [
 	{
-		task-id: "", 			# optional
-		status: {AC|WA},
-		score: 1.0				# optional, 0..1, can be present for AC only, 1.0 - full score.
-		error: ""				# present for WA only
+		"task-id": "", 			# optional
+		"status": {AC|WA},
+		"score": 1.0				# optional, 0..1, can be present for AC only, 1.0 - full score.
+		"error": ""				# present for WA only
 	}
 ]
 ```
