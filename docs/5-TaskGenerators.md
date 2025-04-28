@@ -59,12 +59,14 @@ Output:
 ```json
 [
 	{
-		"task-id": "", 			# optional
-		"status": {AC|WA},
-		"score": 1.0				# optional, 0..1, can be present for AC only, 1.0 - full score.
-		"error": ""				# present for WA only
+		"task-id": "",
+		"status": "{AC|WA}",
+		"score": 1.0,
+		"error": ""
 	}
 ]
 ```
 
-Note: Using task-id it may results in giving score to other tasks of other teams.
+- task-id is optional. It can be used to give score to other tasks of other teams.
+- score is optional. It can be used to give partial score.
+- error is present for WA status only.
