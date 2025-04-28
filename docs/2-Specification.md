@@ -1,5 +1,12 @@
 # Specification
 
+## Components
+
+- Platform backend REST API
+- Command line client application, working via REST API.
+- Optional: web app, working via REST API
+- Task generators as REST APIs
+
 ## Terms
 
 Challenge – the top-level contest. A Challenge groups one or more Rounds, and have a set of teams - participants. ​
@@ -17,8 +24,9 @@ Team – an identified group of players within a Challenge. Each Team has a uniq
 
 Leaderboard – a Round-specific or Challenge-wide ranking that orders Teams by their total score (ties broken by earliest achievement).
 
+## User Stories
 
-## Players User Stories
+### Players
 
 1. As a player, I want to edit our team name.
 2. As a player, I want to claim a task so my team can solve it.
@@ -26,7 +34,7 @@ Leaderboard – a Round-specific or Challenge-wide ranking that orders Teams by 
 4. As a player, I want to view my team’s recent submissions and scores so we can check that everything works fine.
 5. As a player, I want to see the round leaderboard to track our ranking and compare with other teams.
 
-## Admin User Stories
+### Admin
 
 1. As an admin, I want to set up new challenge.
 1. As an admin, I want to configure a round by preparing a task generator and settings.
@@ -37,14 +45,6 @@ Leaderboard – a Round-specific or Challenge-wide ranking that orders Teams by 
 1. As an admin, I want to suspend a round to investigate occured incidents.
 1. As an admin, I want to find a submission by its ID.
 1. As an admin, I want to change status and score of any particular submit as a react on incidents.
-
-# Requirements
-
-## UI
-
-- REST API.
-- Command line client application, working via REST API.
-- Optional: web app, working via REST API
 
 ## Entities
 
@@ -58,42 +58,41 @@ Leaderboard – a Round-specific or Challenge-wide ranking that orders Teams by 
 - claim-by-type: Boolean — should players specify task-type to claim new task?
 - allow-resubmit — can player resubmit an answer after receiving WRONG status. (For test round)
 - score-decay: no|linear
-- max-score-decay: no|linear
 - task-types — visible after round started.
 
 ### Challenge
 
-- id — unique identifier of the challenge
-- title — short human‑readable name
-- description — markdown text shown on the lobby screen
+- id
+- title
+- description — markdown
 - current‑round‑id — id of the round that is currently open, or null
 
 ### Team
 
-- id (UUID) — unique identifier of the team
-- challenge‑id — foreign key to Challenge
-- name — team‑selected display name (editable until the first submission)
-- api‑key — key issued to the team for authentication
-- members — free‑form string with GitHub handles / names (optional)
-- total‑score — sum of best‑per‑task scores within the active challenge
+- id
+- challenge‑id
+- name
+- api‑key
+- members
+- total‑score
 
 ### Task
 
-- id (UUID)
-- round‑id — foreign key to Round
-- team‑id — foreign key to Team
+- id
+- round‑id
+- team‑id
 - type — task‑type code (matches definitions in Round.task‑types)
-- input‑payload — JSON or binary blob provided to the solver
+- input‑payload
 - status — PENDING | AC | WA
-- last‑answer‑id — id of the most recent Submission
-- max-score — score achieved so far (null until evaluated)
-- score
-- claimed‑at — timestamps
+- possible-score — max scrore that could be achieved
+- score — achieved score for AC task
+- claimed‑at — timestamp
 - expired-at — timestamp when score reaches zero
 - list of submission
 
 ### Submission
-- id (UUID)
+
+- id
 - task-id
 - answer
 - submitted-at
@@ -122,62 +121,6 @@ identical tasks may occur only by statistical coincidence.
 - Persist submission record.
 - Respond with JSON {status, score, explanation} and 200 OK.
 
-## Authentication
-
-All API calls must include a valid API_KEY header.
-
-Missing or invalid keys return 401 Unauthorized.
-Authentication determines roles: admin or player and a challenge.
-
-## REST API Endpoints
-
-### For Player
-
-GET|PUT /teams/me
-GET /rounds
-GET /tasks?round={id}[&type={type}&status={status}] - dashboard
-POST /tasks?round={id}[&type={task-type}] - claim task
-GET  /tasks/{id}
-POST /tasks/{id}/answer - submit solution
-GET /rounds/{id}/leaderboard
-
-Note: teamId and challengeId is defined by authentication and filters and validators applied when it make sense.
-
-### For Admin
-
-GET|POST|DELETE /challenges
-GET|PUT /challenges/{id}
-GET /rounds?challenge={id}
-GET|POST|PUT|DELETE /rounds/{id}
-GET|PUT /teams?challenge={id}
-GET /round/{id}/logs
-PUT /tasks/{id}/answer - override answer verdict, for incidents.
-
-Note: challengeId should be specidfied 
-
-## Deadline handling
-
-Submissions after a task-specific deadline score 0 but are still evaluated for status. Claiming and submitting before round start or after round end returns 403 Forbidden.
-
-## Logging
-
-Every task-related action — claim, submit, status update — is written to an immutable audit log with timestamp, team id, task id, status, and score.
-
-## Rate limits
-
-The API must sustain at least 20 concurrent submissions and throttle a team to 30 requests per minute; excess requests return 429 Too Many Requests.
-
-## Performance requirements
-
-Any API request must return within 1 s at the 95-th percentile.
-
-6 task types ✕ 1000 tasks ✕ 20 teams ✕ 2 answers = 240_000 records per round in answers DB table.
-
-The platform must handle at least 20 concurrently active players who may poll, claim, and submit in a tight loop (≈50 req/s aggregate) without breaching the latency target.
-
-### Important!
-Dashboard and Leaderboard require optimizations: e.g. separate tables for dashboard and leaderboard entries with incremental updates on every claim / submit.
-
 # Technological stack and deployment
 
 ## Backend
@@ -196,96 +139,3 @@ Dashboard and Leaderboard require optimizations: e.g. separate tables for dashbo
 Serverless PostgreSQL (AWS Aurora Serverless v2) stores all the data.
 
 In case of performance issues, payload, answers and audit logs can be moved into S3.
-
-# Command Line Client UI/UX
-
-All commands respect the API key in `~/.challenge/config.json`; 
-`-r/--round` defaults to the current round reported by the server.
-
-`--json` outputs in json format instead of human readable plain text.
-
-## Login
-
-```
-challenge login <API_KEY>            # store key into config file after successful login
-challenge logout
-challenge whoami                     # show team id, name
-```
-
-## As Player
-
-### Team Settings
-
-```
-challenge team show
-challenge team rename <NEW_NAME>     # allowed until first submission
-```
-
-### Challenge and Round Information
-
-```
-challenge show
-challenge round show        [-r ID]
-challenge round list
-```
-
-### Task Workflow
-
-```
-challenge task claim        [-t TYPE]
-challenge task show <TASK_ID>					# shows task and it's submissions
-challenge task show-input <TASK_ID>				# shows raw task input payload
-challenge task submit <TASK_ID> <ANSWER|--file PATH>
-challenge task show-answer <SUBMIT_ID>			# shows raw submitted answer
-```
-
-```
-challenge task list         [-s STATUS] [-t TYPE] [-r ID] [--since TIME] [--watch]
-```
-shows list of  tasks with columns:
-
-- task-type
-- task-id
-- score - for WA and PENDING shows possible score according to score decay rule
-- time-remaining - for PENDING and WA
-- claimed-at
-- last-attempt-at - for WA
-- solved-at - for AC
-
-Ordered by `claimed-at` by descending, starting with `time` if it is specified.
-
-### Scores & Rankings
-
-```
-challenge board dashboard   [-r ID] [--watch]
-```
-- rows: task-types
-- columns: 
-  - total number of tasks, 
-  - of status PENDING
-  - of status AC
-  - of status WA
-  - remaining tasks to claim (`total - (PENDING + OK + WA)`)
-
-
-```
-challenge board leaderboard [-r ID] [--watch]
-```
-- rows: teams
-- columns:
-  - one per task-type: score
-  - total score
-
-
-## As Admin
-
-TODO.
-
-For setting up the challenge and rounds use json-files as inputs and outputs.
-
-# Optional: Interactive UI
-
-Textual interactive UI or React web-app.
-
-TODO.
-
