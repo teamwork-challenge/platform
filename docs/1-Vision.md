@@ -1,4 +1,4 @@
-# 1 Vision & Goals
+# Vision & Goals
 
 Freshman CS and SE students arrive with limited experience working in teams or on codebases larger than a single file. We want to create an intensive, game-like programming challenge that immerses them in real collaboration so they learn teamwork by doing.
 

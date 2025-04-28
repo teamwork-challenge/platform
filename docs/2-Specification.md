@@ -1,51 +1,50 @@
 # Specification
 
 ## Terms
+
 Challenge – the top-level contest. A Challenge groups one or more Rounds, and have a set of teams - participants. ​
 Round – a time-boxed phase inside a Challenge. Every Round starts and ends at scheduled timestamps and defines the set of Task Types, and other settings.​
 
 Task Type – a template that describes how tasks of that kind are generated, what they ask the solver to produce, and how they are scored. A single Round can expose several Task Types so teams can split work. ​
 
-Task – a concrete instance of a Task Type generated for a particular Team during a Round. It contains an input payload, a deadline, current status (CLAIMED | AC | WA). ​
+Task – a concrete instance of a Task Type generated for a particular Team during a Round. It contains an input payload, a deadline, current status (PENDING | AC | WA). ​
 
 Submission – one attempt by a Team to solve a Task. A Submission stores the answer payload, timestamp, validation status (AC | WA), and the score awarded by the validator. ​
 
 Claim – the API action that asks the platform to generate and assign a new Task to a Team. If claim-by-type is true, the request must include the desired Task Type.
 
-Team – an identified group of students within a Challenge. Each Team has a unique ID, a name and issued API key. ​
+Team – an identified group of players within a Challenge. Each Team has a unique ID, a name and issued API key. ​
 
 Leaderboard – a Round-specific or Challenge-wide ranking that orders Teams by their total score (ties broken by earliest achievement).
 
 
-## Student User Stories
+## Players User Stories
 
-- S-P1 As a student, I want to edit our team name.
-- S-T1 As a student, I want to claim a task so my team can solve it.
-- S-T2 As a student, I want to submit a solution and instantly know if it passed with explanation if not.
-- S-D1 As a student, I want to view my team’s recent submissions and scores so we can check that everything works fine.
-- S-D2 As a student, I want to see the round leaderboard to track our ranking and compare with other teams.
+1. As a player, I want to edit our team name.
+2. As a player, I want to claim a task so my team can solve it.
+3. As a player, I want to submit a solution and instantly know if it passed with explanation if not.
+4. As a player, I want to view my team’s recent submissions and scores so we can check that everything works fine.
+5. As a player, I want to see the round leaderboard to track our ranking and compare with other teams.
 
 ## Admin User Stories
 
-- A-S1 As an admin, I want to set up new challenge.
-- A-S2 As an admin, I want to configure a round by preparing a task generator and settings.
-- A-S3 As an admin, I want to create API keys for each team.
-- A-S4 As an admin, I want to publish a round in the challenge, so that students can start it on time.
-- A-M1 As an admin, I want to watch a live log of submissions to spot issues early.
-- A-S1 As an admin, I want to impersonate any team.
-- A-M2 As an admin, I want to suspend a round to investigate occured incidents.
-- A-M3 As an admin, I want to find a submission by its ID.
-- A-M4 As an admin, I want to change status and score of any particular submit as a react on incidents.
+1. As an admin, I want to set up new challenge.
+1. As an admin, I want to configure a round by preparing a task generator and settings.
+1. As an admin, I want to create API keys for each team.
+1. As an admin, I want to publish a round in the challenge, so that players can start it on time.
+1. As an admin, I want to watch a live log of submissions to spot issues early.
+1. As an admin, I want to impersonate any team.
+1. As an admin, I want to suspend a round to investigate occured incidents.
+1. As an admin, I want to find a submission by its ID.
+1. As an admin, I want to change status and score of any particular submit as a react on incidents.
 
 # Requirements
 
 ## UI
 
-- Web application for humans.
-- REST API for automated solvers.
-- Starter Kits for automated solvers:
-  - in Python
-  - in Kotlin
+- REST API.
+- Command line client application, working via REST API.
+- Optional: web app, working via REST API
 
 ## Entities
 
@@ -85,7 +84,7 @@ Leaderboard – a Round-specific or Challenge-wide ranking that orders Teams by 
 - team‑id — foreign key to Team
 - type — task‑type code (matches definitions in Round.task‑types)
 - input‑payload — JSON or binary blob provided to the solver
-- status — CLAIMED | AC | WA
+- status — PENDING | AC | WA
 - last‑answer‑id — id of the most recent Submission
 - max-score — score achieved so far (null until evaluated)
 - score
@@ -166,57 +165,127 @@ Every task-related action — claim, submit, status update — is written to an 
 
 ## Rate limits
 
-The API must sustain at least 20 concurrent submissions and throttle a team to 10 task claims per minute; excess requests return 429 Too Many Requests.
+The API must sustain at least 20 concurrent submissions and throttle a team to 30 requests per minute; excess requests return 429 Too Many Requests.
 
-## Performance
+## Performance requirements
 
 Any API request must return within 1 s at the 95-th percentile.
 
 6 task types ✕ 1000 tasks ✕ 20 teams ✕ 2 answers = 240_000 records per round in answers DB table.
 
-The platform must handle at least 20 concurrently active students who may poll, claim, and submit in a tight loop (≈50 req/s aggregate) without breaching the latency target.
+The platform must handle at least 20 concurrently active players who may poll, claim, and submit in a tight loop (≈50 req/s aggregate) without breaching the latency target.
 
-- Probably cache leaderboard parts.
-- Indexes for dashboard should be used.
+### Important!
+Dashboard and Leaderboard require optimizations: e.g. separate tables for dashboard and leaderboard entries with incremental updates on every claim / submit.
 
 # Technological stack and deployment
 
-## Frontend
-
-React + TypeScript built with Vite.
-Static assets live in an object S3-bucket behind the provider’s CDN. 
-
 ## Backend
 
-Python 3.12 + FastAPI, packaged as a single Docker image and run in a serverless runtime (AWS Lambda via API Gateway or Google Cloud Run).
+- Python + FastAPI
+- OpenAPI and Swagger UI for API documentation.
+- Deployment: AWS Lambda + API Gateway.
+
+## Command Line Interface
+
+- Python + Typer for commands and options handling
+- openapi-python-client for http client generation by OpenAPI spec.
 
 ## Data layer
 
-PostgreSQL in its serverless flavour (Aurora Serverless v2 / Cloud SQL auto-scale) stores rounds, tasks, teams, and submissions.
+Serverless PostgreSQL (AWS Aurora Serverless v2) stores all the data.
 
-S3 buckets keep task input payloads, answers, and nightly-exported audit logs.
+In case of performance issues, payload, answers and audit logs can be moved into S3.
 
-## Security & limits
+# Command Line Client UI/UX
 
-API Gateway checks API-Key headers and enforces the “10 task claims per minute” rule. All task-related actions are inserted into an append-only audit table for later analysis.
+All commands respect the API key in `~/.challenge/config.json`; 
+`-r/--round` defaults to the current round reported by the server.
 
-## Observability
+`--json` outputs in json format instead of human readable plain text.
 
-Cloud-native metrics and traces (CloudWatch + X-Ray or Cloud Monitoring + Cloud Trace) with alerts on p95 latency and error spikes.
+## Login
 
-## CI/CD & IaC
+```
+challenge login <API_KEY>            # store key into config file after successful login
+challenge logout
+challenge whoami                     # show team id, name
+```
 
-GitHub Actions builds, tests, and pushes the image; Terraform provisions the runtime, database, cache, and bucket, so a full environment spins up—or down—with a single command.
+## As Player
 
-# Web App UI/UX Design
+### Team Settings
 
-TODO
+```
+challenge team show
+challenge team rename <NEW_NAME>     # allowed until first submission
+```
 
-# OpenAPI spec
+### Challenge and Round Information
 
-TODO
+```
+challenge show
+challenge round show        [-r ID]
+challenge round list
+```
 
-# Task generators and validator API
+### Task Workflow
 
-TODO
+```
+challenge task claim        [-t TYPE]
+challenge task show <TASK_ID>					# shows task and it's submissions
+challenge task show-input <TASK_ID>				# shows raw task input payload
+challenge task submit <TASK_ID> <ANSWER|--file PATH>
+challenge task show-answer <SUBMIT_ID>			# shows raw submitted answer
+```
+
+```
+challenge task list         [-s STATUS] [-t TYPE] [-r ID] [--since TIME] [--watch]
+```
+shows list of  tasks with columns:
+
+- task-type
+- task-id
+- score - for WA and PENDING shows possible score according to score decay rule
+- time-remaining - for PENDING and WA
+- claimed-at
+- last-attempt-at - for WA
+- solved-at - for AC
+
+Ordered by `claimed-at` by descending, starting with `time` if it is specified.
+
+### Scores & Rankings
+
+```
+challenge board dashboard   [-r ID] [--watch]
+```
+- rows: task-types
+- columns: 
+  - total number of tasks, 
+  - of status PENDING
+  - of status AC
+  - of status WA
+  - remaining tasks to claim (`total - (PENDING + OK + WA)`)
+
+
+```
+challenge board leaderboard [-r ID] [--watch]
+```
+- rows: teams
+- columns:
+  - one per task-type: score
+  - total score
+
+
+## As Admin
+
+TODO.
+
+For setting up the challenge and rounds use json-files as inputs and outputs.
+
+# Optional: Interactive UI
+
+Textual interactive UI or React web-app.
+
+TODO.
 
