@@ -28,7 +28,7 @@ Leaderboard – a Round-specific or Challenge-wide ranking that orders Teams by 
 
 ### Players
 
-1. As a player, I want to edit our team name.
+1. As a player, I want to edit our team name. (optional)
 2. As a player, I want to claim a task so my team can solve it.
 3. As a player, I want to submit a solution and instantly know if it passed with explanation if not.
 4. As a player, I want to view my team’s recent submissions and scores so we can check that everything works fine.
@@ -103,17 +103,17 @@ Leaderboard – a Round-specific or Challenge-wide ranking that orders Teams by 
 
 ### Claiming task
 
-1. Generates a task instance. 
+1. Generates a task instance.
 2. Stores the generated task.
 3. Returns id, statement, input data, scoring formula, and deadline.
 4. Returns HTTP 400 if incompatible claim-mode was used.
 
 Teams may hold several open tasks at once.
 
-The task generators should attempt to supply each team with a unique instance; 
+The task generators should attempt to supply each team with a unique instance;
 identical tasks may occur only by statistical coincidence.
 
-### Answer Validation 
+### Answer Validation
 
 - Validate payload format; malformed → 400 Bad Request (attempt not counted, not stored, but logged).
 - Run sandboxed validator; produce status OK or WRONG and, if wrong, an explanation.
@@ -127,12 +127,16 @@ identical tasks may occur only by statistical coincidence.
 
 - Python + FastAPI
 - OpenAPI and Swagger UI for API documentation.
-- Deployment: AWS Lambda + API Gateway.
+- Deployment: AWS Lambda (Magnum wrapper for FastAPI) + API Gateway.
 
 ## Command Line Interface
 
 - Python + Typer for commands and options handling
 - openapi-python-client for http client generation by OpenAPI spec.
+
+## Task generators
+
+- Python + FastAPI + Magnum + AWS Lambda
 
 ## Data layer
 
