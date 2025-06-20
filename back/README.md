@@ -1,19 +1,22 @@
-# FastAPI Demo Application for Teamwork Challenge Platform
+# Teamwork Challenge Platform: Backend API
 
 ## Overview
 
-This is a simple FastAPI demo application that provides basic endpoints for managing challenges and tasks. It serves as a starting point for the Teamwork Challenge Platform backend.
+The Backend API is a core component of the Teamwork Challenge Platform, providing RESTful endpoints for managing challenges, rounds, teams, tasks, and submissions. It serves as the central hub for all platform interactions, enabling both administrative functions and player activities.
 
-## Features
+## Architecture
 
-- Simple in-memory database for challenges and tasks
-- RESTful API endpoints for retrieving and creating data
-- Data validation using Pydantic models
+The backend is built with FastAPI, a modern, high-performance web framework for building APIs with Python. The architecture follows a layered approach:
+
+- **API Layer**: Handles HTTP requests and responses
+- **Service Layer**: Implements business logic
+- **Repository Layer**: Manages data access and storage
+
 
 ## Installation
 
 1. Make sure you have Python 3.7+ installed
-2. Install FastAPI and Uvicorn:
+2. Install the required dependencies:
    ```bash
    pip install fastapi uvicorn
    ```
@@ -22,8 +25,20 @@ This is a simple FastAPI demo application that provides basic endpoints for mana
 
 To run the API locally:
 
+1. Navigate to the 'back' directory:
+   ```bash
+   cd back
+   ```
+
+2. Start the Uvicorn server:
+   ```bash
+   uvicorn main:app --reload
+   ```
+
+Alternatively, you can run the API from the root directory:
+
 ```bash
-uvicorn main:app --reload
+uvicorn back.main:app --reload
 ```
 
 Once running, you can access:
@@ -33,31 +48,17 @@ Once running, you can access:
 
 ## API Endpoints
 
-### Test Endpoint
-- `GET /` - Test endpoint that returns a simple message
-
 ### Admin Endpoints
 - `GET /challenges` - Get all challenges
+- `POST /challenges` - Create a new challenge
 - `GET /challenges/{challenge_id}` - Get a specific challenge by ID
+- `PUT /challenges/{challenge_id}` - Update a specific challenge
+- `DELETE /challenges` - Delete all challenges
 
 ### Player Endpoints
 - `GET /tasks/{task_id}` - Get a specific task by ID
 - `POST /tasks` - Create a new task
 
-## Data Models
-
-### Challenge (In-memory)
-- id: int
-- title: string
-
-### Task (In-memory)
-- id: int
-- title: string
-- status: string
-
-### Task (Request Model)
-- title: string
-- status: string (defaults to "PENDING")
 
 ## Example Usage
 
@@ -66,9 +67,11 @@ Once running, you can access:
 curl -X GET "http://localhost:8000/challenges"
 ```
 
-### Get a specific challenge
+### Create a new challenge
 ```bash
-curl -X GET "http://localhost:8000/challenges/1"
+curl -X POST "http://localhost:8000/challenges" \
+  -H "Content-Type: application/json" \
+  -d '{"title": "New Challenge 2025"}'
 ```
 
 ### Get a specific task
@@ -82,3 +85,7 @@ curl -X POST "http://localhost:8000/tasks" \
   -H "Content-Type: application/json" \
   -d '{"title": "New task", "status": "PENDING"}'
 ```
+
+## Development
+
+For more detailed information about the backend architecture, data models, and API design, please refer to the [Backend Documentation](/docs/3-Backend.md) in the docs directory.

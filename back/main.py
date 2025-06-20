@@ -1,69 +1,39 @@
 from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel
+from models import Challenge, Task
+from services import AdminService, PlayerService
 
-# создаём приложение FastAPI
+#create a FastAPI application
 app = FastAPI()
 
-# демо мини база данных
-challenges = [
-    {
-        "id": 1,
-        "title": "Teamwork Programming Challenge 2025",
-    }
-]
-tasks = [
-    {"id": 1, "title": "First task", "status": "PENDING"},
-    {"id": 2, "title": "Second task", "status": "ACCEPTED"},
-]
-# корневой эндпоинт (тестовый)
-@app.get("/")
-def root():
-    return {"message": "Test(root)"}
+admin_service = AdminService()
+player_service = PlayerService()
 
-# эндпоинт для получения всех челленджей
-@app.get(
-    "/challenges",
-    tags=["Admin"]
-)
+# admin endpoints
+@app.get("/challenges", tags=["Admin"])
 def get_challenges():
-    # возвращаем все челленджи
-    return challenges
+    return admin_service.get_challenges()
 
-# эндпоинт для получения задачи по ID (например, /tasks/1)
-@app.get(
-    "/challenges/{challenge_id}",
-    tags=["Admin"]
-)
+@app.post("/challenges", tags=["Admin"])
+def create_challenge(new_challenge: Challenge):
+    return admin_service.create_challenge(new_challenge.title)
+
+@app.get("/challenges/{challenge_id}", tags=["Admin"])
 def get_challenge(challenge_id: int):
-    for challenge in challenges:
-        # ищем челлендж по айди
-        if challenge["id"] == challenge_id:
-            return challenge
-    #если не нашли - возвращ ошибку 404
-    raise HTTPException(status_code=404, detail="Challenge not found")
+    return admin_service.get_challenge(challenge_id)
 
+@app.put("/challenges/{challenge_id}", tags=["Admin"])
+def update_challenge(challenge_id: int, updated_challenge: Challenge):
+    return admin_service.update_challenge(challenge_id, updated_challenge.title)
+
+@app.delete("/challenges", tags=["Admin"])
+def delete_all_challenges():
+    return admin_service.delete_all_challenges()
+
+# player endpoints
 @app.get("/tasks/{task_id}", tags=["Player"])
 def get_task(task_id: int):
-    for task in tasks:
-        if task["id"] == task_id:
-            return task
-    raise HTTPException(status_code=404, detail="Task not found")
+    return player_service.get_task(task_id)
 
-# класс для описания, как должна выглядеть задача
-# BaseModel делает автоматическую проверку данных (валидацию)
-# и помогает преобразовать их в формат JSON (сериализация)
-class Task(BaseModel):
-    title: str
-    status: str = "PENDING"
-
-# эндпоинт для создания новой задачи (принимает данные от юзера)
 @app.post("/tasks", tags=["Player"])
 def create_task(new_task: Task):
-    task_obj = {
-        "id": len(tasks) + 1,
-        "title": new_task.title,
-        "status": new_task.status
-    }
-    tasks.append(task_obj)
-    # возвращаем созданную задачу
-    return task_obj
+    return player_service.create_task(new_task.title, new_task.status)
