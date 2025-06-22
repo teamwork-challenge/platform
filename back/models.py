@@ -10,6 +10,7 @@ class UserRole(str, Enum):
 
 # BaseModel performs automatic data validation
 # and helps convert them to JSON format (serialization)
+
 # class for describing API key with associated role and challenge
 class ApiKey(BaseModel):
     key: str

@@ -84,6 +84,5 @@ def get_task(task_id: int, auth_data: dict = Depends(get_player_api_key)):
 
 @app.post("/tasks", tags=["Player"])
 def create_task(new_task: Task, auth_data: dict = Depends(get_player_api_key)):
-    # We could use the challenge_id from auth_data to associate the task with the player's challenge
     challenge_id = auth_data["challenge_id"]
     return player_service.create_task(new_task.title, new_task.status)
