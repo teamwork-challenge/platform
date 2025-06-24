@@ -1,38 +1,59 @@
-# back/database.py
-from sqlalchemy import create_engine, Column, Integer, String, MetaData
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
-import os
+from sqlalchemy import create_engine
+import json
+import boto3
+from botocore.exceptions import ClientError
+from sqlalchemy.orm import Session
+from sqlalchemy.pool import StaticPool
 
-# Connection to AWS Aurora Serverless v2
-# Format: postgresql://username:password@endpoint:port/database
-DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://postgres:password@localhost:5432/platform")
+from back.models_orm import Base
 
-# Configure engine with parameters optimized for Aurora Serverless v2
-engine = create_engine(
-    DATABASE_URL,
-    # Connection pooling settings
-    pool_size=5,  # Default number of connections to maintain
-    max_overflow=10,  # Maximum number of connections to allow in addition to pool_size
-    pool_timeout=30,  # Seconds to wait before giving up on getting a connection
-    pool_recycle=1800,  # Recycle connections after 30 minutes to avoid stale connections
-    # Query execution settings
-    connect_args={
-        "connect_timeout": 10,  # Connection timeout in seconds
-        "application_name": "platform-api"  # Identify application in AWS monitoring
-    }
-)
 
-# Session factory for database operations
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+def get_connection_string():
+    secret_name = "rds-db-credentials/cluster-H2HS3S7S4UFREZFDQIJEL4JBZY/postgres/1750785162158"
+    region_name = "eu-north-1"
+    # Create a Secrets Manager client
+    session = boto3.session.Session()
+    client = session.client(
+        service_name='secretsmanager',
+        region_name=region_name
+    )
 
-# Base class for all ORM models
-Base = declarative_base()
-
-# Dependency to get DB session
-def get_db():
-    db = SessionLocal()
     try:
-        yield db
-    finally:
-        db.close()
+        response = client.get_secret_value(SecretId=secret_name)
+    except ClientError as e:
+        # For a list of exceptions thrown, see
+        # https://docs.aws.amazon.com/secretsmanager/latest/apireference/API_GetSecretValue.html
+        raise e
+    secret = json.loads(response['SecretString'])
+    conn_string = f"postgresql://{secret['username']}:{secret['password']}@{secret['host']}:{secret['port']}/{secret['dbInstanceIdentifier']}"
+    return conn_string
+
+
+def get_db_engine():
+    engine = create_engine(
+        get_connection_string(),
+        pool_size=5,  # Default number of connections to maintain
+        max_overflow=10,  # Maximum number of connections to allow in addition to pool_size
+        pool_timeout=30,  # Seconds to wait before giving up on getting a connection
+        pool_recycle=1800,  # Recycle connections after 30 minutes to avoid stale connections
+        # Query execution settings
+        connect_args={
+            "connect_timeout": 10,  # Connection timeout in seconds
+            "application_name": "platform-api"  # Identify application in AWS monitoring
+        }
+    )
+    return engine
+
+def get_test_db_engine():
+    engine = create_engine(
+        "sqlite:///:memory:",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool
+    )
+    return engine
+
+
+def get_test_db_session(create_tables=True):
+    engine = get_test_db_engine()
+    Base.metadata.create_all(engine) if create_tables else None
+    return Session(bind=engine, autocommit=False, autoflush=False)

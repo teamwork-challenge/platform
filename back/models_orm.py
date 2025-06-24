@@ -1,7 +1,9 @@
-# back/models_orm.py
 from sqlalchemy import Column, Integer, String, DateTime
+from sqlalchemy.orm import DeclarativeBase
 from sqlalchemy.sql import func
-from database import Base
+
+class Base(DeclarativeBase):
+    pass
 
 class Challenge(Base):
     """SQLAlchemy ORM model for challenges table"""
@@ -12,12 +14,6 @@ class Challenge(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
-    def to_dict(self):
-        """Convert ORM object to dictionary for API response"""
-        return {
-            "id": self.id,
-            "title": self.title
-        }
 
 class Task(Base):
     """SQLAlchemy ORM model for tasks table"""
@@ -28,11 +24,3 @@ class Task(Base):
     status = Column(String, nullable=False, default="PENDING")
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
-
-    def to_dict(self):
-        """Convert ORM object to dictionary for API response"""
-        return {
-            "id": self.id,
-            "title": self.title,
-            "status": self.status
-        }

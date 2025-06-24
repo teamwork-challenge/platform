@@ -1,45 +1,19 @@
-# back/test_database.py
-import os
 import unittest
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy.pool import StaticPool
+from database import get_test_db_session
 
-# Import models and database components
-from database import Base
-from models_orm import Challenge, Task
-
-# Create an in-memory SQLite database for testing
-TEST_DATABASE_URL = "sqlite:///:memory:"
+from models_orm import Challenge, Task, Base
 
 class TestDatabase(unittest.TestCase):
     """Test cases for database functionality"""
 
     def setUp(self):
-        """Set up test database before each test"""
-        # Create an in-memory SQLite engine for testing
-        self.engine = create_engine(
-            TEST_DATABASE_URL,
-            connect_args={"check_same_thread": False},
-            poolclass=StaticPool
-        )
-        
-        # Create all tables in the test database
-        Base.metadata.create_all(self.engine)
-        
-        # Create a session factory
-        TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=self.engine)
-        
-        # Create a session for testing
-        self.db = TestingSessionLocal()
+        # Use the in-memory SQLite database for testing
+        self.db = get_test_db_session(create_tables=True)
 
     def tearDown(self):
         """Clean up after each test"""
-        # Close the session
         self.db.close()
-        
-        # Drop all tables
-        Base.metadata.drop_all(self.engine)
+
 
     def test_create_challenge(self):
         """Test creating a challenge in the database"""
@@ -54,6 +28,7 @@ class TestDatabase(unittest.TestCase):
         # Assert that the challenge was created correctly
         self.assertIsNotNone(db_challenge)
         self.assertEqual(db_challenge.title, "Test Challenge")
+
 
     def test_create_task(self):
         """Test creating a task in the database"""
