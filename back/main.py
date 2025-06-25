@@ -4,9 +4,12 @@ from typing import Optional
 from models import Challenge, Task, UserRole
 from services import AdminService, PlayerService
 from repo import validate_api_key, get_role_from_api_key, get_challenge_from_api_key
+from mangum import Mangum
 
 #create a FastAPI application
-app = FastAPI()
+app = FastAPI(title="Teamwork Challenge API",
+              description="API for managing teamwork challenges and tasks",
+              version="1.0.0")
 
 admin_service = AdminService()
 player_service = PlayerService()
@@ -86,3 +89,6 @@ def get_task(task_id: int, auth_data: dict = Depends(get_player_api_key)):
 def create_task(new_task: Task, auth_data: dict = Depends(get_player_api_key)):
     challenge_id = auth_data["challenge_id"]
     return player_service.create_task(new_task.title, new_task.status)
+
+# Create handler for AWS Lambda
+handler = Mangum(app, lifespan="off")

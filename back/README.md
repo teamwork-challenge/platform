@@ -23,13 +23,22 @@ The backend is built with FastAPI, a modern, high-performance web framework for 
    ```bash
    aws configure
    ```
-4. Run test in database_aws_tests.py to check the connection to the could database:
- 
+4. Run test in database_aws_tests.py to check the connection to the could database.
 
-## Running the API
+## Deployment
+
+1. Install AWS SAM CLI. https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/install-sam-cli.html
+2. `sam build` to build the application (in `back\` directory).
+3. `sam deploy` to deploy the application.
+
+Public deployment: https://93a6a2ehkb.execute-api.eu-north-1.amazonaws.com/docs
+
+
+## Running the API locally
+
+In the `back\` directory:
 
    ```bash
-   cd back
    uvicorn main:app --reload
    ```
 
