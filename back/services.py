@@ -1,28 +1,30 @@
-from repo import (
-    get_all_challenges, get_challenge_by_id, create_challenge,
-    update_challenge, delete_all_challenges,
-    get_task_by_id, create_task
-)
+from repo import Repo
+
+repo = Repo()
+
 
 class AdminService:
-    def get_challenges(self):
-        return get_all_challenges()
+    def __init__(self, repo: Repo):
+        self.repo = repo
 
     def get_challenge(self, challenge_id: int):
-        return get_challenge_by_id(challenge_id)
+        return self.repo.get_challenge_by_id(challenge_id)
 
     def create_challenge(self, title: str):
-        return create_challenge(title)
+        return self.repo.create_challenge(title)
 
     def update_challenge(self, challenge_id: int, title: str):
-        return update_challenge(challenge_id, title)
+        return self.repo.update_challenge(challenge_id, title)
 
     def delete_all_challenges(self):
-        return delete_all_challenges()
+        return self.repo.delete_all_challenges()
 
 class PlayerService:
+    def __init__(self, repo: Repo):
+        self.repo = repo
+
     def get_task(self, task_id: int):
-        return get_task_by_id(task_id)
+        return self.repo.get_task_by_id(task_id)
 
     def create_task(self, title: str, status: str = "PENDING"):
-        return create_task(title, status)
+        return self.repo.create_task(title, status)

@@ -1,18 +1,20 @@
 from fastapi import FastAPI, HTTPException, Depends, Header
 from fastapi.security import APIKeyHeader
-from typing import Optional
 from models import Challenge, Task, UserRole
 from services import AdminService, PlayerService
-from repo import validate_api_key, get_role_from_api_key, get_challenge_from_api_key
+from repo import Repo
 from mangum import Mangum
+
+repo = Repo()
 
 #create a FastAPI application
 app = FastAPI(title="Teamwork Challenge API",
               description="API for managing teamwork challenges and tasks",
               version="1.0.0")
 
-admin_service = AdminService()
-player_service = PlayerService()
+# сreate services with repo
+admin_service = AdminService(repo)
+player_service = PlayerService(repo)
 
 # API key header
 API_KEY_HEADER = APIKeyHeader(name="API_KEY", auto_error=False)
@@ -22,7 +24,7 @@ def get_api_key(api_key: str = Depends(API_KEY_HEADER)):
     if api_key is None:
         raise HTTPException(status_code=401, detail="API key is missing")
 
-    key_data = validate_api_key(api_key)
+    key_data = repo.validate_api_key(api_key)
     if key_data is None:
         raise HTTPException(status_code=401, detail="Invalid API key")
 
@@ -30,18 +32,18 @@ def get_api_key(api_key: str = Depends(API_KEY_HEADER)):
 
 # Dependency for admin role authentication
 def get_admin_api_key(api_key: str = Depends(get_api_key)):
-    role = get_role_from_api_key(api_key)
+    role = repo.get_role_from_api_key(api_key)
     if role != UserRole.ADMIN:
         raise HTTPException(status_code=403, detail="Admin access required")
     return api_key
 
 # Dependency for player role authentication
 def get_player_api_key(api_key: str = Depends(get_api_key)):
-    role = get_role_from_api_key(api_key)
+    role = repo.get_role_from_api_key(api_key)
     if role != UserRole.PLAYER:
         raise HTTPException(status_code=403, detail="Player access required")
 
-    challenge_id = get_challenge_from_api_key(api_key)
+    challenge_id = repo.get_challenge_from_api_key(api_key)
     if challenge_id is None:
         raise HTTPException(status_code=403, detail="No challenge associated with this API key")
 
