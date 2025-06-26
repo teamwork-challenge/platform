@@ -34,11 +34,12 @@ class Repo:
         self.challenges.append(challenge_obj)
         return challenge_obj
 
-    def delete_all_challenges(self):
-        if not self.challenges:
-            return None
-        deleted = self.challenges.copy()
-        self.challenges.clear()
+    def delete_challenge(self, challenge_id: int):
+        deleted = None
+        for i, challenge in enumerate(self.challenges):
+            if challenge["id"] == challenge_id:
+                deleted = self.challenges.pop(i)
+                break
         return deleted
 
     def update_challenge(self, challenge_id: int, title: str):
