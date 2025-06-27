@@ -2,10 +2,11 @@ from sqlalchemy import create_engine
 import json
 import boto3
 from botocore.exceptions import ClientError
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
+from typing import Generator
 
-from back.models_orm import Base
+from models_orm import Base
 
 
 def get_connection_string():
@@ -57,3 +58,12 @@ def get_test_db_session(create_tables=True):
     engine = get_test_db_engine()
     Base.metadata.create_all(engine) if create_tables else None
     return Session(bind=engine, autocommit=False, autoflush=False)
+
+SessionLocal = sessionmaker(bind=get_db_engine(), autoflush=False, autocommit=False)
+
+def get_db_session() -> Generator[Session, None, None]:
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()

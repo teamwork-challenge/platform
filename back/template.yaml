@@ -28,6 +28,10 @@ Resources:
           Properties:
             Path: /{proxy+}
             Method: ANY
+      Policies:
+        - SecretsManagerReadWrite
+        - AWSLambdaBasicExecutionRole
+        - AWSLambdaVPCAccessExecutionRole
 
 Outputs:
   # ServerlessRestApi is an implicit API created out of Events key under Serverless::Function

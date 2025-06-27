@@ -2,25 +2,30 @@ from pydantic import BaseModel
 from enum import Enum
 from typing import Optional
 
-# Enum representing the role of a user.
-# Used to distinguish between admin and player permissions.
 class UserRole(str, Enum):
     ADMIN = "admin"
     PLAYER = "player"
 
-# BaseModel performs automatic data validation
-# and helps convert them to JSON format (serialization)
-
-# class for describing API key with associated role and challenge
-class ApiKey(BaseModel):
+class AuthData(BaseModel):
     key: str
     role: UserRole
+    team_id: Optional[int] = None
     challenge_id: Optional[int] = None
 
-# class for describing how a challenge should look
-class Challenge(BaseModel):
+
+class ChallengeOut(BaseModel):
+    id: int
     title: str
-# class for describing how a task should look
+    description: str
+    current_round_id: Optional[int] = None
+
+    class Config:
+        from_attributes = True
+
+class ChallengeNew(BaseModel):
+    title: str
+    description: str
+
 class Task(BaseModel):
     title: str
     status: str = "PENDING"

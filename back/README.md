@@ -10,7 +10,7 @@ The backend is built with FastAPI, a modern, high-performance web framework for 
 
 - **API Layer**: Handles HTTP requests and responses
 - **Service Layer**: Implements business logic
-- **Repository Layer**: Manages data access and storage
+- **Alchemy ORM** as data layer
 
 ## Installation
 
