@@ -1,9 +1,11 @@
+import uvicorn
 from fastapi import FastAPI, APIRouter, HTTPException, Depends
 from fastapi.security import APIKeyHeader
 
-from models import AuthData
-from models import ChallengeOut, ChallengeNew, Task, UserRole
-from services import AdminService, PlayerService, AuthService
+from api_models import *
+from auth_service import AuthService
+from admin_service import AdminService
+from player_service import PlayerService
 from mangum import Mangum
 from sqlalchemy.orm import Session
 from database import get_db_session
@@ -39,23 +41,23 @@ admin = APIRouter(
 )
 
 # admin endpoints
-@admin.get("/challenges", response_model=list[ChallengeOut])
+@admin.get("/challenges", response_model=list[Challenge])
 def get_challenges(admin_service: AdminService = Depends(get_admin_service)):
     return admin_service.get_all_challenges()
 
-@admin.post("/challenges", response_model=ChallengeOut)
-def create_challenge(new_challenge: ChallengeNew, admin_service: AdminService = Depends(get_admin_service)):
+@admin.post("/challenges", response_model=Challenge)
+def create_challenge(new_challenge: ChallengeCreateRequest, admin_service: AdminService = Depends(get_admin_service)):
     return admin_service.create_challenge(new_challenge.title, new_challenge.description)
 
-@admin.get("/challenges/{challenge_id}", response_model=ChallengeOut)
+@admin.get("/challenges/{challenge_id}", response_model=Challenge)
 def get_challenge(challenge_id: int, admin_service: AdminService = Depends(get_admin_service)):
     challenge = admin_service.get_challenge(challenge_id)
     if challenge is None:
         raise HTTPException(status_code=404, detail="Challenge not found")
     return challenge
 
-@admin.put("/challenges/{challenge_id}", response_model=ChallengeOut)
-def update_challenge(challenge_id: int, updated_challenge: ChallengeNew, admin_service: AdminService = Depends(get_admin_service)):
+@admin.put("/challenges/{challenge_id}", response_model=Challenge)
+def update_challenge(challenge_id: int, updated_challenge: ChallengeCreateRequest, admin_service: AdminService = Depends(get_admin_service)):
     updated = admin_service.update_challenge(challenge_id, updated_challenge.title, updated_challenge.description)
     if updated is None:
         raise HTTPException(status_code=404, detail="Challenge not found")
@@ -76,6 +78,15 @@ player = APIRouter(
 )
 
 # player endpoints
+@player.get("/team", response_model=Team)
+def get_team(auth_data: AuthData = Depends(authenticate_player), player_service: PlayerService = Depends(get_player_service)):
+    team = player_service.get_team(auth_data.team_id)
+    if team is None:
+        raise HTTPException(status_code=404, detail="Team not found")
+
+    return team
+
+
 @player.get("/tasks/{task_id}")
 def get_task(task_id: int, auth_data: AuthData = Depends(authenticate_player), player_service: PlayerService = Depends(get_player_service)):
     task = player_service.get_task(task_id)
@@ -87,8 +98,8 @@ def get_task(task_id: int, auth_data: AuthData = Depends(authenticate_player), p
     return task
 
 @player.post("/tasks")
-def create_task(new_task: Task, auth_data: AuthData = Depends(authenticate_player), player_service: PlayerService = Depends(get_player_service)):
-    return player_service.create_task(auth_data.challenge_id, new_task.title, new_task.status)
+def create_task(task_type: Optional[str], auth_data: AuthData = Depends(authenticate_player), player_service: PlayerService = Depends(get_player_service)):
+    return player_service.create_task(auth_data.challenge_id, auth_data.team_id, task_type)
 
 app = FastAPI(title="Teamwork Challenge API",
               description="API for managing teamwork challenges and tasks",
@@ -99,3 +110,12 @@ app.include_router(player)
 # Create handler for AWS Lambda
 
 handler = Mangum(app, lifespan="off")
+
+
+if __name__ == "__main__":
+    uvicorn.run(
+        "main:app",
+        reload=True,
+        reload_dirs=[".", "../api_models"],
+        port=8000,
+    )

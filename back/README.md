@@ -16,7 +16,7 @@ The backend is built with FastAPI, a modern, high-performance web framework for 
 
 1. Install the dependencies to be able to build and run the API:
    ```bash
-   pip install -r requirements.txt
+   pip install -r requirements-dev.txt
    ```
 2. Install AWS CLI. https://aws.amazon.com/cli/
 3. Ask AWS admin for Access Key Name, Access Key Secret and Region Name. Use them to configure AWS CLI:
@@ -39,7 +39,7 @@ Public deployment: https://93a6a2ehkb.execute-api.eu-north-1.amazonaws.com/docs
 In the `back\` directory:
 
    ```bash
-   uvicorn main:app --reload
+   python main.py
    ```
 
 Once running, you can access:

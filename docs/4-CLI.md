@@ -10,7 +10,6 @@ All commands respect the API key in `~/.challenge/config.json`;
 ```
 challenge login <API_KEY>            # store key into config file after successful login
 challenge logout
-challenge whoami                     # show team id, name
 ```
 
 ## As Player

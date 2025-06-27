@@ -1,43 +1,55 @@
 from dataclasses import dataclass
+from pydantic import BaseModel
 from typing import Dict, List, Optional, Any
-from datetime import datetime
+from enum import Enum
 
-@dataclass
-class Team:
-    """Team information."""
-    id: str
+class UserRole(str, Enum):
+    ADMIN = "admin"
+    PLAYER = "player"
+
+class AuthData(BaseModel):
+    key: str
+    role: UserRole
+    team_id: Optional[int] = None
+    challenge_id: Optional[int] = None
+
+
+class Challenge(BaseModel):
+    id: int
+    title: str
+    description: str
+    current_round_id: Optional[int] = None
+
+    class Config:
+        from_attributes = True
+
+class ChallengeCreateRequest(BaseModel):
+    title: str
+    description: str
+
+    class Config:
+        from_attributes = True
+
+class Task(BaseModel):
+    title: str
+    status: str = "PENDING"
+
+    class Config:
+        from_attributes = True
+
+
+class Team(BaseModel):
+    id: int
     name: str
-    member_count: int = 0
+    members: str
+    api_key: str
+    challenge_id: int
 
-    @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> 'Team':
-        """Create a Team instance from a dictionary."""
-        return cls(
-            id=data.get('id', 'N/A'),
-            name=data.get('name', 'N/A'),
-            member_count=data.get('member_count', 0)
-        )
+    class Config:
+        from_attributes = True
 
 
-@dataclass
-class Challenge:
-    """Challenge information."""
-    name: str
-    status: str
-    current_round: int
-    total_rounds: int
-
-    @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> 'Challenge':
-        """Create a Challenge instance from a dictionary."""
-        return cls(
-            name=data.get('name', 'N/A'),
-            status=data.get('status', 'N/A'),
-            current_round=data.get('current_round', 0),
-            total_rounds=data.get('total_rounds', 0)
-        )
-
-
+# TODO: Convert dataclass models ↓ to pydantic models as above ↑
 @dataclass
 class Round:
     """Round information."""

@@ -1,71 +1,34 @@
 #!/usr/bin/env python3
-"""
-Test script for the Teamwork Challenge CLI.
+from typer.testing import CliRunner, Result
+from main import app
 
-This script tests the basic functionality of the CLI by importing it
-and calling its functions directly, rather than through the command line.
+runner = CliRunner()
 
-Run this script with:
-    python test_cli.py
-"""
+def test_login_ok():
+    login_team1()
 
-import sys
-from io import StringIO
-from contextlib import redirect_stdout
+def test_login_fail():
+    result = runner.invoke(app, ["login", "team1123123"])
+    assert result.exit_code != 0
 
-# Import the CLI app
-from main import app, login, whoami, team_show, round_list, task_claim, task_list, board_leaderboard
+def test_team_show_ok():
+    login_team1()
+    result = run_ok("team", "show")
+    assert "Team 1" in result.output
 
-def test_function(func, *args, **kwargs):
-    """Test a CLI function by capturing its output."""
-    print(f"\n=== Testing {func.__name__} ===")
-    
-    # Capture stdout
-    f = StringIO()
-    with redirect_stdout(f):
-        try:
-            # Call the function with the provided arguments
-            if args or kwargs:
-                func(*args, **kwargs)
-            else:
-                func()
-            result = "Success"
-        except Exception as e:
-            result = f"Error: {str(e)}"
-    
-    # Get the captured output
-    output = f.getvalue()
-    
-    print(f"Result: {result}")
-    if output:
-        print("Output:")
-        print(output)
+def test_list_show_ok():
+    login_team1()
+    result = run_ok("task", "list")
+    assert "Task" in result.output
 
-def main():
-    print("Testing Teamwork Challenge CLI...")
-    
-    # Test login
-    test_function(login, "test_api_key")
-    
-    # Test whoami
-    test_function(whoami)
-    
-    # Test team show
-    test_function(team_show)
-    
-    # Test round list
-    test_function(round_list)
-    
-    # Test task claim
-    test_function(task_claim, task_type="math")
-    
-    # Test task list
-    test_function(task_list)
-    
-    # Test board leaderboard
-    test_function(board_leaderboard)
-    
-    print("\nAll tests completed!")
 
-if __name__ == "__main__":
-    main()
+def login_team1() -> Result:
+    return run_ok("login", "team1")
+
+def run_ok(*args: str) -> Result:
+    result = runner.invoke(app, list(args))
+    if result.exit_code != 0:
+        print(f"Command failed with exit code {result.exit_code}")
+        print(f"Output: {result.output}")
+        assert False, f"Command failed with exit code {result.exit_code}"
+    return result

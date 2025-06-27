@@ -1,13 +1,13 @@
 import json
 import os
-import requests
-from typing import Dict, Any, Optional, List, Union
 from pathlib import Path
+from typing import Optional, Dict, Any
 
-from models import (
-    Team, Challenge, Round, Task, Submission, 
-    TaskList, Dashboard, Leaderboard, RoundList
-)
+import requests
+
+import api_models.api_models.models
+from api_models import *
+
 
 class ApiClient:
     """Client for interacting with the Teamwork Challenge API."""
@@ -20,7 +20,8 @@ class ApiClient:
             base_url: Base URL for the API. If not provided, uses the CHALLENGE_API_URL
                       environment variable or defaults to http://localhost:8000.
         """
-        self.base_url = base_url or os.environ.get("CHALLENGE_API_URL", "http://localhost:8000")
+        # TODO: Store base Url in the config, not in environment variable. Use the same config file as for the API key.
+        self.base_url = base_url or os.environ.get("CHALLENGE_API_URL", "http://127.0.0.1:8088")
         self.api_key = api_key
         self.config_path = Path.home() / ".challenge" / "config.json"
 
@@ -28,6 +29,7 @@ class ApiClient:
         if not self.api_key:
             self._load_api_key()
 
+    # TODO: Move api key storage outside of this class to separate ConfigManager or similar. ApiClient should focus on API interactions.
     def _load_api_key(self) -> None:
         """Load API key from config file."""
         if not self.config_path.exists():
@@ -58,56 +60,25 @@ class ApiClient:
         with open(self.config_path, "w") as f:
             json.dump(config, f)
 
-    def remove_api_key(self) -> bool:
-        """Remove API key from config file.
+    def remove_api_key(self):
+        with open(self.config_path) as f:
+            config = json.load(f)
 
-        Returns:
-            True if the API key was removed, False if it wasn't found
-        """
-        if not self.config_path.exists():
-            return False
+        if "api_key" in config:
+            del config["api_key"]
+            self.api_key = None
 
-        try:
-            with open(self.config_path) as f:
-                config = json.load(f)
+            with open(self.config_path, "w") as f:
+                json.dump(config, f)
 
-            if "api_key" in config:
-                del config["api_key"]
-                self.api_key = None
-
-                with open(self.config_path, "w") as f:
-                    json.dump(config, f)
-
-                return True
-            else:
-                return False
-        except (json.JSONDecodeError, FileNotFoundError):
-            return False
-
-    def validate_api_key(self, api_key: str) -> bool:
-        """Validate API key with the server.
-
-        Args:
-            api_key: API key to validate
-
-        Returns:
-            True if the API key is valid, False otherwise
-
-        Raises:
-            Exception: If the request fails
-        """
-        # In a real implementation, we would validate the API key with the server
-        # For now, we'll just return True
-        return True
-
-    def _get_headers(self) -> Dict[str, str]:
+    def _build_headers(self) -> Dict[str, str]:
         """Get headers for API requests."""
         headers = {"Content-Type": "application/json"}
         if self.api_key:
-            headers["API_KEY"] = self.api_key
+            headers["X-API-Key"] = self.api_key
         return headers
 
-    def _make_request(self, method: str, endpoint: str, data: Dict[str, Any] = None) -> Dict[str, Any]:
+    def _make_request(self, method: str, endpoint: str, data: Dict[str, Any] = None):
         """Make a request to the API.
 
         Args:
@@ -122,46 +93,44 @@ class ApiClient:
             Exception: If the request fails
         """
         url = f"{self.base_url}{endpoint}"
-        headers = self._get_headers()
 
-        try:
-            if method == "GET":
-                response = requests.get(url, headers=headers)
-            elif method == "POST":
-                response = requests.post(url, headers=headers, json=data)
-            elif method == "PUT":
-                response = requests.put(url, headers=headers, json=data)
-            elif method == "DELETE":
-                response = requests.delete(url, headers=headers)
-            else:
-                raise ValueError(f"Unsupported HTTP method: {method}")
+        # print(f"Making {method} request to {url} with data: {data}")
 
-            response.raise_for_status()
-            return response.json()
-        except requests.exceptions.RequestException as e:
-            # In a real implementation, we would handle different types of errors
-            # and provide more detailed error messages
-            if hasattr(e.response, 'json'):
-                try:
-                    error_data = e.response.json()
-                    error_message = error_data.get('detail', str(e))
-                except:
-                    error_message = str(e)
-            else:
-                error_message = str(e)
+        # TODO: Do not rebuild headers for every request, store them in an instance variable
+        headers = self._build_headers()
 
-            raise Exception(f"API request failed: {error_message}")
+        # TODO use requests.request(...) method to avoid `if` and code duplication
+        if method == "GET":
+            response = requests.get(url, headers=headers)
+        elif method == "POST":
+            response = requests.post(url, headers=headers, json=data)
+        elif method == "PUT":
+            response = requests.put(url, headers=headers, json=data)
+        elif method == "DELETE":
+            response = requests.delete(url, headers=headers)
+        else:
+            raise ValueError(f"Unsupported HTTP method: {method}")
+
+        response.raise_for_status()
+        return response.json()
+
 
     # Team-related methods
     def get_team_info(self) -> Team:
         """Get team information."""
         data = self._make_request("GET", "/team")
-        return Team.from_dict(data)
+        return Team.model_validate(data)
 
     def rename_team(self, new_name: str) -> Team:
         """Rename team."""
         data = self._make_request("PUT", "/team", {"name": new_name})
         return Team.from_dict(data)
+
+    # Challenge-related methods
+    def get_challenges(self) -> list[api_models.api_models.models.Challenge]:
+        """Get challenge information."""
+        data = self._make_request("GET", "/challenges")
+        return [Challenge.from_dict(d) for d in data]
 
     # Challenge-related methods
     def get_challenge_info(self) -> Challenge:
@@ -230,7 +199,7 @@ class ApiClient:
     # Board-related methods
     def get_dashboard(self, round_id: Optional[int] = None) -> Dashboard:
         """Get dashboard with task statistics."""
-        endpoint = "/board/dashboard"
+        endpoint = "/dashboard"
         if round_id:
             endpoint += f"?round_id={round_id}"
         data = self._make_request("GET", endpoint)
@@ -238,7 +207,7 @@ class ApiClient:
 
     def get_leaderboard(self, round_id: Optional[int] = None) -> Leaderboard:
         """Get leaderboard with team scores."""
-        endpoint = "/board/leaderboard"
+        endpoint = "/leaderboard"
         if round_id:
             endpoint += f"?round_id={round_id}"
         data = self._make_request("GET", endpoint)

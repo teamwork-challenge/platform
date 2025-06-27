@@ -1,9 +1,8 @@
 from database import get_db_engine
 from sqlalchemy import text
 from sqlalchemy.orm import Session
-import uuid
 
-from back.models_orm import Base, AdminKeys, Team, Challenge, Task
+from back.db_models import Base, AdminKeys, Team, Challenge, Task
 
 
 def test_connection():
@@ -57,7 +56,7 @@ def create_test_data():
         # Create 2 Teams
         team1 = Team(
             id=1,
-            api_key=admin_key1.api_key,
+            api_key="team1",
             challenge_id=challenge1.id,
             name="Test Team 1",
             members="Member 1, Member 2",
@@ -65,7 +64,7 @@ def create_test_data():
         )
         team2 = Team(
             id=2,
-            api_key=admin_key2.api_key,
+            api_key="team2",
             challenge_id=challenge2.id,
             name="Test Team 2",
             members="Member 3, Member 4",

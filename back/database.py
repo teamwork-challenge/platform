@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
 from typing import Generator
 
-from models_orm import Base
+from db_models import Base
 
 
 def get_connection_string():
