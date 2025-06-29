@@ -5,8 +5,9 @@ from typing import Optional, Dict, Any
 
 import requests
 
-import api_models.api_models.models
+import api_models.models
 from api_models import *
+from cli.config_manager import ConfigManager
 
 
 class ApiClient:
@@ -17,59 +18,35 @@ class ApiClient:
 
         Args:
             api_key: API key for authentication. If not provided, tries to load from config file.
-            base_url: Base URL for the API. If not provided, uses the CHALLENGE_API_URL
-                      environment variable or defaults to http://localhost:8000.
+            base_url: Base URL for the API. If not provided, uses the value from config file,
+                      or the CHALLENGE_API_URL environment variable, or defaults to http://127.0.0.1:8088.
         """
-        # TODO: Store base Url in the config, not in environment variable. Use the same config file as for the API key.
-        self.base_url = base_url or os.environ.get("CHALLENGE_API_URL", "http://127.0.0.1:8088")
+        self.config_manager = ConfigManager()
         self.api_key = api_key
-        self.config_path = Path.home() / ".challenge" / "config.json"
 
         # If api_key is not provided, try to load it from config file
         if not self.api_key:
-            self._load_api_key()
+            self.api_key = self.config_manager.get_api_key()
 
-    # TODO: Move api key storage outside of this class to separate ConfigManager or similar. ApiClient should focus on API interactions.
-    def _load_api_key(self) -> None:
-        """Load API key from config file."""
-        if not self.config_path.exists():
-            return
+        # Store base URL from provided value or from config
+        self.base_url = base_url or self.config_manager.get_base_url()
 
-        try:
-            with open(self.config_path) as f:
-                config = json.load(f)
-                self.api_key = config.get("api_key")
-        except (json.JSONDecodeError, FileNotFoundError):
-            pass
+        # Store headers as instance variable to avoid rebuilding for every request
+        self._headers = self._build_headers()
 
     def save_api_key(self, api_key: str) -> None:
         """Save API key to config file."""
-        self.config_path.parent.mkdir(parents=True, exist_ok=True)
-
-        config = {}
-        if self.config_path.exists():
-            try:
-                with open(self.config_path) as f:
-                    config = json.load(f)
-            except (json.JSONDecodeError, FileNotFoundError):
-                pass
-
-        config["api_key"] = api_key
+        self.config_manager.save_api_key(api_key)
         self.api_key = api_key
+        # Update headers with new API key
+        self._headers = self._build_headers()
 
-        with open(self.config_path, "w") as f:
-            json.dump(config, f)
-
-    def remove_api_key(self):
-        with open(self.config_path) as f:
-            config = json.load(f)
-
-        if "api_key" in config:
-            del config["api_key"]
-            self.api_key = None
-
-            with open(self.config_path, "w") as f:
-                json.dump(config, f)
+    def remove_api_key(self) -> None:
+        """Remove API key from config file."""
+        self.config_manager.remove_api_key()
+        self.api_key = None
+        # Update headers without API key
+        self._headers = self._build_headers()
 
     def _build_headers(self) -> Dict[str, str]:
         """Get headers for API requests."""
@@ -96,21 +73,12 @@ class ApiClient:
 
         # print(f"Making {method} request to {url} with data: {data}")
 
-        # TODO: Do not rebuild headers for every request, store them in an instance variable
-        headers = self._build_headers()
+        # Use the stored headers and requests.request method
+        kwargs = {"headers": self._headers}
+        if data is not None and method in ["POST", "PUT"]:
+            kwargs["json"] = data
 
-        # TODO use requests.request(...) method to avoid `if` and code duplication
-        if method == "GET":
-            response = requests.get(url, headers=headers)
-        elif method == "POST":
-            response = requests.post(url, headers=headers, json=data)
-        elif method == "PUT":
-            response = requests.put(url, headers=headers, json=data)
-        elif method == "DELETE":
-            response = requests.delete(url, headers=headers)
-        else:
-            raise ValueError(f"Unsupported HTTP method: {method}")
-
+        response = requests.request(method, url, **kwargs)
         response.raise_for_status()
         return response.json()
 
@@ -127,7 +95,7 @@ class ApiClient:
         return Team.from_dict(data)
 
     # Challenge-related methods
-    def get_challenges(self) -> list[api_models.api_models.models.Challenge]:
+    def get_challenges(self) -> list[api_models.models.Challenge]:
         """Get challenge information."""
         data = self._make_request("GET", "/challenges")
         return [Challenge.from_dict(d) for d in data]
