@@ -1,34 +1,71 @@
-# DRAFT: Task generators and validator API
+# Task Generators and Validator API
 
-Task generator is a set of HTTP handlers published as AWS Lambda.
+## Overview
 
-It authorizates all requests with SECRET_KEY header.
+Task generators are AWS Lambda microservices that create, validate, and score tasks. Each task type has its own generator that operates independently from the main platform via a defined API, providing:
+- Isolation of task-specific logic
+- Independent scaling
+- Support for various task complexities
+- Enhanced security
+
+## Authentication
+
+All requests require a `SECRET_KEY` header for authorization.
+
+## Task Settings
+
+Task settings are configured by admins at the round level and include:
+- Generator URL
+- Task Type Code
+- Difficulty Parameters (1-5 scale)
+- Scoring Rules (base points and decay method)
+- Time Allocation
+
+These settings are passed to the generator via the `task-settings` field in the `/gen` endpoint request.
+
+## Statement Versions
+
+Task generators support multiple statement versions for:
+- Progressive disclosure of task details
+- Different difficulty levels
+- Adaptive learning
+- Hint systems
+
+The platform decides which version to show based on round configuration and team progress.
+
+## API Endpoints
 
 ### GET `/statements`
+Returns available statement versions.
 
-Run by the platform ones when round is created.
-
-Output:
 ```json
 {
-	"v1": "...",
-	"v2": "...",
+	"v1": "Basic task description",
+	"v2": "Detailed description with examples",
+	"v3": "Comprehensive description with hints"
 }
 ```
 
 ### POST `/gen`
-
-Generates new task.
+Generates a new task when claimed by a team.
 
 Input:
 ```json
 {
-	"challenge": "{challenge-id}",
-	"team": "{team-id}",
-	"round": "{round-id}",
-	"round-start-at": "",
-	"round-duration": "",
-	"task-settings": ""
+	"challenge": "challenge-123",
+	"team": "team-456",
+	"round": "round-789",
+	"round-start-at": "2023-10-15T14:00:00Z",
+	"round-duration": "14400",  // 4 hours in seconds
+	"task-settings": {
+		"type": "string_processing",
+		"difficulty": 3,  // 1-5 scale
+		"format": "json",
+		"scoring": {
+			"base": 100,
+			"decay": "linear"  // "linear"|"none"
+		}
+	}
 }
 ```
 
@@ -36,22 +73,21 @@ Output:
 ```json
 {
 	"statement-version": "v1",
-	"value": "100",
-	"input": "",
-	"checker-hint": ""
+	"value": 100,  // Base points
+	"input": "{'array': [2, 8, 1, 9, 5], 'target': 10}",
+	"checker-hint": [[0,1], [2,3]]  // Correct answer
 }
 ```
 
-### POST /check
-
-Checks the correctness of the solution.
+### POST `/check`
+Validates a solution and assigns a score.
 
 Input:
 ```json
 {
-	"input": "",
-	"checker-hint": "",
-	"answer": ""
+	"input": "{'array': [2, 8, 1, 9, 5], 'target': 10}",
+	"checker-hint": [[0,1], [2,3]],
+	"answer": "[[1, 2], [3, 4]]"  // Team's solution
 }
 ```
 
@@ -59,14 +95,11 @@ Output:
 ```json
 [
 	{
-		"task-id": "",
-		"status": "{AC|WA}",
-		"score": 1.0,
-		"error": ""
+		"task-id": "task-123",
+		"status": "AC",  // AC (Accepted) or WA (Wrong Answer)
+		"score": 100,
+		"error": ""  // For WA status only
 	}
 ]
 ```
 
-- task-id is optional. It can be used to give score to other tasks of other teams.
-- score is optional. It can be used to give partial score.
-- error is present for WA status only.

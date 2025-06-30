@@ -10,13 +10,14 @@ Authentication determines roles: admin or player and a challenge.
 ## Endpoints for Players
 
 ```
-GET|PUT /teams/me
+GET | PUT /teams/me
 GET /rounds
-GET /tasks?round={id}[&type={type}&status={status}] - dashboard
-POST /tasks?round={id}[&type={task-type}] - claim task
-GET  /tasks/{id}
-POST /tasks/{id}/answer - submit solution
-GET /rounds/{id}/leaderboard
+GET /tasks/{id} – Get full details of a specific task (Task)
+GET /tasks?round={id}[&type={type}&status={status}] – Get tasks filtered by type and status (Task List)
+GET /tasks?round={id} – Get all team tasks for a round (Dashboard)
+GET /rounds/{id}/leaderboard – Get leaderboard for a specific round (Leaderboard)
+POST /tasks?round={id}[&type={task-type}] – Claim Task
+POST /tasks/{id}/answer – Submit Solution
 ```
 
 Note: teamId and challengeId is defined by authentication and filters and validators applied when it make sense.
