@@ -7,12 +7,14 @@ import requests
 
 import api_models.models
 from api_models import *
-from cli.config_manager import ConfigManager
+from config_manager import ConfigManager
 
 
 class ApiClient:
     """Client for interacting with the Teamwork Challenge API."""
 
+    # TODO: do not create a new ConfigManager instance inside ApiClient. Pass its instance to the ApiClient constructor.
+    # TODO: remove api_key and base_url from the constructor and from the fields. Use ConfigManager to get them.
     def __init__(self, api_key: Optional[str] = None, base_url: Optional[str] = None):
         """Initialize the API client.
 
@@ -72,13 +74,7 @@ class ApiClient:
         url = f"{self.base_url}{endpoint}"
 
         # print(f"Making {method} request to {url} with data: {data}")
-
-        # Use the stored headers and requests.request method
-        kwargs = {"headers": self._headers}
-        if data is not None and method in ["POST", "PUT"]:
-            kwargs["json"] = data
-
-        response = requests.request(method, url, **kwargs)
+        response = requests.request(method, url, headers=self._headers, json=data)
         response.raise_for_status()
         return response.json()
 

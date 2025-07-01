@@ -117,5 +117,5 @@ if __name__ == "__main__":
         "main:app",
         reload=True,
         reload_dirs=[".", "../api_models"],
-        port=8000,
+        port=8088,
     )
