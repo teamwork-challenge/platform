@@ -1,4 +1,33 @@
+# PyCharm-specific
+.idea/**/shelf/
+.idea/**/workspace.xml
+.idea/**/tasks.xml
+.idea/**/usage.statistics.xml
+.idea/**/dataSources/
+.idea/**/dataSources.ids
+.idea/**/dataSources.local.xml
+.idea/**/sqlDataSources.xml
+.idea/**/dynamic.xml
+.idea/**/uiDesigner.xml
+.idea/**/dataViews.xml
+.idea/httpRequests/
+
+# Python-specific
+__pycache__/
 *.pyc
-__pycache__
+*.pyo
+*.pyd
+*.pytest_cache/
+*.coverage
+.cache/
+.mypy_cache/
+.tox/
+dist/
+build/
+*.egg-info/
 venv
 .aws-sam
+
+# OS-specific
+.DS_Store
+Thumbs.db

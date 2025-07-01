@@ -60,6 +60,15 @@ Leaderboard – a Round-specific or Challenge-wide ranking that orders Teams by 
 - score-decay: no|linear
 - task-types — visible after round started.
 
+### RoundTaskType
+
+- id
+- round-id
+- type — task-type code
+- generator_url — URL of the task generator API
+- generator_settings — JSON object with settings for the task generator
+- generator_secret — secret key for the task generator API
+
 ### Challenge
 
 - id

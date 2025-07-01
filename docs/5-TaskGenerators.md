@@ -1,93 +1,78 @@
-# Task Generators and Validator API
+# Task generators and validator API
 
-## Overview
+Task generator is a set of HTTP handlers published as AWS Lambda.
 
-Task generators are AWS Lambda microservices that create, validate, and score tasks. Each task type has its own generator that operates independently from the main platform via a defined API, providing:
-- Isolation of task-specific logic
-- Independent scaling
-- Support for various task complexities
-- Enhanced security
 
 ## Authentication
 
-All requests require a `SECRET_KEY` header for authorization.
+All requests require a `X-API-Key` header for authorization.
 
-## Task Settings
+Known secret keys are stored in AWS Secrets Manager.
 
-Task settings are configured by admins at the round level and include:
-- Generator URL
-- Task Type Code
-- Difficulty Parameters (1-5 scale)
-- Scoring Rules (base points and decay method)
-- Time Allocation
-
-These settings are passed to the generator via the `task-settings` field in the `/gen` endpoint request.
-
-## Statement Versions
-
-Task generators support multiple statement versions for:
-- Progressive disclosure of task details
-- Different difficulty levels
-- Adaptive learning
-- Hint systems
-
-The platform decides which version to show based on round configuration and team progress.
-
-## API Endpoints
 
 ### GET `/statements`
-Returns available statement versions.
 
+Run by the platform ones when round is created.
+
+Output:
 ```json
 {
-	"v1": "Basic task description",
-	"v2": "Detailed description with examples",
-	"v3": "Comprehensive description with hints"
+	"v1": "Initial version of the statement",
+	"v2": "More complicated version of the statement for the same generator. May be used to provide more complex tasks in later in the round, or in the next rounds",
+    "v3": "Even more complicated version of the statement for the same generator. May be used to provide even more complex tasks in later in the round, or in the next rounds"
+  
 }
 ```
 
 ### POST `/gen`
-Generates a new task when claimed by a team.
+
+Generates new task.
 
 Input:
 ```json
 {
-	"challenge": "challenge-123",
-	"team": "team-456",
-	"round": "round-789",
-	"round-start-at": "2023-10-15T14:00:00Z",
-	"round-duration": "14400",  // 4 hours in seconds
-	"task-settings": {
-		"type": "string_processing",
-		"difficulty": 3,  // 1-5 scale
-		"format": "json",
-		"scoring": {
-			"base": 100,
-			"decay": "linear"  // "linear"|"none"
-		}
-	}
+	"challenge": "{challenge-id}",
+	"team": "{team-id}",
+	"round": "{round-id}",
+	"progress": {
+        "task-index": 0,
+        "task-count": 100,
+        "elapsed-time": 0,
+        "total-time": 0
+    },
+	"task-settings": "complication1:20,complication2:50,complication3:60"
 }
 ```
+
+#### Task Settings
+
+Is specific for each task generator and can be used to pass additional parameters to the task generator.
+It can be used to control the complexity of the task, and moments, when the complexity should be increased.
+
+In the example above `"complication1:20,complication2:50,complication3:60"` may be used by the generator to decide that 
+the first tasks should be simple, but starting with the 20-th task a complication1 should be used to generate tasks, starting with 50 complication2 should be used also and so on.
+
 
 Output:
 ```json
 {
 	"statement-version": "v1",
-	"value": 100,  // Base points
-	"input": "{'array': [2, 8, 1, 9, 5], 'target': 10}",
-	"checker-hint": [[0,1], [2,3]]  // Correct answer
+	"score": 100,
+	"input": "",
+	"checker-hint": ""
 }
 ```
 
-### POST `/check`
-Validates a solution and assigns a score.
+### POST /check
+
+Checks the correctness of the solution.
 
 Input:
 ```json
 {
-	"input": "{'array': [2, 8, 1, 9, 5], 'target': 10}",
-	"checker-hint": [[0,1], [2,3]],
-	"answer": "[[1, 2], [3, 4]]"  // Team's solution
+	"input": "",
+	"checker-hint": "",
+	"answer": ""
 }
 ```
 
@@ -95,11 +80,14 @@ Output:
 ```json
 [
 	{
-		"task-id": "task-123",
-		"status": "AC",  // AC (Accepted) or WA (Wrong Answer)
+		"task-id": "",
+		"status": "{AC|WA}",
 		"score": 100,
-		"error": ""  // For WA status only
+		"error": ""
 	}
 ]
 ```
 
+- task-id is optional. It can be used to give score to other tasks of other teams for non-typical collaborative tasks.
+- score is optional. It can be used to give a partial score.
+- error is present for WA status only.

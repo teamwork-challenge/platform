@@ -1,0 +1,40 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  Teamwork Challenge Task Generators
+
+Globals:
+  Function:
+    Timeout: 30
+    MemorySize: 128
+    Runtime: python3.9
+    Architectures:
+      - x86_64
+
+Resources:
+  TaskGeneratorsFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ./
+      Handler: main.handler
+      Events:
+        ApiEvent:
+          Type: Api
+          Properties:
+            Path: /{proxy+}
+            Method: ANY
+      Environment:
+        Variables:
+          STAGE: !Ref AWS::StackName
+          API_KEY_SECRET_NAME: teamwork-challenge-api-key
+      Policies:
+        - SecretsManagerReadWrite:
+            SecretArn: !Sub "arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:teamwork-challenge-api-key-*"
+
+Outputs:
+  TaskGeneratorsApi:
+    Description: "API Gateway endpoint URL for Prod stage for Task Generators function"
+    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/"
+  TaskGeneratorsFunction:
+    Description: "Task Generators Lambda Function ARN"
+    Value: !GetAtt TaskGeneratorsFunction.Arn
