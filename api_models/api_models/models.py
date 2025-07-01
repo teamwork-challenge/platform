@@ -49,6 +49,23 @@ class Team(BaseModel):
         from_attributes = True
 
 
+class TeamApiKeyCreateRequest(BaseModel):
+    team_id: int
+    challenge_id: int
+
+    class Config:
+        from_attributes = True
+
+
+class TeamApiKeyResponse(BaseModel):
+    team_id: int
+    challenge_id: int
+    api_key: str
+
+    class Config:
+        from_attributes = True
+
+
 # TODO: Convert dataclass models ↓ to pydantic models as above ↑
 @dataclass
 class Round:
@@ -115,7 +132,7 @@ class Task:
         submissions = []
         if 'submissions' in data:
             submissions = [Submission.from_dict(s) for s in data.get('submissions', [])]
-        
+
         return cls(
             id=data.get('id', 'N/A'),
             type=data.get('type', 'N/A'),
@@ -174,7 +191,7 @@ class Dashboard:
         stats = {}
         for task_type, type_stats in data.get('stats', {}).items():
             stats[task_type] = TypeStats.from_dict(type_stats)
-        
+
         return cls(
             round_id=data.get('round_id', 0),
             stats=stats

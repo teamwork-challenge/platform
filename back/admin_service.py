@@ -1,7 +1,8 @@
 from sqlalchemy import select
 from sqlalchemy.orm import Session
+import uuid
 
-from db_models import Challenge
+from db_models import Challenge, Team
 
 
 class AdminService:
@@ -42,3 +43,21 @@ class AdminService:
             self.db.commit()
             return challenge
         return None
+
+    def create_team_api_key(self, team_id: int, challenge_id: int):
+        # Check if the team exists
+        stmt = select(Team).where(Team.id == team_id, Team.challenge_id == challenge_id)
+        team = self.db.execute(stmt).scalar_one_or_none()
+
+        if team is None:
+            return None
+
+        # Generate a new API key
+        new_api_key = str(uuid.uuid4())
+
+        # Update the team's API key
+        team.api_key = new_api_key
+        self.db.commit()
+        self.db.refresh(team)
+
+        return team

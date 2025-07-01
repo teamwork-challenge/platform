@@ -3,6 +3,7 @@ from fastapi import FastAPI, APIRouter, HTTPException, Depends
 from fastapi.security import APIKeyHeader
 
 from api_models import *
+from api_models.models import TeamApiKeyCreateRequest, TeamApiKeyResponse
 from auth_service import AuthService
 from admin_service import AdminService
 from player_service import PlayerService
@@ -69,6 +70,13 @@ def delete_challenge(challenge_id: int, admin_service: AdminService = Depends(ge
     if deleted is None:
         raise HTTPException(status_code=404, detail="No challenges to delete")
     return {"message": "Challenge deleted", "deleted_challenge": deleted}
+
+@admin.post("/teams/api-key", response_model=TeamApiKeyResponse)
+def create_team_api_key(request: TeamApiKeyCreateRequest, admin_service: AdminService = Depends(get_admin_service)):
+    team = admin_service.create_team_api_key(request.team_id, request.challenge_id)
+    if team is None:
+        raise HTTPException(status_code=404, detail="Team not found")
+    return TeamApiKeyResponse(team_id=team.id, challenge_id=team.challenge_id, api_key=team.api_key)
 
 
 player = APIRouter(
