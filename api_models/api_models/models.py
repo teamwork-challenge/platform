@@ -3,9 +3,11 @@ from pydantic import BaseModel
 from typing import Dict, List, Optional, Any
 from enum import Enum
 
+
 class UserRole(str, Enum):
     ADMIN = "admin"
     PLAYER = "player"
+
 
 class AuthData(BaseModel):
     key: str
@@ -23,12 +25,14 @@ class Challenge(BaseModel):
     class Config:
         from_attributes = True
 
+
 class ChallengeCreateRequest(BaseModel):
     title: str
     description: str
 
     class Config:
         from_attributes = True
+
 
 class Task(BaseModel):
     title: str
@@ -66,25 +70,48 @@ class TeamApiKeyResponse(BaseModel):
         from_attributes = True
 
 
-# TODO: Convert dataclass models ↓ to pydantic models as above ↑
-@dataclass
-class Round:
+class Round(BaseModel):
     """Round information."""
     id: int
     status: str
     start_time: str
     end_time: str
-    tasks_available: int
+    task_generator: Optional[str] = None
+    task_settings: Optional[str] = None
+
+    class Config:
+        from_attributes = True
+
+
+class RoundCreateRequest(BaseModel):
+    """Request to create a new round."""
+    challenge_id: int
+    status: str = "PENDING"
+    start_time: str
+    end_time: str
+    task_generator: Optional[str] = None
+    task_settings: Optional[str] = None
+
+    class Config:
+        from_attributes = True
+
+
+@dataclass
+class RoundOld:
+    """Round information."""
+    id: int
+    status: str
+    start_time: str
+    end_time: str
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> 'Round':
+    def from_dict(cls, data: Dict[str, Any]) -> 'RoundOld':
         """Create a Round instance from a dictionary."""
         return cls(
             id=data.get('id', 0),
             status=data.get('status', 'N/A'),
             start_time=data.get('start_time', 'N/A'),
-            end_time=data.get('end_time', 'N/A'),
-            tasks_available=data.get('tasks_available', 0)
+            end_time=data.get('end_time', 'N/A')
         )
 
 
