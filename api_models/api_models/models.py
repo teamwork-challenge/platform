@@ -4,6 +4,7 @@ from typing import Dict, List, Optional, Any
 from enum import Enum
 
 
+
 class UserRole(str, Enum):
     ADMIN = "admin"
     PLAYER = "player"
@@ -44,27 +45,28 @@ class Task(BaseModel):
 
 class Team(BaseModel):
     id: int
+    challenge_id: int
     name: str
     members: str
+    captain_contact: str
     api_key: str
-    challenge_id: int
+    total_score: int
 
     class Config:
         from_attributes = True
 
 
-class TeamApiKeyCreateRequest(BaseModel):
-    team_id: int
+class TeamCSVImportRequest(BaseModel):
     challenge_id: int
+    csv_content: str
 
     class Config:
         from_attributes = True
 
 
-class TeamApiKeyResponse(BaseModel):
-    team_id: int
+class TeamCSVImportResponse(BaseModel):
     challenge_id: int
-    api_key: str
+    teams: List[Dict[str, str]]
 
     class Config:
         from_attributes = True
@@ -73,7 +75,6 @@ class TeamApiKeyResponse(BaseModel):
 class Round(BaseModel):
     """Round information."""
     id: int
-    status: str
     start_time: str
     end_time: str
     task_generator: Optional[str] = None
@@ -86,7 +87,6 @@ class Round(BaseModel):
 class RoundCreateRequest(BaseModel):
     """Request to create a new round."""
     challenge_id: int
-    status: str = "PENDING"
     start_time: str
     end_time: str
     task_generator: Optional[str] = None

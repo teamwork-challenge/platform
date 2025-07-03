@@ -1,6 +1,8 @@
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 import uuid
+import csv
+from io import StringIO
 
 from db_models import Challenge, Team, Round
 
@@ -43,23 +45,62 @@ class AdminService:
             return challenge
         return None
 
-    def create_team_api_key(self, team_id: int, challenge_id: int):
-        stmt = select(Team).where(Team.id == team_id, Team.challenge_id == challenge_id)
-        team = self.db.execute(stmt).scalar_one_or_none()
 
-        if team is None:
+    def create_teams(self, challenge_id: int, csv_content: str):
+        """
+        CSV format:
+        Team name, List of participants, Captain's Contact
+        """
+        stmt = select(Challenge).where(Challenge.id == challenge_id)
+        challenge = self.db.execute(stmt).scalar_one_or_none()
+
+        if challenge is None:
             return None
 
-        # Generate a new API key
-        new_api_key = str(uuid.uuid4())
+        csv_file = StringIO(csv_content)
+        csv_reader = csv.reader(csv_file)
 
-        team.api_key = new_api_key
+        created_teams = []
+
+        for row in csv_reader:
+            if len(row) < 3:
+                continue
+
+            team_name = row[0].strip()
+            members = row[1].strip()
+            captain_contact = row[2].strip()
+
+            # Generate a new API key
+            api_key = str(uuid.uuid4())
+
+            # Create a new team
+            team = Team(
+                api_key=api_key,
+                challenge_id=challenge_id,
+                name=team_name,
+                members=members,
+                captain_contact=captain_contact,
+                total_score=0
+            )
+
+            self.db.add(team)
+            self.db.flush()  # Flush to get the ID without committing
+
+            created_teams.append({
+                "team_id": team.id,
+                "challenge_id": challenge_id,
+                "name": team_name,
+                "api_key": api_key,
+                "members": members,
+                "captain_contact": captain_contact,
+            })
+
+        # Commit all changes
         self.db.commit()
-        self.db.refresh(team)
 
-        return team
+        return created_teams
 
-    def create_round(self, challenge_id: int, status: str, start_time: str, end_time: str, 
+    def create_round(self, challenge_id: int, start_time: str, end_time: str,
                      task_generator: str = None, task_settings: str = None):
         stmt = select(Challenge).where(Challenge.id == challenge_id)
         challenge = self.db.execute(stmt).scalar_one_or_none()
@@ -70,7 +111,6 @@ class AdminService:
         # Create a new round
         round = Round(
             challenge_id=challenge_id,
-            status=status,
             start_time=start_time,
             end_time=end_time,
             task_generator=task_generator,
@@ -91,7 +131,7 @@ class AdminService:
         stmt = select(Round).where(Round.challenge_id == challenge_id)
         return self.db.execute(stmt).scalars().all()
 
-    def update_round(self, round_id: int, status: str = None, start_time: str = None, 
+    def update_round(self, round_id: int, start_time: str = None,
                      end_time: str = None, task_generator: str = None, task_settings: str = None):
         stmt = select(Round).where(Round.id == round_id)
         round = self.db.execute(stmt).scalar_one_or_none()
@@ -99,8 +139,6 @@ class AdminService:
         if round is None:
             return None
 
-        if status is not None:
-            round.status = status
         if start_time is not None:
             round.start_time = start_time
         if end_time is not None:

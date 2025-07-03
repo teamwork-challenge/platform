@@ -25,6 +25,7 @@ class Team(Base):
     challenge_id: Mapped[int] = mapped_column(primary_key=True, index=True)
     name: Mapped[str] = mapped_column(nullable=False)
     members: Mapped[str] = mapped_column(nullable=False)
+    captain_contact: Mapped[str] = mapped_column(nullable=False)
     total_score: Mapped[int] = mapped_column(default=0, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
@@ -34,7 +35,6 @@ class Round(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
     challenge_id: Mapped[int] = mapped_column(nullable=False, index=True)
-    status: Mapped[str] = mapped_column(nullable=False, default="PENDING")
     start_time: Mapped[str] = mapped_column(nullable=False)
     end_time: Mapped[str] = mapped_column(nullable=False)
     task_generator: Mapped[str] = mapped_column(nullable=True)
