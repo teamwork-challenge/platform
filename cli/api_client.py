@@ -7,7 +7,8 @@ import requests
 
 import api_models.models
 from api_models import *
-from cli.config_manager import ConfigManager
+from config_manager import ConfigManager
+
 
 
 class ApiClient:
