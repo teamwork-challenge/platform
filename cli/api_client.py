@@ -13,25 +13,13 @@ from config_manager import ConfigManager
 class ApiClient:
     """Client for interacting with the Teamwork Challenge API."""
 
-    # TODO: do not create a new ConfigManager instance inside ApiClient. Pass its instance to the ApiClient constructor.
-    # TODO: remove api_key and base_url from the constructor and from the fields. Use ConfigManager to get them.
-    def __init__(self, api_key: Optional[str] = None, base_url: Optional[str] = None):
+    def __init__(self, config_manager: ConfigManager):
         """Initialize the API client.
 
         Args:
-            api_key: API key for authentication. If not provided, tries to load from config file.
-            base_url: Base URL for the API. If not provided, uses the value from config file,
-                      or the CHALLENGE_API_URL environment variable, or defaults to http://127.0.0.1:8088.
+            config_manager: Instance of ConfigManager for handling configuration.
         """
-        self.config_manager = ConfigManager()
-        self.api_key = api_key
-
-        # If api_key is not provided, try to load it from config file
-        if not self.api_key:
-            self.api_key = self.config_manager.get_api_key()
-
-        # Store base URL from provided value or from config
-        self.base_url = base_url or self.config_manager.get_base_url()
+        self.config_manager = config_manager
 
         # Store headers as instance variable to avoid rebuilding for every request
         self._headers = self._build_headers()
@@ -39,22 +27,21 @@ class ApiClient:
     def save_api_key(self, api_key: str) -> None:
         """Save API key to config file."""
         self.config_manager.save_api_key(api_key)
-        self.api_key = api_key
         # Update headers with new API key
         self._headers = self._build_headers()
 
     def remove_api_key(self) -> None:
         """Remove API key from config file."""
         self.config_manager.remove_api_key()
-        self.api_key = None
         # Update headers without API key
         self._headers = self._build_headers()
 
     def _build_headers(self) -> Dict[str, str]:
         """Get headers for API requests."""
         headers = {"Content-Type": "application/json"}
-        if self.api_key:
-            headers["X-API-Key"] = self.api_key
+        api_key = self.config_manager.get_api_key()
+        if api_key:
+            headers["X-API-Key"] = api_key
         return headers
 
     def _make_request(self, method: str, endpoint: str, data: Dict[str, Any] = None):
@@ -71,7 +58,8 @@ class ApiClient:
         Raises:
             Exception: If the request fails
         """
-        url = f"{self.base_url}{endpoint}"
+        base_url = self.config_manager.get_base_url()
+        url = f"{base_url}{endpoint}"
 
         # print(f"Making {method} request to {url} with data: {data}")
         response = requests.request(method, url, headers=self._headers, json=data)
