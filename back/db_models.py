@@ -35,10 +35,13 @@ class Round(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
     challenge_id: Mapped[int] = mapped_column(nullable=False, index=True)
+    index: Mapped[int] = mapped_column(nullable=False)
+    status: Mapped[str] = mapped_column(default="draft", nullable=False)
     start_time: Mapped[str] = mapped_column(nullable=False)
     end_time: Mapped[str] = mapped_column(nullable=False)
-    task_generator: Mapped[str] = mapped_column(nullable=True)
-    task_settings: Mapped[str] = mapped_column(nullable=True)
+    claim_by_type: Mapped[bool] = mapped_column(default=False, nullable=False)
+    allow_resubmit: Mapped[bool] = mapped_column(default=False, nullable=False)
+    score_decay: Mapped[str] = mapped_column(default="no", nullable=False)
 
 
 class Challenge(Base):
@@ -48,6 +51,17 @@ class Challenge(Base):
     title: Mapped[str] = mapped_column(nullable=False)
     description: Mapped[str] = mapped_column(nullable=False)
     current_round_id: Mapped[int | None] = mapped_column(nullable=True)
+
+
+class RoundTaskType(Base):
+    __tablename__ = "round_task_types"
+
+    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    round_id: Mapped[int] = mapped_column(nullable=False, index=True)
+    type: Mapped[str] = mapped_column(nullable=False)
+    generator_url: Mapped[str] = mapped_column(nullable=False)
+    generator_settings: Mapped[str] = mapped_column(nullable=True)
+    generator_secret: Mapped[str] = mapped_column(nullable=False)
 
 
 class Task(Base):

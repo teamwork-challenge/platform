@@ -4,7 +4,6 @@ from typing import Dict, List, Optional, Any
 from enum import Enum
 
 
-
 class UserRole(str, Enum):
     ADMIN = "admin"
     PLAYER = "player"
@@ -56,41 +55,79 @@ class Team(BaseModel):
         from_attributes = True
 
 
-class TeamCSVImportRequest(BaseModel):
+class TeamImportResponse(BaseModel):
     challenge_id: int
-    csv_content: str
+    teams: List[Team]
 
     class Config:
         from_attributes = True
 
 
-class TeamCSVImportResponse(BaseModel):
+class TeamRequest(BaseModel):
+    name: str
+    members: str
+    captain_contact: str
+
+    class Config:
+        from_attributes = True
+
+
+class TeamCreateRequest(BaseModel):
     challenge_id: int
-    teams: List[Dict[str, str]]
+    teams: List[TeamRequest]
+
+    class Config:
+        from_attributes = True
+
+
+class RoundTaskType(BaseModel):
+    id: int
+    round_id: int
+    type: str
+    generator_url: str
+    generator_settings: Optional[str] = None
+    generator_secret: str
 
     class Config:
         from_attributes = True
 
 
 class Round(BaseModel):
-    """Round information."""
     id: int
+    challenge_id: int
+    index: int
+    status: str = "draft"
     start_time: str
     end_time: str
-    task_generator: Optional[str] = None
-    task_settings: Optional[str] = None
+    claim_by_type: bool = False
+    allow_resubmit: bool = False
+    score_decay: str = "no"
+    task_types: Optional[List[RoundTaskType]] = None
 
     class Config:
         from_attributes = True
 
 
 class RoundCreateRequest(BaseModel):
-    """Request to create a new round."""
     challenge_id: int
+    index: int
     start_time: str
     end_time: str
-    task_generator: Optional[str] = None
-    task_settings: Optional[str] = None
+    claim_by_type: bool = False
+    allow_resubmit: bool = False
+    score_decay: str = "no"
+    status: str = "draft"
+
+    class Config:
+        from_attributes = True
+
+
+class RoundTaskTypeCreateRequest(BaseModel):
+    round_id: int
+    type: str
+    generator_url: str
+    generator_settings: Optional[str] = None
+    generator_secret: str
 
     class Config:
         from_attributes = True

@@ -3,7 +3,7 @@ from fastapi import FastAPI, APIRouter, HTTPException, Depends
 from fastapi.security import APIKeyHeader
 
 from api_models import *
-from api_models.models import  Round, RoundCreateRequest, TeamCSVImportRequest, TeamCSVImportResponse
+from api_models.models import Round, RoundCreateRequest, TeamImportResponse, TeamRequest, TeamCreateRequest, RoundTaskType, RoundTaskTypeCreateRequest
 from auth_service import AuthService
 from admin_service import AdminService
 from player_service import PlayerService
@@ -68,7 +68,7 @@ def delete_challenge(challenge_id: int, admin_service: AdminService = Depends(ge
     return {"message": "Challenge deleted", "deleted_challenge": deleted}
 
 
-@admin.get("/challenges/{challenge_id}", response_model=Challenge)
+@admin.get("/challenges/{id}", response_model=Challenge)
 def get_challenge(challenge_id: int, admin_service: AdminService = Depends(get_admin_service)):
     challenge = admin_service.get_challenge(challenge_id)
     if challenge is None:
@@ -76,7 +76,7 @@ def get_challenge(challenge_id: int, admin_service: AdminService = Depends(get_a
     return challenge
 
 
-@admin.put("/challenges/{challenge_id}", response_model=Challenge)
+@admin.put("/challenges/{id}", response_model=Challenge)
 def update_challenge(challenge_id: int, updated_challenge: ChallengeCreateRequest, admin_service: AdminService = Depends(get_admin_service)):
     updated = admin_service.update_challenge(challenge_id, updated_challenge.title, updated_challenge.description)
     if updated is None:
@@ -84,16 +84,21 @@ def update_challenge(challenge_id: int, updated_challenge: ChallengeCreateReques
     return {"message": "Challenge updated", "challenge": updated}
 
 
-@admin.get("/challenges/{challenge_id}/rounds", response_model=list[Round])
+@admin.get("/rounds", response_model=list[Round])
 def get_rounds(challenge_id: int, admin_service: AdminService = Depends(get_admin_service)):
     challenge = admin_service.get_challenge(challenge_id)
     if challenge is None:
         raise HTTPException(status_code=404, detail="Challenge not found")
 
-    return admin_service.get_rounds_by_challenge(challenge_id)
+    rounds = admin_service.get_rounds_by_challenge(challenge_id)
+
+    for round in rounds:
+        round.task_types = admin_service.get_round_task_types_by_round(round.id)
+
+    return rounds
 
 
-@admin.get("/challenges/{challenge_id}/rounds/{round_id}", response_model=Round)
+@admin.get("/rounds/{id}", response_model=Round)
 def get_round(challenge_id: int, round_id: int, admin_service: AdminService = Depends(get_admin_service)):
     challenge = admin_service.get_challenge(challenge_id)
     if challenge is None:
@@ -106,15 +111,13 @@ def get_round(challenge_id: int, round_id: int, admin_service: AdminService = De
     if round.challenge_id != challenge_id:
         raise HTTPException(status_code=404, detail="Round not found for this challenge")
 
+    round.task_types = admin_service.get_round_task_types_by_round(round_id)
+
     return round
 
 
-@admin.put("/challenges/{challenge_id}/rounds/{round_id}", response_model=Round)
+@admin.put("/rounds/{id}", response_model=Round)
 def update_round(challenge_id: int, round_id: int, round_data: RoundCreateRequest, admin_service: AdminService = Depends(get_admin_service)):
-    challenge = admin_service.get_challenge(challenge_id)
-    if challenge is None:
-        raise HTTPException(status_code=404, detail="Challenge not found")
-
     round = admin_service.get_round(round_id)
     if round is None or round.challenge_id != challenge_id:
         raise HTTPException(status_code=404, detail="Round not found for this challenge")
@@ -123,23 +126,43 @@ def update_round(challenge_id: int, round_id: int, round_data: RoundCreateReques
         round_id=round_id,
         start_time=round_data.start_time,
         end_time=round_data.end_time,
-        task_generator=round_data.task_generator,
-        task_settings=round_data.task_settings
+        claim_by_type=round_data.claim_by_type,
+        allow_resubmit=round_data.allow_resubmit,
+        score_decay=round_data.score_decay,
+        status=round_data.status
     )
+
+    updated_round.task_types = admin_service.get_round_task_types_by_round(round_id)
 
     return updated_round
 
-@admin.post("/challenges/{challenge_id}/rounds/{round_id}", response_model=Round)
-def create_round(challenge_id: int, round_data: RoundCreateRequest, admin_service: AdminService = Depends(get_admin_service)):
-    if round_data.challenge_id != challenge_id:
-        raise HTTPException(status_code=400, detail="Challenge ID in path and body must match")
+
+@admin.delete("/rounds/{round_id}")
+def delete_round(round_id: int, admin_service: AdminService = Depends(get_admin_service)):
+    round = admin_service.get_round(round_id)
+    if round is None:
+        raise HTTPException(status_code=404, detail="Round not found")
+
+    deleted_round = admin_service.delete_round(round_id)
+
+    return {"message": "Round deleted", "round": deleted_round}
+
+
+@admin.post("/round", response_model=Round)
+def create_round(round_data: RoundCreateRequest, admin_service: AdminService = Depends(get_admin_service)):
+    challenge = admin_service.get_challenge(round_data.challenge_id)
+    if challenge is None:
+        raise HTTPException(status_code=404, detail="Challenge not found")
 
     round = admin_service.create_round(
         challenge_id=round_data.challenge_id,
+        index=round_data.index,
         start_time=round_data.start_time,
         end_time=round_data.end_time,
-        task_generator=round_data.task_generator,
-        task_settings=round_data.task_settings
+        claim_by_type=round_data.claim_by_type,
+        allow_resubmit=round_data.allow_resubmit,
+        score_decay=round_data.score_decay,
+        status=round_data.status
     )
 
     if round is None:
@@ -148,8 +171,8 @@ def create_round(challenge_id: int, round_data: RoundCreateRequest, admin_servic
     return round
 
 
-@admin.delete("/challenges/{challenge_id}/rounds/{round_id}")
-def delete_round(challenge_id: int, round_id: int, admin_service: AdminService = Depends(get_admin_service)):
+@admin.get("/task-types", response_model=list[RoundTaskType])
+def get_round_task_types(challenge_id: int, round_id: int, admin_service: AdminService = Depends(get_admin_service)):
     challenge = admin_service.get_challenge(challenge_id)
     if challenge is None:
         raise HTTPException(status_code=404, detail="Challenge not found")
@@ -158,17 +181,103 @@ def delete_round(challenge_id: int, round_id: int, admin_service: AdminService =
     if round is None or round.challenge_id != challenge_id:
         raise HTTPException(status_code=404, detail="Round not found for this challenge")
 
-    deleted_round = admin_service.delete_round(round_id)
-
-    return {"message": "Round deleted", "round": deleted_round}
+    return admin_service.get_round_task_types_by_round(round_id)
 
 
-@admin.post("/teams/import-csv", response_model=TeamCSVImportResponse)
-def import_teams_from_csv(request: TeamCSVImportRequest, admin_service: AdminService = Depends(get_admin_service)):
-    teams = admin_service.create_teams(request.challenge_id, request.csv_content)
-    if teams is None:
+@admin.get("/task-types/{id}", response_model=RoundTaskType)
+def get_round_task_type(challenge_id: int, round_id: int, task_type_id: int, admin_service: AdminService = Depends(get_admin_service)):
+    challenge = admin_service.get_challenge(challenge_id)
+    if challenge is None:
         raise HTTPException(status_code=404, detail="Challenge not found")
-    return TeamCSVImportResponse(challenge_id=request.challenge_id, teams=teams)
+
+    round = admin_service.get_round(round_id)
+    if round is None or round.challenge_id != challenge_id:
+        raise HTTPException(status_code=404, detail="Round not found for this challenge")
+
+    round_task_type = admin_service.get_round_task_type(task_type_id)
+    if round_task_type is None or round_task_type.round_id != round_id:
+        raise HTTPException(status_code=404, detail="Task type not found for this round")
+
+    return round_task_type
+
+
+@admin.put("/task-types/{id}", response_model=RoundTaskType)
+def update_round_task_type(challenge_id: int, round_id: int, task_type_id: int, task_type_data: RoundTaskTypeCreateRequest, admin_service: AdminService = Depends(get_admin_service)):
+    challenge = admin_service.get_challenge(challenge_id)
+    if challenge is None:
+        raise HTTPException(status_code=404, detail="Challenge not found")
+
+    round = admin_service.get_round(round_id)
+    if round is None or round.challenge_id != challenge_id:
+        raise HTTPException(status_code=404, detail="Round not found for this challenge")
+
+    round_task_type = admin_service.get_round_task_type(task_type_id)
+    if round_task_type is None or round_task_type.round_id != round_id:
+        raise HTTPException(status_code=404, detail="Task type not found for this round")
+
+    updated_round_task_type = admin_service.update_round_task_type(
+        round_task_type_id=task_type_id,
+        type=task_type_data.type,
+        generator_url=task_type_data.generator_url,
+        generator_settings=task_type_data.generator_settings,
+        generator_secret=task_type_data.generator_secret
+    )
+
+    return updated_round_task_type
+
+
+@admin.delete("/task-types/{id}")
+def delete_round_task_type(task_type_id: int, admin_service: AdminService = Depends(get_admin_service)):
+    round_task_type = admin_service.get_round_task_type(task_type_id)
+    if round_task_type is None:
+        raise HTTPException(status_code=404, detail="Task type not found")
+
+    deleted_round_task_type = admin_service.delete_round_task_type(task_type_id)
+
+    return {"message": "Task type deleted", "task_type": deleted_round_task_type}
+
+
+@admin.post("/task-type", response_model=RoundTaskType)
+def create_round_task_type(challenge_id: int, round_id: int, task_type_data: RoundTaskTypeCreateRequest, admin_service: AdminService = Depends(get_admin_service)):
+    challenge = admin_service.get_challenge(challenge_id)
+    if challenge is None:
+        raise HTTPException(status_code=404, detail="Challenge not found")
+
+    round = admin_service.get_round(round_id)
+    if round is None or round.challenge_id != challenge_id:
+        raise HTTPException(status_code=404, detail="Round not found for this challenge")
+
+    round_task_type = admin_service.create_round_task_type(
+        round_id=task_type_data.round_id,
+        type=task_type_data.type,
+        generator_url=task_type_data.generator_url,
+        generator_settings=task_type_data.generator_settings,
+        generator_secret=task_type_data.generator_secret
+    )
+
+    return round_task_type
+
+
+@admin.post("/teams", response_model=TeamImportResponse)
+def create_teams(request: TeamCreateRequest, admin_service: AdminService = Depends(get_admin_service)):
+    teams_data = admin_service.create_teams(request.challenge_id, request.teams)
+    if teams_data is None:
+        raise HTTPException(status_code=404, detail="Challenge not found")
+
+    # Convert the list of dictionaries to a list of Team objects
+    teams = []
+    for team_dict in teams_data:
+        teams.append(Team(
+            id=team_dict["team_id"],
+            challenge_id=team_dict["challenge_id"],
+            name=team_dict["name"],
+            api_key=team_dict["api_key"],
+            members=team_dict["members"],
+            captain_contact=team_dict["captain_contact"],
+            total_score=0
+        ))
+
+    return TeamImportResponse(challenge_id=request.challenge_id, teams=teams)
 
 
 player = APIRouter(
