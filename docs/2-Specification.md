@@ -38,7 +38,7 @@ Leaderboard – a Round-specific or Challenge-wide ranking that orders Teams by 
 
 1. As an admin, I want to set up new challenge.
 1. As an admin, I want to configure a round by preparing a task generator and settings.
-1. As an admin, I want to create API keys for each team.
+1. As an admin, I want to create an API key for each team.
 1. As an admin, I want to publish a round in the challenge, so that players can start it on time.
 1. As an admin, I want to watch a live log of submissions to spot issues early.
 1. As an admin, I want to impersonate any team.
@@ -51,8 +51,9 @@ Leaderboard – a Round-specific or Challenge-wide ranking that orders Teams by 
 ### Round
 
 - id
-- challengeId
+- challenge_id
 - index — order in challenge
+- status
 - start time
 - end time
 - claim-by-type: Boolean — should players specify task-type to claim new task?
@@ -63,7 +64,7 @@ Leaderboard – a Round-specific or Challenge-wide ranking that orders Teams by 
 ### RoundTaskType
 
 - id
-- round-id
+- round_id
 - type — task-type code
 - generator_url — URL of the task generator API
 - generator_settings — JSON object with settings for the task generator
