@@ -11,9 +11,9 @@ class ConfigManager:
         """Initialize the ConfigManager.
 
         Args:
-            config_path: Path to the config file. If not provided, uses ~/.challenge/config.json.
+            config_path: Path to the config file.
         """
-        self.config_path = config_path or Path.home() / ".challenge" / "config.json"
+        self.config_path = config_path
         self._config = self._load_config()
 
     def _load_config(self) -> Dict[str, Any]:
@@ -79,7 +79,7 @@ class ConfigManager:
 
     def get_base_url(self) -> str:
         """Get base URL from config or environment variable."""
-        return self.get("base_url") or os.environ.get("CHALLENGE_API_URL", "http://127.0.0.1:8088")
+        return os.environ.get("CHALLENGE_API_URL", "http://127.0.0.1:8088") or self.get("base_url")
 
     def save_base_url(self, base_url: str) -> None:
         """Save base URL to config."""

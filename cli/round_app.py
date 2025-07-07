@@ -1,5 +1,5 @@
 import typer
-from app_deps import api_client, json_output_option, console
+from app_deps import api_client, json_output_option, console, ensure_logged_in
 from typing import Optional
 from rich.table import Table
 from formatter import print_as_json
@@ -13,9 +13,7 @@ def round_show(
     json: bool = json_output_option
 ):
     """Show round information."""
-    if not api_client.api_key:
-        console.print("[red]Not logged in. Use 'challenge login <API_KEY>' to log in.[/red]")
-        raise typer.Exit(1)
+    ensure_logged_in()
 
     try:
         # Get round info from the API
@@ -41,9 +39,7 @@ def round_show(
 @round_app.command("list")
 def round_list(json: bool = json_output_option):
     """List all rounds."""
-    if not api_client.api_key:
-        console.print("[red]Not logged in. Use 'challenge login <API_KEY>' to log in.[/red]")
-        raise typer.Exit(1)
+    ensure_logged_in()
 
     try:
         # Get rounds from the API

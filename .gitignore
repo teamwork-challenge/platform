@@ -11,6 +11,7 @@
 .idea/**/uiDesigner.xml
 .idea/**/dataViews.xml
 .idea/httpRequests/
+.idea/misc.xml
 
 # Python-specific
 __pycache__/

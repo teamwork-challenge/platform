@@ -60,6 +60,7 @@ def create_test_data():
             challenge_id=challenge1.id,
             name="Test Team 1",
             members="Member 1, Member 2",
+            captain_contact="@xoposhiy",
             total_score=100
         )
         team2 = Team(
@@ -68,6 +69,7 @@ def create_test_data():
             challenge_id=challenge2.id,
             name="Test Team 2",
             members="Member 3, Member 4",
+            captain_contact="@xoposhiy",
             total_score=200
         )
         session.add_all([team1, team2])

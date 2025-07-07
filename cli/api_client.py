@@ -61,7 +61,7 @@ class ApiClient:
         base_url = self.config_manager.get_base_url()
         url = f"{base_url}{endpoint}"
 
-        # print(f"Making {method} request to {url} with data: {data}")
+        print(f"Making {method} request to {url} with data: {data}")
         response = requests.request(method, url, headers=self._headers, json=data)
         response.raise_for_status()
         return response.json()
@@ -76,26 +76,26 @@ class ApiClient:
     def rename_team(self, new_name: str) -> Team:
         """Rename team."""
         data = self._make_request("PUT", "/team", {"name": new_name})
-        return Team.from_dict(data)
+        return Team.model_validate(data)
 
     # Challenge-related methods
     def get_challenges(self) -> list[api_models.models.Challenge]:
         """Get challenge information."""
         data = self._make_request("GET", "/challenges")
-        return [Challenge.from_dict(d) for d in data]
+        return [Challenge.model_validate(d) for d in data]
 
     # Challenge-related methods
-    def get_challenge_info(self) -> Challenge:
+    def get_challenge_info(self, challenge_id: Optional[int]) -> Challenge:
         """Get challenge information."""
-        data = self._make_request("GET", "/challenge")
-        return Challenge.from_dict(data)
+        data = self._make_request("GET", f"/challenges/{challenge_id if challenge_id is not None else "current"}")
+        return Challenge.model_validate(data)
 
     # Round-related methods
     def get_round_info(self, round_id: Optional[int] = None) -> Round:
         """Get round information."""
         endpoint = f"/rounds/{round_id}" if round_id else "/rounds/current"
         data = self._make_request("GET", endpoint)
-        return Round.from_dict(data)
+        return Round.model_validate(data)
 
     def list_rounds(self) -> RoundList:
         """List all rounds."""

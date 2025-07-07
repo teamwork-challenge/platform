@@ -48,7 +48,6 @@ admin = APIRouter(
     dependencies=[Depends(authenticate_admin)]
 )
 
-
 # admin endpoints
 @admin.get("/challenges", response_model=list[Challenge])
 def get_challenges(admin_service: AdminService = Depends(get_admin_service)):
@@ -66,14 +65,6 @@ def delete_challenge(challenge_id: int, admin_service: AdminService = Depends(ge
     if deleted is None:
         raise HTTPException(status_code=404, detail="No challenges to delete")
     return {"message": "Challenge deleted", "deleted_challenge": deleted}
-
-
-@admin.get("/challenges/{id}", response_model=Challenge)
-def get_challenge(challenge_id: int, admin_service: AdminService = Depends(get_admin_service)):
-    challenge = admin_service.get_challenge(challenge_id)
-    if challenge is None:
-        raise HTTPException(status_code=404, detail="Challenge not found")
-    return challenge
 
 
 @admin.put("/challenges/{id}", response_model=Challenge)
@@ -288,6 +279,16 @@ player = APIRouter(
 
 
 # player endpoints
+
+@player.get("/challenges/{challenge_id}", response_model=Challenge)
+def get_challenge(challenge_id: int, admin_service: AdminService = Depends(get_admin_service), auth: AuthData = Depends(authenticate_player)):
+    challenge = admin_service.get_challenge(challenge_id)
+    if challenge is None:
+        raise HTTPException(status_code=404, detail="Challenge not found")
+    if auth.role == UserRole.PLAYER and challenge.id != auth.challenge_id:
+        raise HTTPException(status_code=404, detail="Challenge not found")
+    return challenge
+
 @player.get("/team", response_model=Team)
 def get_team(auth_data: AuthData = Depends(authenticate_player), player_service: PlayerService = Depends(get_player_service)):
     team = player_service.get_team(auth_data.team_id)

@@ -1,6 +1,6 @@
 import typer
 from pathlib import Path
-from app_deps import api_client, json_output_option, console
+from app_deps import api_client, json_output_option, console, ensure_logged_in
 from formatter import print_as_json
 from typing import Optional
 from rich.table import Table
@@ -13,10 +13,7 @@ def claim(
     json: bool = json_output_option
 ):
     """Claim a new task."""
-    if not api_client.api_key:
-        console.print("[red]Not logged in. Use 'challenge login <API_KEY>' to log in.[/red]")
-        raise typer.Exit(1)
-
+    ensure_logged_in()
     try:
         # Claim a task from the API
         task = api_client.claim_task(task_type)
@@ -41,9 +38,7 @@ def claim(
 @task_app.command()
 def task_show(task_id: str, json: bool = json_output_option):
     """Show task and its submissions."""
-    if not api_client.api_key:
-        console.print("[red]Not logged in. Use 'challenge login <API_KEY>' to log in.[/red]")
-        raise typer.Exit(1)
+    ensure_logged_in()
 
     try:
         # Get task info from the API
@@ -80,9 +75,7 @@ def task_show(task_id: str, json: bool = json_output_option):
 @task_app.command("show-input")
 def task_show_input(task_id: str, json: bool = json_output_option):
     """Show raw task input payload."""
-    if not api_client.api_key:
-        console.print("[red]Not logged in. Use 'challenge login <API_KEY>' to log in.[/red]")
-        raise typer.Exit(1)
+    ensure_logged_in()
 
     try:
         # Get task input from the API
@@ -109,9 +102,7 @@ def task_submit(
     json: bool = json_output_option
 ):
     """Submit an answer for a task."""
-    if not api_client.api_key:
-        console.print("[red]Not logged in. Use 'challenge login <API_KEY>' to log in.[/red]")
-        raise typer.Exit(1)
+    ensure_logged_in()
 
     if answer is None and file_path is None:
         console.print("[red]Either answer or --file must be provided[/red]")
@@ -147,9 +138,7 @@ def task_submit(
 @task_app.command("show-answer")
 def task_show_answer(submit_id: str, json: bool = json_output_option):
     """Show raw submitted answer."""
-    if not api_client.api_key:
-        console.print("[red]Not logged in. Use 'challenge login <API_KEY>' to log in.[/red]")
-        raise typer.Exit(1)
+    ensure_logged_in()
 
     try:
         # Get submission from the API
@@ -175,9 +164,7 @@ def task_list(
     json: bool = json_output_option
 ):
     """List tasks."""
-    if not api_client.api_key:
-        console.print("[red]Not logged in. Use 'challenge login <API_KEY>' to log in.[/red]")
-        raise typer.Exit(1)
+    ensure_logged_in()
 
     try:
         # Get tasks from the API with filters

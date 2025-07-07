@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
+from typing import Optional
+
 import typer
 from rich.markdown import Markdown
-from app_deps import api_client, console
+from app_deps import api_client, console, ensure_logged_in, json_output_option
 from formatter import print_as_json
 
 app = typer.Typer(help="Teamwork Challenge CLI", pretty_exceptions_short=True, pretty_exceptions_show_locals=False)
@@ -24,14 +26,12 @@ def logout():
 
 
 @app.command("show")
-def show(as_json: bool = False):
+def show(challenge_id: Optional[int] = typer.Option(None, "--challenge-id", "-c", help="Challenge ID"), as_json: bool = json_output_option):
     """Show challenge information."""
-    if not api_client.api_key:
-        console.print("[red]Not logged in. Use 'challenge login <API_KEY>' to log in.[/red]")
-        raise typer.Exit(1)
+    ensure_logged_in()
 
     # Get challenge info from the API
-    challenge = api_client.get_challenge_info()
+    challenge = api_client.get_challenge_info(challenge_id)
 
     # If json flag is set, the decorator will handle the output
     if as_json:
