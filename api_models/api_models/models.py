@@ -55,6 +55,7 @@ class Team(BaseModel):
         from_attributes = True
 
 
+# TODO: rename to TeamsImportResponse
 class TeamImportResponse(BaseModel):
     challenge_id: int
     teams: List[Team]
@@ -63,6 +64,7 @@ class TeamImportResponse(BaseModel):
         from_attributes = True
 
 
+# TODO: rename to TeamCreateRequest
 class TeamRequest(BaseModel):
     name: str
     members: str
@@ -71,7 +73,7 @@ class TeamRequest(BaseModel):
     class Config:
         from_attributes = True
 
-
+# TODO: rename to TeamsImportRequest
 class TeamCreateRequest(BaseModel):
     challenge_id: int
     teams: List[TeamRequest]
@@ -131,25 +133,6 @@ class RoundTaskTypeCreateRequest(BaseModel):
 
     class Config:
         from_attributes = True
-
-
-@dataclass
-class RoundOld:
-    """Round information."""
-    id: int
-    status: str
-    start_time: str
-    end_time: str
-
-    @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> 'RoundOld':
-        """Create a Round instance from a dictionary."""
-        return cls(
-            id=data.get('id', 0),
-            status=data.get('status', 'N/A'),
-            start_time=data.get('start_time', 'N/A'),
-            end_time=data.get('end_time', 'N/A')
-        )
 
 
 @dataclass

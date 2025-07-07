@@ -88,9 +88,11 @@ def get_rounds(challenge_id: int, admin_service: AdminService = Depends(get_admi
 
     return rounds
 
-
+# TODO: challenge_id is not required - it can be obtained from the round
+# TODO: this request and /rounds should be available for player, but only for PUBLISHED rounds of HIS OWN challenge.
 @admin.get("/rounds/{id}", response_model=Round)
 def get_round(challenge_id: int, round_id: int, admin_service: AdminService = Depends(get_admin_service)):
+    # TODO: add AuthData as get_challenge parameter and check access there.
     challenge = admin_service.get_challenge(challenge_id)
     if challenge is None:
         raise HTTPException(status_code=404, detail="Challenge not found")
@@ -123,6 +125,7 @@ def update_round(challenge_id: int, round_id: int, round_data: RoundCreateReques
         status=round_data.status
     )
 
+    # TODO: why do we need to get task types?
     updated_round.task_types = admin_service.get_round_task_types_by_round(round_id)
 
     return updated_round
@@ -155,15 +158,17 @@ def create_round(round_data: RoundCreateRequest, admin_service: AdminService = D
         score_decay=round_data.score_decay,
         status=round_data.status
     )
-
+    # TODO: no need if create_round do not return None
     if round is None:
         raise HTTPException(status_code=404, detail="Challenge not found")
 
     return round
 
-
+# TODO: no need for challenge_id in this endpoint, it can be obtained from round
+# TODO: this request and /rounds should be available for player, but only for PUBLISHED rounds of HIS OWN challenge.
 @admin.get("/task-types", response_model=list[RoundTaskType])
 def get_round_task_types(challenge_id: int, round_id: int, admin_service: AdminService = Depends(get_admin_service)):
+    # TODO duplicated code — extract auxiliary function
     challenge = admin_service.get_challenge(challenge_id)
     if challenge is None:
         raise HTTPException(status_code=404, detail="Challenge not found")
@@ -175,6 +180,9 @@ def get_round_task_types(challenge_id: int, round_id: int, admin_service: AdminS
     return admin_service.get_round_task_types_by_round(round_id)
 
 
+
+# TODO: no need for challenge_id in this endpoint, it can be obtained from round
+# TODO: this request and /rounds should be available for player, but only for PUBLISHED rounds of HIS OWN challenge.
 @admin.get("/task-types/{id}", response_model=RoundTaskType)
 def get_round_task_type(challenge_id: int, round_id: int, task_type_id: int, admin_service: AdminService = Depends(get_admin_service)):
     challenge = admin_service.get_challenge(challenge_id)
@@ -184,7 +192,7 @@ def get_round_task_type(challenge_id: int, round_id: int, task_type_id: int, adm
     round = admin_service.get_round(round_id)
     if round is None or round.challenge_id != challenge_id:
         raise HTTPException(status_code=404, detail="Round not found for this challenge")
-
+    # TODO Code duplication — extract auxiliary function
     round_task_type = admin_service.get_round_task_type(task_type_id)
     if round_task_type is None or round_task_type.round_id != round_id:
         raise HTTPException(status_code=404, detail="Task type not found for this round")
@@ -252,12 +260,15 @@ def create_round_task_type(challenge_id: int, round_id: int, task_type_data: Rou
 @admin.post("/teams", response_model=TeamImportResponse)
 def create_teams(request: TeamCreateRequest, admin_service: AdminService = Depends(get_admin_service)):
     teams_data = admin_service.create_teams(request.challenge_id, request.teams)
+
+    # TODO: Very implicit relation between challenge_id and teams_data. Make it more explicit
     if teams_data is None:
         raise HTTPException(status_code=404, detail="Challenge not found")
 
     # Convert the list of dictionaries to a list of Team objects
     teams = []
     for team_dict in teams_data:
+        # TODO: use Team.model_validate(team_dict) to convert dict to Team object
         teams.append(Team(
             id=team_dict["team_id"],
             challenge_id=team_dict["challenge_id"],

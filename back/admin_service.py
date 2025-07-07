@@ -46,9 +46,11 @@ class AdminService:
 
     def create_teams(self, challenge_id: int, teams: List[TeamRequest]):
 
+        # TODO: pass challenge as a parameter instead of challenge_id
         stmt = select(Challenge).where(Challenge.id == challenge_id)
         challenge = self.db.execute(stmt).scalar_one_or_none()
 
+        # TODO: no need
         if challenge is None:
             return None
 
@@ -74,6 +76,7 @@ class AdminService:
             self.db.add(team)
             self.db.flush()
 
+            # TODO: Use team object directly instead of creating a new dict
             created_teams.append({
                 "team_id": team.id,
                 "challenge_id": challenge_id,
@@ -90,9 +93,11 @@ class AdminService:
     def create_round(self, challenge_id: int, index: int, start_time: str, end_time: str,
                      claim_by_type: bool = False, allow_resubmit: bool = False,
                      score_decay: str = "no", status: str = "draft"):
+        # TODO: Do not do this check manually. Set the Foreign key in the database model and DB will do it automatically.
         stmt = select(Challenge).where(Challenge.id == challenge_id)
         challenge = self.db.execute(stmt).scalar_one_or_none()
 
+        # TODO: Do not return None in such cases. Raise an exception instead. (But due to prev comment, this code should be just deleted)
         if challenge is None:
             return None
 
