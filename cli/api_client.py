@@ -113,14 +113,11 @@ class ApiClient:
         data = self._make_request("GET", "/rounds")
         return RoundList.from_dict(data)
 
-<<<<<<< HEAD
     def publish_round(self, round_id: int) -> Round:
         """Publish a round."""
         data = self._make_request("PUT", f"/rounds/{round_id}/publish")
         return Round.model_validate(data)
 
-=======
->>>>>>> d699516464d43b9c7b5e05a4243c03fcb0f72dc8
     def update_round(self, round_id: int, update_data: dict) -> Round:
         """Update a round."""
         data = self._make_request("PUT", f"/rounds/{round_id}", update_data)

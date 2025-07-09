@@ -186,8 +186,5 @@ def round_delete(
         return None
     except Exception as e:
         console.print(f"[red]Error: {str(e)}[/red]")
-<<<<<<< HEAD
+
         raise typer.Exit(1)
-=======
-        raise typer.Exit(1)
->>>>>>> d699516464d43b9c7b5e05a4243c03fcb0f72dc8
