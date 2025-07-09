@@ -23,7 +23,11 @@ The backend is built with FastAPI, a modern, high-performance web framework for 
    ```bash
    aws configure
    ```
-4. Run test in database_aws_tests.py to check the connection to the could database.
+4. By this command you can check the AWS access Key name, access Key secret and Region name:
+   ```bash
+   aws sts get-caller-identity
+   ```
+5. Run test in database_aws_tests.py to check the connection to the could database.
 
 ## Deployment
 
