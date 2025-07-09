@@ -27,12 +27,10 @@ Note: teamId and challengeId is defined by authentication and filters and valida
 ```
 GET|POST|DELETE /challenges
 GET|PUT /challenges/{id}
-GET /rounds
+GET|POST /rounds
 GET|PUT|DELETE /rounds/{id}
-POST /rounds
-GET /task-types
+GET|POST /task-types
 GET|PUT|DELETE /task-types/{id}
-POST /task-types
 POST /teams
 GET|PUT /teams
 GET /round/{id}/logs

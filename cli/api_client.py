@@ -90,6 +90,7 @@ class ApiClient:
         data = self._make_request("GET", f"/challenges/{challenge_id if challenge_id is not None else 'current'}")
         return Challenge.model_validate(data)
 
+    # TODO: do not use dicts in api client. Use specific models.
     def update_challenge(self, challenge_id: int, update_data: dict) -> Challenge:
         """Update a challenge."""
         data = self._make_request("PUT", f"/challenges/{challenge_id}", update_data)
@@ -113,6 +114,7 @@ class ApiClient:
         data = self._make_request("GET", "/rounds")
         return RoundList.from_dict(data)
 
+    # TODO: use PUT /rounds/{id} instead of /publish
     def publish_round(self, round_id: int) -> Round:
         """Publish a round."""
         data = self._make_request("PUT", f"/rounds/{round_id}/publish")

@@ -58,6 +58,7 @@ def update(
     """Update challenge information."""
     ensure_logged_in()
 
+    # TODO Fix duplication of the error handling. Try to move error handling to the upper level of the app (main.py maybe?). BTW during the development I dont like to see this error handling at all. Without this except block everything works perfectly - Typer gives detailed information on the exception. So it is also an option - just remove all the error handling at all.
     try:
         # Build update data dictionary with only provided fields
         update_data = {}
