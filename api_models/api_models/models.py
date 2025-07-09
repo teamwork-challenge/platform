@@ -111,7 +111,7 @@ class Round(BaseModel):
 class RoundCreateRequest(BaseModel):
     challenge_id: int
     index: int
-    start_time: str
+    start_time: str # TODO: why str, and not datetime? Here and in the Round
     end_time: str
     claim_by_type: bool = False
     allow_resubmit: bool = False
