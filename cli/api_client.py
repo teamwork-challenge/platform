@@ -90,6 +90,17 @@ class ApiClient:
         data = self._make_request("GET", f"/challenges/{challenge_id if challenge_id is not None else "current"}")
         return Challenge.model_validate(data)
 
+    def update_challenge(self, challenge_id: int, update_data: dict) -> Challenge:
+        """Update a challenge."""
+        data = self._make_request("PUT", f"/challenges/{challenge_id}", update_data)
+        return Challenge.model_validate(data)
+
+    def delete_challenge(self, challenge_id: int) -> dict:
+        """Mark a challenge as deleted by setting the deleted flag."""
+        # For challenges, we use a flag instead of actual deletion
+        data = self._make_request("PUT", f"/challenges/{challenge_id}", {"deleted": True})
+        return data
+
     # Round-related methods
     def get_round_info(self, round_id: Optional[int] = None) -> Round:
         """Get round information."""
@@ -101,6 +112,15 @@ class ApiClient:
         """List all rounds."""
         data = self._make_request("GET", "/rounds")
         return RoundList.from_dict(data)
+
+    def update_round(self, round_id: int, update_data: dict) -> Round:
+        """Update a round."""
+        data = self._make_request("PUT", f"/rounds/{round_id}", update_data)
+        return Round.model_validate(data)
+
+    def delete_round(self, round_id: int) -> dict:
+        """Delete a round."""
+        return self._make_request("DELETE", f"/rounds/{round_id}")
 
     # Task-related methods
     def claim_task(self, task_type: Optional[str] = None) -> Task:
