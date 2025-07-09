@@ -38,3 +38,14 @@ For more detailed information, see the documentation in the `/docs` directory:
 - [Backend README](/back/README.md): Backend setup and usage
 - [CLI README](/cli/README.md): CLI setup and usage
 - [Tasks README](/tasks/README.md): Task generator information
+
+## Setting Up Python Dev Environment
+
+- Install Python 3.11
+- Setup PyCharm: 
+	- File → Settings → Project → Python Interpreter
+	- If no virtual env is not yet set — create it:
+		- Add Local
+		- Generate New, Virtualenv, Python 3.11.
+	- Rename interpreter to "Python 3.11" to match commited `./idea/platform.iml`.
+
