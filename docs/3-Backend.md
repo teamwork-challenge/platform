@@ -29,10 +29,10 @@ GET|POST|DELETE /challenges
 GET|PUT /challenges/{id}
 GET /rounds
 GET|PUT|DELETE /rounds/{id}
-POST /round
+POST /rounds
 GET /task-types
 GET|PUT|DELETE /task-types/{id}
-POST /task-type
+POST /task-types
 POST /teams
 GET|PUT /teams
 GET /round/{id}/logs

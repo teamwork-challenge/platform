@@ -174,6 +174,23 @@ def delete_round(round_id: int, admin_service: AdminService = Depends(get_admin_
     return {"message": "Round deleted", "round": deleted_round}
 
 
+@admin.put("/rounds/{round_id}/publish", response_model=Round)
+def publish_round(round_id: int, admin_service: AdminService = Depends(get_admin_service)):
+    round = admin_service.get_round(round_id)
+    if round is None:
+        raise HTTPException(status_code=404, detail="Round not found")
+
+    updated_round = admin_service.update_round(
+        round_id=round_id,
+        status="published"
+    )
+
+    updated_round.task_types = admin_service.get_round_task_types_by_round(round_id)
+
+    return updated_round
+
+
+
 @admin.post("/rounds", response_model=Round)
 def create_round(round_data: RoundCreateRequest, admin_service: AdminService = Depends(get_admin_service)):
     get_challenge_or_404(round_data.challenge_id, admin_service)

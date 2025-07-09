@@ -32,3 +32,4 @@ venv
 # OS-specific
 .DS_Store
 Thumbs.db
+/.idea/inspectionProfiles/Project_Default.xml
