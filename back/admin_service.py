@@ -1,9 +1,10 @@
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 import uuid
-from api_models.models import TeamRequest
+from api_models.models import TeamCreateRequest
 from db_models import Challenge, Team, Round, RoundTaskType
 from typing import List
+
 
 class AdminService:
     def __init__(self, db: Session):
@@ -43,21 +44,11 @@ class AdminService:
             return challenge
         return None
 
-
-    def create_teams(self, challenge_id: int, teams: List[TeamRequest]):
-
-        # TODO: pass challenge as a parameter instead of challenge_id
-        stmt = select(Challenge).where(Challenge.id == challenge_id)
-        challenge = self.db.execute(stmt).scalar_one_or_none()
-
-        # TODO: no need
-        if challenge is None:
-            return None
+    def create_teams(self, challenge: Challenge, teams: List[TeamCreateRequest]):
 
         created_teams = []
 
         for team_data in teams:
-
             team_name = team_data.name
             members = team_data.members
             captain_contact = team_data.captain_contact
@@ -66,7 +57,7 @@ class AdminService:
 
             team = Team(
                 api_key=api_key,
-                challenge_id=challenge_id,
+                challenge_id=challenge.id,
                 name=team_name,
                 members=members,
                 captain_contact=captain_contact,
@@ -76,15 +67,7 @@ class AdminService:
             self.db.add(team)
             self.db.flush()
 
-            # TODO: Use team object directly instead of creating a new dict
-            created_teams.append({
-                "team_id": team.id,
-                "challenge_id": challenge_id,
-                "name": team_name,
-                "api_key": api_key,
-                "members": members,
-                "captain_contact": captain_contact,
-            })
+            created_teams.append(team)
 
         self.db.commit()
 
@@ -93,13 +76,6 @@ class AdminService:
     def create_round(self, challenge_id: int, index: int, start_time: str, end_time: str,
                      claim_by_type: bool = False, allow_resubmit: bool = False,
                      score_decay: str = "no", status: str = "draft"):
-        # TODO: Do not do this check manually. Set the Foreign key in the database model and DB will do it automatically.
-        stmt = select(Challenge).where(Challenge.id == challenge_id)
-        challenge = self.db.execute(stmt).scalar_one_or_none()
-
-        # TODO: Do not return None in such cases. Raise an exception instead. (But due to prev comment, this code should be just deleted)
-        if challenge is None:
-            return None
 
         # Create a new round
         round = Round(
@@ -114,6 +90,7 @@ class AdminService:
         )
 
         self.db.add(round)
+        # Raises SQLAlchemyError: If the challenge_id does not exist (foreign key constraint)
         self.db.commit()
         self.db.refresh(round)
 
@@ -169,11 +146,6 @@ class AdminService:
 
     def create_round_task_type(self, round_id: int, type: str, generator_url: str,
                               generator_settings: str = None, generator_secret: str = None):
-        stmt = select(Round).where(Round.id == round_id)
-        round = self.db.execute(stmt).scalar_one_or_none()
-
-        if round is None:
-            return None
 
         # Create a new round task type
         round_task_type = RoundTaskType(
@@ -185,6 +157,7 @@ class AdminService:
         )
 
         self.db.add(round_task_type)
+        # Raises SQLAlchemyError: If the round_id does not exist (foreign key constraint)
         self.db.commit()
         self.db.refresh(round_task_type)
 

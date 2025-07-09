@@ -55,8 +55,7 @@ class Team(BaseModel):
         from_attributes = True
 
 
-# TODO: rename to TeamsImportResponse
-class TeamImportResponse(BaseModel):
+class TeamsImportResponse(BaseModel):
     challenge_id: int
     teams: List[Team]
 
@@ -64,8 +63,7 @@ class TeamImportResponse(BaseModel):
         from_attributes = True
 
 
-# TODO: rename to TeamCreateRequest
-class TeamRequest(BaseModel):
+class TeamCreateRequest(BaseModel):
     name: str
     members: str
     captain_contact: str
@@ -73,10 +71,10 @@ class TeamRequest(BaseModel):
     class Config:
         from_attributes = True
 
-# TODO: rename to TeamsImportRequest
-class TeamCreateRequest(BaseModel):
+
+class TeamsImportRequest(BaseModel):
     challenge_id: int
-    teams: List[TeamRequest]
+    teams: List[TeamCreateRequest]
 
     class Config:
         from_attributes = True
