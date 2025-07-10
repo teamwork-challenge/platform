@@ -58,40 +58,37 @@ def update(
     """Update challenge information."""
     ensure_logged_in()
 
-    # TODO Fix duplication of the error handling. Try to move error handling to the upper level of the app (main.py maybe?). BTW during the development I dont like to see this error handling at all. Without this except block everything works perfectly - Typer gives detailed information on the exception. So it is also an option - just remove all the error handling at all.
-    try:
-        # Build update data dictionary with only provided fields
-        update_data = {}
-        if title is not None:
-            update_data["title"] = title
-        if description is not None:
-            update_data["description"] = description
-        if current_round_id is not None:
-            update_data["current_round_id"] = current_round_id
+    # Build update data dictionary with only provided fields
+    update_data = {}
+    if title is not None:
+        update_data["title"] = title
+    if description is not None:
+        update_data["description"] = description
+    if current_round_id is not None:
+        update_data["current_round_id"] = current_round_id
 
-        # If no fields were provided, show an error
-        if not update_data:
-            console.print("[red]Error: At least one field to update must be provided[/red]")
-            raise typer.Exit(1)
-
-        # Update challenge info via the API
-        challenge = api_client.update_challenge(challenge_id, update_data)
-
-        # If json flag is set, the decorator will handle the output
-        if as_json:
-            return print_as_json(challenge)
-
-        # Otherwise, format the data for human-readable output
-        console.print("[bold green]Challenge updated successfully![/bold green]")
-        console.print(f"Name: {challenge.title}")
-        console.print(f"Current Round: {challenge.current_round_id}")
-        console.print()
-        console.print(Markdown(challenge.description))
-
-        return None
-    except Exception as e:
-        console.print(f"[red]Error: {str(e)}[/red]")
+    # If no fields were provided, show an error
+    if not update_data:
+        console.print("[red]Error: At least one field to update must be provided[/red]")
         raise typer.Exit(1)
+
+    # Create a Challenge object from the update data
+    from api_models.models import Challenge
+    challenge_update = Challenge(id=challenge_id, **update_data)
+
+    # Update challenge info via the API
+    challenge = api_client.update_challenge(challenge_id, challenge_update)
+
+    # If json flag is set, the decorator will handle the output
+    if as_json:
+        return print_as_json(challenge)
+
+    # Otherwise, format the data for human-readable output
+    console.print("[bold green]Challenge updated successfully![/bold green]")
+    console.print(f"Name: {challenge.title}")
+    console.print(f"Current Round: {challenge.current_round_id}")
+    console.print()
+    console.print(Markdown(challenge.description))
 
 
 @app.command("delete")
@@ -103,32 +100,26 @@ def delete(
     """Mark a challenge as deleted."""
     ensure_logged_in()
 
-    try:
-        # Get challenge info to show what will be deleted
-        challenge = api_client.get_challenge_info(challenge_id)
+    # Get challenge info to show what will be deleted
+    challenge = api_client.get_challenge_info(challenge_id)
 
-        # If not confirmed, ask for confirmation
-        if not confirm:
-            console.print(f"[bold yellow]Warning: You are about to mark Challenge {challenge_id} as deleted[/bold yellow]")
-            console.print(f"Title: {challenge.title}")
+    # If not confirmed, ask for confirmation
+    if not confirm:
+        console.print(f"[bold yellow]Warning: You are about to mark Challenge {challenge_id} as deleted[/bold yellow]")
+        console.print(f"Title: {challenge.title}")
 
-            # Ask for confirmation
-            confirmed = typer.confirm("Are you sure you want to mark this challenge as deleted?")
-            if not confirmed:
-                console.print("[yellow]Operation cancelled.[/yellow]")
-                return None
+        # Ask for confirmation
+        confirmed = typer.confirm("Are you sure you want to mark this challenge as deleted?")
+        if not confirmed:
+            console.print("[yellow]Operation cancelled.[/yellow]")
+            return None
 
-        # Mark the challenge as deleted
-        result = api_client.delete_challenge(challenge_id)
+    # Mark the challenge as deleted
+    result = api_client.delete_challenge(challenge_id)
 
-        # If json flag is set, print the result as JSON
-        if as_json:
-            return print_as_json(result)
+    # If json flag is set, print the result as JSON
+    if as_json:
+        return print_as_json(result)
 
-        # Otherwise, print a success message
-        console.print(f"[bold green]Challenge {challenge_id} marked as deleted successfully![/bold green]")
-
-        return None
-    except Exception as e:
-        console.print(f"[red]Error: {str(e)}[/red]")
-        raise typer.Exit(1)
+    # Otherwise, print a success message
+    console.print(f"[bold green]Challenge {challenge_id} marked as deleted successfully![/bold green]")
