@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from pydantic import BaseModel
 from typing import Dict, List, Optional, Any
 from enum import Enum
-
+from datetime import datetime
 
 class UserRole(str, Enum):
     ADMIN = "admin"
@@ -97,8 +97,8 @@ class Round(BaseModel):
     challenge_id: int
     index: int
     status: str = "draft"
-    start_time: str
-    end_time: str
+    start_time: datetime
+    end_time: datetime
     claim_by_type: bool = False
     allow_resubmit: bool = False
     score_decay: str = "no"
@@ -111,8 +111,8 @@ class Round(BaseModel):
 class RoundCreateRequest(BaseModel):
     challenge_id: int
     index: int
-    start_time: str # TODO: why str, and not datetime? Here and in the Round
-    end_time: str
+    start_time: datetime
+    end_time: datetime
     claim_by_type: bool = False
     allow_resubmit: bool = False
     score_decay: str = "no"
