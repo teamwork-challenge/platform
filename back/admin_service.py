@@ -109,12 +109,18 @@ class AdminService:
             return None
 
         if round_data is not None:
-            round.start_time = round_data.start_time
-            round.end_time = round_data.end_time
-            round.claim_by_type = round_data.claim_by_type
-            round.allow_resubmit = round_data.allow_resubmit
-            round.score_decay = round_data.score_decay
-            round.status = round_data.status
+            if round_data.start_time is not None:
+                round.start_time = round_data.start_time
+            if round_data.end_time is not None:
+                round.end_time = round_data.end_time
+            if round_data.claim_by_type is not None:
+                round.claim_by_type = round_data.claim_by_type
+            if round_data.allow_resubmit is not None:
+                round.allow_resubmit = round_data.allow_resubmit
+            if round_data.score_decay is not None:
+                round.score_decay = round_data.score_decay
+            if round_data.status is not None:
+                round.status = round_data.status
         elif status is not None:
             round.status = status
 
@@ -167,10 +173,14 @@ class AdminService:
         if round_task_type is None:
             return None
 
-        round_task_type.type = task_type_data.type
-        round_task_type.generator_url = task_type_data.generator_url
-        round_task_type.generator_settings = task_type_data.generator_settings
-        round_task_type.generator_secret = task_type_data.generator_secret
+        if task_type_data.type is not None:
+            round_task_type.type = task_type_data.type
+        if task_type_data.generator_url is not None:
+            round_task_type.generator_url = task_type_data.generator_url
+        if task_type_data.generator_settings is not None:
+            round_task_type.generator_settings = task_type_data.generator_settings
+        if task_type_data.generator_secret is not None:
+            round_task_type.generator_secret = task_type_data.generator_secret
 
         self.db.commit()
         self.db.refresh(round_task_type)
