@@ -198,3 +198,11 @@ class AdminService:
         self.db.commit()
 
         return round_task_type
+
+    def get_teams_by_challenge(self, challenge_id: int):
+        stmt = select(Team).where(Team.challenge_id == challenge_id)
+        return self.db.execute(stmt).scalars().all()
+
+    def get_all_teams(self):
+        stmt = select(Team)
+        return self.db.execute(stmt).scalars().all()
