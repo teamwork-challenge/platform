@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
 from typer.testing import CliRunner, Result
+from pathlib import Path
+import tempfile
+import os.path
 
 from main import app
 import pytest
@@ -11,13 +14,14 @@ import os
 def start_server():
     proc = subprocess.Popen(["uvicorn", "main:app", "--port", "8888"], cwd="../back")
     os.environ["CHALLENGE_API_URL"] = "http://127.0.0.1:8888" # make CLI use the same port
-    time.sleep(1.5)
+    time.sleep(2.0)
     yield
     proc.terminate()
     proc.wait()
 
 runner = CliRunner()
 
+# Challenge App Tests
 def test_login_ok():
     login_team1()
 
@@ -25,16 +29,117 @@ def test_login_fail():
     result = runner.invoke(app, ["login", "team1123123"])
     assert result.exit_code != 0
 
-def test_team_show_ok():
+def test_logout():
     login_team1()
-    result = run_ok("team", "show")
-    assert "Team ID: 1" in result.output
+    result = run_ok("logout")
+    assert "Successfully logged out" in result.output
 
 def test_challenge_show_ok():
     login_team1()
     result = run_ok("show", "-c", "1")
     assert "Challenge" in result.output
 
+def test_challenge_update():
+    login_team1()
+    result = run_ok("update", "-c", "1", "-t", "Updated Challenge Title")
+    assert "Challenge updated successfully" in result.output
+
+def test_challenge_delete():
+    login_team1()
+    # Use --yes to skip confirmation prompt
+    result = run_ok("delete", "-c", "1", "--yes")
+    assert "marked as deleted successfully" in result.output
+
+# Team App Tests
+def test_team_show_ok():
+    login_team1()
+    result = run_ok("team", "show")
+    assert "Team ID: 1" in result.output
+
+# Round App Tests
+def test_round_show():
+    login_team1()
+    result = run_ok("round", "show", "-r", "1")
+    assert "Round 1 Information" in result.output
+
+def test_round_list():
+    login_team1()
+    result = run_ok("round", "list")
+    assert "Rounds" in result.output
+
+def test_round_publish():
+    login_team1()
+    result = run_ok("round", "publish", "1")
+    assert "Round published" in result.output
+
+def test_round_update():
+    login_team1()
+    result = run_ok("round", "update", "-r", "1", "--status", "active")
+    assert "Round 1 updated successfully" in result.output
+
+def test_round_delete():
+    login_team1()
+    # Use --yes to skip confirmation prompt
+    result = run_ok("round", "delete", "-r", "1", "--yes")
+    assert "Round 1 deleted successfully" in result.output
+
+# Task App Tests
+def test_task_claim():
+    login_team1()
+    result = run_ok("task", "claim")
+    assert "Successfully claimed task" in result.output
+
+def test_task_show():
+    login_team1()
+    # First claim a task to get a task ID
+    claim_result = run_ok("task", "claim")
+    task_id = extract_task_id(claim_result.output)
+
+    result = run_ok("task", "task_show", task_id)
+    assert f"Task {task_id} Information" in result.output
+
+def test_task_show_input():
+    login_team1()
+    # First claim a task to get a task ID
+    claim_result = run_ok("task", "claim")
+    task_id = extract_task_id(claim_result.output)
+
+    result = run_ok("task", "show-input", task_id)
+    assert result.exit_code == 0
+
+def test_task_submit():
+    login_team1()
+    # First claim a task to get a task ID
+    claim_result = run_ok("task", "claim")
+    task_id = extract_task_id(claim_result.output)
+
+    # Create a temporary file with an answer
+    with tempfile.NamedTemporaryFile(mode='w', delete=False) as f:
+        f.write("test answer")
+        temp_file = f.name
+
+    try:
+        result = run_ok("task", "submit", task_id, "--file", temp_file)
+        assert "Successfully submitted answer" in result.output
+    finally:
+        # Clean up the temporary file
+        os.unlink(temp_file)
+
+def test_task_list():
+    login_team1()
+    result = run_ok("task", "list")
+    assert "Tasks" in result.output
+
+# Board App Tests
+def test_board_dashboard():
+    login_team1()
+    result = run_ok("board", "dashboard")
+    assert "Dashboard for Round" in result.output
+
+def test_board_leaderboard():
+    login_team1()
+    result = run_ok("board", "leaderboard")
+    assert "Leaderboard for Round" in result.output
 
 def login_team1() -> Result:
     return run_ok("login", "team1")
@@ -50,3 +155,10 @@ def run_ok(*args: str) -> Result:
         print(f"Error Output: {result.stderr}")
         assert False, f"Command failed with exit code {result.exit_code}"
     return result
+
+def extract_task_id(output: str) -> str:
+    """Extract task ID from the output of the claim command."""
+    for line in output.splitlines():
+        if "Task ID:" in line:
+            return line.split("Task ID:")[1].strip()
+    return "1"  # Fallback to a default ID if extraction fails
