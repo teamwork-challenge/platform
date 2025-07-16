@@ -103,7 +103,7 @@ def delete_challenge(challenge_id: int, admin_service: AdminService = Depends(ge
     return {"message": "Challenge deleted", "challenge_id": challenge_id}
 
 
-@admin.put("/challenges/{id}", response_model=Challenge)
+@admin.put("/challenges/{challenge_id}", response_model=Challenge)
 def update_challenge(challenge_id: int, updated_challenge: ChallengeCreateRequest, admin_service: AdminService = Depends(get_admin_service)):
     updated = admin_service.update_challenge(challenge_id, updated_challenge.title, updated_challenge.description)
     if updated is None:
@@ -111,7 +111,7 @@ def update_challenge(challenge_id: int, updated_challenge: ChallengeCreateReques
     return {"message": "Challenge updated", "challenge": updated}
 
 
-@admin.put("/rounds/{id}", response_model=Round)
+@admin.put("/rounds/{round_id}", response_model=Round)
 def update_round(round_id: int, round_data: RoundCreateRequest, admin_service: AdminService = Depends(get_admin_service), auth_data: AuthData = Depends(authenticate_admin)):
     get_round_or_404(round_id, admin_service, auth_data)
 
@@ -141,7 +141,7 @@ def create_round(round_data: RoundCreateRequest, admin_service: AdminService = D
     return round
 
 
-@admin.put("/task-types/{id}", response_model=RoundTaskType)
+@admin.put("/task-types/{task_type_id}", response_model=RoundTaskType)
 def update_round_task_type(challenge_id: int, round_id: int, task_type_id: int, task_type_data: RoundTaskTypeCreateRequest, admin_service: AdminService = Depends(get_admin_service), auth_data: AuthData = Depends(authenticate_admin)):
     get_challenge_or_404(challenge_id, admin_service, auth_data)
 
@@ -155,7 +155,7 @@ def update_round_task_type(challenge_id: int, round_id: int, task_type_id: int, 
     return updated_round_task_type
 
 
-@admin.delete("/task-types/{id}")
+@admin.delete("/task-types/{task_type_id}")
 def delete_round_task_type(task_type_id: int, admin_service: AdminService = Depends(get_admin_service), auth_data: AuthData = Depends(authenticate_admin)):
     round_task_type = admin_service.get_round_task_type(task_type_id)
 
@@ -222,7 +222,7 @@ def get_team(auth_data: AuthData = Depends(authenticate_player), player_service:
     return team
 
 
-@player.get("/challenges/{id}", response_model=Challenge)
+@player.get("/challenges/{challenge_id}", response_model=Challenge)
 def get_challenge(challenge_id: int, admin_service: AdminService = Depends(get_admin_service), auth_data: AuthData = Depends(authenticate_player)):
     return get_challenge_or_404(challenge_id, admin_service, auth_data)
 
@@ -241,7 +241,8 @@ def get_rounds(challenge_id: int, admin_service: AdminService = Depends(get_admi
     return rounds
 
 
-@player.get("/rounds/{id}", response_model=Round)
+# GET /rounds/1
+@player.get("/rounds/{round_id}", response_model=Round)
 def get_round(round_id: int, admin_service: AdminService = Depends(get_admin_service), auth_data: AuthData = Depends(authenticate_player)):
     r = get_round_or_404(round_id, admin_service, auth_data)
 
@@ -256,7 +257,7 @@ def get_round_task_types(round_id: int, admin_service: AdminService = Depends(ge
     return admin_service.get_round_task_types_by_round(round_id)
 
 
-@player.get("/task-types/{id}", response_model=RoundTaskType)
+@player.get("/task-types/{task_type_id}", response_model=RoundTaskType)
 def get_round_task_type(round_id: int, task_type_id: int, admin_service: AdminService = Depends(get_admin_service), auth_data: AuthData = Depends(authenticate_player)):
     get_round_or_404(round_id, admin_service, auth_data)
 
@@ -265,7 +266,7 @@ def get_round_task_type(round_id: int, task_type_id: int, admin_service: AdminSe
     return round_task_type
 
 
-@player.get("/tasks/{id}")
+@player.get("/tasks/{task_id}")
 def get_task(task_id: int, auth_data: AuthData = Depends(authenticate_player), player_service: PlayerService = Depends(get_player_service)):
     task = player_service.get_task(task_id)
     if task is None:
