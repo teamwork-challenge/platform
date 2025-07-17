@@ -9,12 +9,30 @@ import pytest
 import subprocess
 import time
 import os
+import requests
+from requests.exceptions import RequestException
+
 
 @pytest.fixture(scope="session", autouse=True)
 def start_server():
     proc = subprocess.Popen(["uvicorn", "main:app", "--port", "8888"], cwd="../back")
     os.environ["CHALLENGE_API_URL"] = "http://127.0.0.1:8888" # make CLI use the same port
-    time.sleep(2.0)
+
+    # Wait for the backend to start responding, with a maximum timeout of 10 seconds
+    start_time = time.time()
+    max_wait_time = 10.0
+    server_url = "http://127.0.0.1:8888"
+
+    while time.time() - start_time < max_wait_time:
+        try:
+            response = requests.get(server_url, timeout=1)
+            if response.status_code == 200 or response.status_code == 404:
+                # Server is responding (200 OK or 404 Not Found are both valid responses)
+                break
+        except RequestException:
+            # Server not responding yet, wait a bit and retry
+            time.sleep(0.5)
+
     yield
     proc.terminate()
     proc.wait()
@@ -23,7 +41,8 @@ runner = CliRunner()
 
 # Challenge App Tests
 def test_login_ok():
-    login_team1()
+    result = login_team1()
+    assert "Successfully logged in" in result.output
 
 def test_login_fail():
     result = runner.invoke(app, ["login", "team1123123"])
