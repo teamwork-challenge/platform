@@ -4,6 +4,7 @@ from typing import Dict, List, Optional, Any
 from enum import Enum
 from datetime import datetime
 
+
 class UserRole(str, Enum):
     ADMIN = "admin"
     PLAYER = "player"
@@ -14,6 +15,7 @@ class AuthData(BaseModel):
     role: UserRole
     team_id: Optional[int] = None
     challenge_id: Optional[int] = None
+    round_id: Optional[int] = None
 
 
 class Challenge(BaseModel):
@@ -21,6 +23,7 @@ class Challenge(BaseModel):
     title: str
     description: str
     current_round_id: Optional[int] = None
+    deleted: bool = False
 
     class Config:
         from_attributes = True
@@ -29,6 +32,15 @@ class Challenge(BaseModel):
 class ChallengeCreateRequest(BaseModel):
     title: str
     description: str
+
+    class Config:
+        from_attributes = True
+
+
+class ChallengeUpdateRequest(BaseModel):
+    title: str
+    description: str
+    deleted: Optional[bool] = None
 
     class Config:
         from_attributes = True

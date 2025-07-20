@@ -24,12 +24,14 @@ class AdminService:
         self.db.refresh(challenge)
         return challenge
 
-    def update_challenge(self, challenge_id: int, title: str, description: str):
+    def update_challenge(self, challenge_id: int, title: str, description: str, deleted: bool = None):
         stmt = select(Challenge).where(Challenge.id == challenge_id)
         challenge = self.db.execute(stmt).scalar_one_or_none()
         if challenge:
             challenge.title = title
             challenge.description = description
+            if deleted is not None:
+                challenge.deleted = deleted
             self.db.commit()
             self.db.refresh(challenge)
             return challenge
@@ -39,7 +41,7 @@ class AdminService:
         stmt = select(Challenge).where(Challenge.id == challenge_id)
         challenge = self.db.execute(stmt).scalar_one_or_none()
         if challenge:
-            self.db.delete(challenge)
+            challenge.deleted = True
             self.db.commit()
             return challenge
         return None
@@ -91,6 +93,13 @@ class AdminService:
         self.db.commit()
         self.db.refresh(round)
 
+        # Update the challenge's current_round_id to reference this new round
+        stmt = select(Challenge).where(Challenge.id == round_data.challenge_id)
+        challenge = self.db.execute(stmt).scalar_one_or_none()
+        if challenge:
+            challenge.current_round_id = round.id
+            self.db.commit()
+
         return round
 
     def get_rounds_by_challenge(self, challenge_id: int):
@@ -130,6 +139,12 @@ class AdminService:
         return round
 
     def delete_round(self, round_id: int):
+        stmt = select(Challenge).where(Challenge.current_round_id == round_id)
+        challenge = self.db.execute(stmt).scalar_one_or_none()
+        if challenge:
+            challenge.current_round_id = None
+            self.db.flush()
+
         stmt = select(Round).where(Round.id == round_id)
         round = self.db.execute(stmt).scalar_one_or_none()
 
