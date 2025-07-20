@@ -59,7 +59,7 @@ def test_challenge_show_ok():
     assert "Challenge" in result.output
 
 def test_challenge_update():
-    login_team1()
+    login_admin()
     result = run_ok("update", "-c", "1", "-t", "Updated Challenge Title")
     assert "Challenge updated successfully" in result.output
 
@@ -159,6 +159,10 @@ def test_board_leaderboard():
     login_team1()
     result = run_ok("board", "leaderboard")
     assert "Leaderboard for Round" in result.output
+
+def login_admin() -> Result:
+    return run_ok("login", "admin")
+
 
 def login_team1() -> Result:
     return run_ok("login", "team1")

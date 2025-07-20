@@ -12,9 +12,31 @@ app = typer.Typer(help="Teamwork Challenge CLI", pretty_exceptions_short=True, p
 @app.command()
 def login(api_key: str):
     """Store API key into config file after successful login."""
+    # Check if this is an admin login
+    if api_key == "admin":
+        try:
+            api_client.login_admin(api_key)
+            console.print(f"[green]Successfully logged in as admin[/green]")
+            return None
+        except Exception as e:
+            console.print(f"[red]Admin login failed: {str(e)}[/red]")
+            raise typer.Exit(1)
+    
+    # Regular user login
     api_client.save_api_key(api_key)
-    api_client.get_team_info()
     console.print(f"[green]Successfully logged in with API key: {api_key}[/green]")
+    return None
+
+
+@app.command()
+def login_admin(admin_key: str = "admin"):
+    """Login as admin with the given admin key."""
+    try:
+        api_client.login_admin(admin_key)
+        console.print(f"[green]Successfully logged in as admin with key: {admin_key}[/green]")
+    except Exception as e:
+        console.print(f"[red]Admin login failed: {str(e)}[/red]")
+        raise typer.Exit(1)
     return None
 
 
@@ -73,8 +95,8 @@ def update(
         raise typer.Exit(1)
 
     # Create a Challenge object from the update data
-    from api_models.models import Challenge
-    challenge_update = Challenge(id=challenge_id, **update_data)
+    from api_models.models import ChallengeUpdateRequest
+    challenge_update = ChallengeUpdateRequest(**update_data)
 
     # Update challenge info via the API
     challenge = api_client.update_challenge(challenge_id, challenge_update)

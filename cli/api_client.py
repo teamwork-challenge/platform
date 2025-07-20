@@ -35,6 +35,22 @@ class ApiClient:
         self.config_manager.remove_api_key()
         # Update headers without API key
         self._headers = self._build_headers()
+        
+    def login_admin(self, admin_key: str = "admin") -> None:
+        """Login as admin with the given admin key.
+        
+        Args:
+            admin_key: Admin API key, defaults to "admin"
+        """
+        self.save_api_key(admin_key)
+        # Verify admin access by making a request to an admin-only endpoint
+        try:
+            # Get all challenges (admin-only endpoint)
+            self.get_challenges()
+        except Exception as e:
+            # If the request fails, remove the API key and raise an exception
+            self.remove_api_key()
+            raise Exception(f"Admin login failed: {str(e)}")
 
     def _build_headers(self) -> Dict[str, str]:
         """Get headers for API requests."""
@@ -90,7 +106,7 @@ class ApiClient:
         data = self._make_request("GET", f"/challenges/{challenge_id if challenge_id is not None else 'current'}")
         return Challenge.model_validate(data)
 
-    def update_challenge(self, challenge_id: int, update_data: Challenge) -> Challenge:
+    def update_challenge(self, challenge_id: int, update_data: ChallengeUpdateRequest) -> Challenge:
         """Update a challenge."""
         data = self._make_request("PUT", f"/challenges/{challenge_id}", update_data.model_dump(exclude_unset=True))
         return Challenge.model_validate(data)
