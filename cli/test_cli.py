@@ -64,10 +64,12 @@ def test_challenge_update():
     assert "Challenge updated successfully" in result.output
 
 def test_challenge_delete():
-    login_team1()
+    login_admin()
     # Use --yes to skip confirmation prompt
     result = run_ok("delete", "-c", "1", "--yes")
     assert "marked as deleted successfully" in result.output
+    # result = run_ok("update", "-c", "1", "--deleted")
+    # assert "marked as not deleted successfully" in result.output
 
 # Team App Tests
 def test_team_show_ok():
@@ -161,8 +163,7 @@ def test_board_leaderboard():
     assert "Leaderboard for Round" in result.output
 
 def login_admin() -> Result:
-    return run_ok("login", "admin")
-
+    return run_ok("login", "admin1")
 
 def login_team1() -> Result:
     return run_ok("login", "team1")

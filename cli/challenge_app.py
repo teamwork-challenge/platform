@@ -3,8 +3,11 @@ from typing import Optional
 
 import typer
 from rich.markdown import Markdown
+
+from api_models import ChallengeUpdateRequest
 from app_deps import api_client, console, ensure_logged_in, json_output_option
 from formatter import print_as_json
+from api_models.models import ChallengeUpdateRequest
 
 app = typer.Typer(help="Teamwork Challenge CLI", pretty_exceptions_short=True, pretty_exceptions_show_locals=False)
 
@@ -12,33 +15,10 @@ app = typer.Typer(help="Teamwork Challenge CLI", pretty_exceptions_short=True, p
 @app.command()
 def login(api_key: str):
     """Store API key into config file after successful login."""
-    # Check if this is an admin login
-    if api_key == "admin":
-        try:
-            api_client.login_admin(api_key)
-            console.print(f"[green]Successfully logged in as admin[/green]")
-            return None
-        except Exception as e:
-            console.print(f"[red]Admin login failed: {str(e)}[/red]")
-            raise typer.Exit(1)
-    
-    # Regular user login
     api_client.save_api_key(api_key)
-    console.print(f"[green]Successfully logged in with API key: {api_key}[/green]")
+    role = api_client.auth()
+    console.print(f"[green]Successfully logged in with role {role} using API key: {api_key}[/green]")
     return None
-
-
-@app.command()
-def login_admin(admin_key: str = "admin"):
-    """Login as admin with the given admin key."""
-    try:
-        api_client.login_admin(admin_key)
-        console.print(f"[green]Successfully logged in as admin with key: {admin_key}[/green]")
-    except Exception as e:
-        console.print(f"[red]Admin login failed: {str(e)}[/red]")
-        raise typer.Exit(1)
-    return None
-
 
 @app.command()
 def logout():
@@ -75,31 +55,26 @@ def update(
     title: Optional[str] = typer.Option(None, "--title", "-t", help="Challenge title"),
     description: Optional[str] = typer.Option(None, "--description", "-d", help="Challenge description"),
     current_round_id: Optional[int] = typer.Option(None, "--current-round", "-r", help="Current round ID"),
+    deleted: Optional[bool] = typer.Option(None, "--deleted", help="Is deleted"),
     as_json: bool = json_output_option
 ):
     """Update challenge information."""
     ensure_logged_in()
 
     # Build update data dictionary with only provided fields
-    update_data = {}
-    if title is not None:
-        update_data["title"] = title
-    if description is not None:
-        update_data["description"] = description
-    if current_round_id is not None:
-        update_data["current_round_id"] = current_round_id
+    update_data = ChallengeUpdateRequest()
+    update_data.title = title
+    update_data.description = description
+    update_data.current_round_id = current_round_id
+    update_data.deleted = deleted
 
     # If no fields were provided, show an error
     if not update_data:
         console.print("[red]Error: At least one field to update must be provided[/red]")
         raise typer.Exit(1)
 
-    # Create a Challenge object from the update data
-    from api_models.models import ChallengeUpdateRequest
-    challenge_update = ChallengeUpdateRequest(**update_data)
-
     # Update challenge info via the API
-    challenge = api_client.update_challenge(challenge_id, challenge_update)
+    challenge = api_client.update_challenge(challenge_id, update)
 
     # If json flag is set, the decorator will handle the output
     if as_json:
