@@ -67,9 +67,9 @@ def test_challenge_delete():
     login_admin()
     # Use --yes to skip confirmation prompt
     result = run_ok("delete", "-c", "1", "--yes")
-    assert "marked as deleted successfully" in result.output
-    # result = run_ok("update", "-c", "1", "--deleted")
-    # assert "marked as not deleted successfully" in result.output
+    assert "marked as deleted" in result.output
+    result = run_ok("update", "-c", "1", "--undelete")
+    assert "marked as deleted" not in result.output
 
 # Team App Tests
 def test_team_show_ok():

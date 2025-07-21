@@ -40,11 +40,7 @@ def show(challenge_id: Optional[int] = typer.Option(None, "--challenge-id", "-c"
         return print_as_json(challenge)
 
     # Otherwise, format the data for human-readable output
-    console.print("[bold]Challenge Information:[/bold]")
-    console.print(f"Name: {challenge.title}")
-    console.print(f"Current Round: {challenge.current_round_id}")
-    console.print()
-    console.print(Markdown(challenge.description))
+    print_challenge(challenge)
 
     return None
 
@@ -55,7 +51,8 @@ def update(
     title: Optional[str] = typer.Option(None, "--title", "-t", help="Challenge title"),
     description: Optional[str] = typer.Option(None, "--description", "-d", help="Challenge description"),
     current_round_id: Optional[int] = typer.Option(None, "--current-round", "-r", help="Current round ID"),
-    deleted: Optional[bool] = typer.Option(None, "--deleted", help="Is deleted"),
+    do_delete: Optional[bool] = typer.Option(None, "--delete", help="delete challenge"),
+    undo_delete: Optional[bool] = typer.Option(None, "--undelete", help="undelete challenge"),
     as_json: bool = json_output_option
 ):
     """Update challenge information."""
@@ -66,7 +63,10 @@ def update(
     update_data.title = title
     update_data.description = description
     update_data.current_round_id = current_round_id
-    update_data.deleted = deleted
+    if do_delete:
+        update_data.deleted = True
+    if undo_delete:
+        update_data.deleted = False
 
     # If no fields were provided, show an error
     if not update_data:
@@ -74,18 +74,14 @@ def update(
         raise typer.Exit(1)
 
     # Update challenge info via the API
-    challenge = api_client.update_challenge(challenge_id, update)
+    challenge = api_client.update_challenge(challenge_id, update_data)
 
     # If json flag is set, the decorator will handle the output
     if as_json:
         return print_as_json(challenge)
 
-    # Otherwise, format the data for human-readable output
     console.print("[bold green]Challenge updated successfully![/bold green]")
-    console.print(f"Name: {challenge.title}")
-    console.print(f"Current Round: {challenge.current_round_id}")
-    console.print()
-    console.print(Markdown(challenge.description))
+    print_challenge(challenge)
 
 
 @app.command("delete")
@@ -120,3 +116,13 @@ def delete(
 
     # Otherwise, print a success message
     console.print(f"[bold green]Challenge {challenge_id} marked as deleted successfully![/bold green]")
+
+
+def print_challenge(challenge):
+    console.print(f"[bold blue]Challenge {challenge.id}[/bold blue]")
+    console.print(f"Name: {challenge.title}")
+    console.print(f"Current Round: {challenge.current_round_id}")
+    if challenge.deleted:
+        console.print("[bold red]This challenge is marked as deleted.[/bold red]")
+    console.print()
+    console.print(Markdown(challenge.description))

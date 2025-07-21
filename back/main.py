@@ -229,16 +229,15 @@ player = APIRouter(
 # player endpoints
 
 @player.get("/auth", response_model=UserRole)
-def get_team(auth_data: AuthData = Depends(authenticate_player)):
+def auth(auth_data: AuthData = Depends(authenticate_player)):
     return auth_data.role
 
 
-@player.get("/team", response_model=Team|str)
+@player.get("/team", response_model=Team)
 def get_team(auth_data: AuthData = Depends(authenticate_player), player_service: PlayerService = Depends(get_player_service)):
     team = player_service.get_team(auth_data.team_id)
     if team is None:
         raise HTTPException(status_code=404, detail="Team not found")
-
     return team
 
 
