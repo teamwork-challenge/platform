@@ -41,6 +41,10 @@ def authenticate_admin(auth_data: AuthData = Depends(authenticate_player)) -> Au
         raise HTTPException(status_code=403, detail="Admin access required")
     return auth_data
 
+def ensure_challenge_is_not_deleted(challenge: Challenge):
+    if challenge.deleted:
+        raise HTTPException(status_code=404, detail="Challenge is deleted")
+
 
 def get_challenge_or_404(challenge_id: int, admin_service: AdminService, auth_data: AuthData, req_method: str = "GET") -> Challenge:
     challenge = admin_service.get_challenge(challenge_id)
@@ -116,13 +120,7 @@ def delete_challenge(challenge_id: int, admin_service: AdminService = Depends(ge
 def update_challenge(challenge_id: int, updated_challenge: ChallengeUpdateRequest, admin_service: AdminService = Depends(get_admin_service), auth_data: AuthData = Depends(authenticate_admin)):
     get_challenge_or_404(challenge_id, admin_service, auth_data, "GET")
 
-    updated = admin_service.update_challenge(
-        challenge_id, 
-        updated_challenge.title, 
-        updated_challenge.description, 
-        updated_challenge.deleted,
-        updated_challenge.current_round_id
-    )
+    updated = admin_service.update_challenge(challenge_id, updated_challenge)
     if updated is None:
         raise HTTPException(status_code=404, detail="Challenge not found")
     return updated
@@ -187,7 +185,7 @@ def delete_round_task_type(task_type_id: int, admin_service: AdminService = Depe
 
 @admin.post("/task-types", response_model=RoundTaskType)
 def create_round_task_type(challenge_id: int, round_id: int, task_type_data: RoundTaskTypeCreateRequest, admin_service: AdminService = Depends(get_admin_service), auth_data: AuthData = Depends(authenticate_admin)):
-    get_challenge_or_404(challenge_id, admin_service, auth_data, "POST")
+    ensure_challenge_is_not_deleted(get_challenge_or_404(challenge_id, admin_service, auth_data, "POST"))
 
     get_round_or_404(round_id, admin_service, auth_data, "POST")
 

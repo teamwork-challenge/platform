@@ -38,8 +38,8 @@ class ChallengeCreateRequest(BaseModel):
 
 
 class ChallengeUpdateRequest(BaseModel):
-    title: str
-    description: str
+    title: Optional[str] = None
+    description: Optional[str] = None
     deleted: Optional[bool] = None
     current_round_id: Optional[int] = None
 

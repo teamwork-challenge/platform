@@ -1,6 +1,8 @@
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 import uuid
+
+from api_models import ChallengeUpdateRequest
 from api_models.models import TeamCreateRequest, RoundCreateRequest, RoundTaskTypeCreateRequest
 from db_models import Challenge, Team, Round, RoundTaskType
 from typing import List
@@ -24,16 +26,18 @@ class AdminService:
         self.db.refresh(challenge)
         return challenge
 
-    def update_challenge(self, challenge_id: int, title: str, description: str, deleted: bool = None, current_round_id: int = None):
+    def update_challenge(self, challenge_id: int, update: ChallengeUpdateRequest):
         stmt = select(Challenge).where(Challenge.id == challenge_id)
         challenge = self.db.execute(stmt).scalar_one_or_none()
         if challenge:
-            challenge.title = title
-            challenge.description = description
-            if deleted is not None:
-                challenge.deleted = deleted
-            if current_round_id is not None:
-                challenge.current_round_id = current_round_id
+            if update.title is not None:
+                challenge.title = update.title
+            if update.description is not None:
+                challenge.description = update.description
+            if update.deleted is not None:
+                challenge.deleted = update.deleted
+            if update.current_round_id is not None:
+                challenge.current_round_id = update.current_round_id
             self.db.commit()
             self.db.refresh(challenge)
             return challenge
@@ -94,13 +98,6 @@ class AdminService:
         # Raises SQLAlchemyError: If the challenge_id does not exist (foreign key constraint)
         self.db.commit()
         self.db.refresh(round)
-
-        # Update the challenge's current_round_id to reference this new round
-        stmt = select(Challenge).where(Challenge.id == round_data.challenge_id)
-        challenge = self.db.execute(stmt).scalar_one_or_none()
-        if challenge:
-            challenge.current_round_id = round.id
-            self.db.commit()
 
         return round
 
