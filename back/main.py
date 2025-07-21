@@ -116,7 +116,13 @@ def delete_challenge(challenge_id: int, admin_service: AdminService = Depends(ge
 def update_challenge(challenge_id: int, updated_challenge: ChallengeUpdateRequest, admin_service: AdminService = Depends(get_admin_service), auth_data: AuthData = Depends(authenticate_admin)):
     get_challenge_or_404(challenge_id, admin_service, auth_data, "GET")
 
-    updated = admin_service.update_challenge(challenge_id, updated_challenge.title, updated_challenge.description, updated_challenge.deleted)
+    updated = admin_service.update_challenge(
+        challenge_id, 
+        updated_challenge.title, 
+        updated_challenge.description, 
+        updated_challenge.deleted,
+        updated_challenge.current_round_id
+    )
     if updated is None:
         raise HTTPException(status_code=404, detail="Challenge not found")
     return updated

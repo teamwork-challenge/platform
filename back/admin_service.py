@@ -24,7 +24,7 @@ class AdminService:
         self.db.refresh(challenge)
         return challenge
 
-    def update_challenge(self, challenge_id: int, title: str, description: str, deleted: bool = None):
+    def update_challenge(self, challenge_id: int, title: str, description: str, deleted: bool = None, current_round_id: int = None):
         stmt = select(Challenge).where(Challenge.id == challenge_id)
         challenge = self.db.execute(stmt).scalar_one_or_none()
         if challenge:
@@ -32,6 +32,8 @@ class AdminService:
             challenge.description = description
             if deleted is not None:
                 challenge.deleted = deleted
+            if current_round_id is not None:
+                challenge.current_round_id = current_round_id
             self.db.commit()
             self.db.refresh(challenge)
             return challenge

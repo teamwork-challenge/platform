@@ -41,6 +41,7 @@ class ChallengeUpdateRequest(BaseModel):
     title: str
     description: str
     deleted: Optional[bool] = None
+    current_round_id: Optional[int] = None
 
     class Config:
         from_attributes = True
