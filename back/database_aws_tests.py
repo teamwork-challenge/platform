@@ -15,11 +15,21 @@ def test_connection():
         res = conn.execute(text("SELECT table_name from information_schema.tables WHERE table_type = 'BASE TABLE' AND table_schema = 'public'"))
         print(res.all())
 
-def recreate_db_tables():
+
+# Drop tables in reverse dependency order to avoid CircularDependencyError
+# caused by mutual foreign keys (Challenge <-> Round)
+def drop_all_tables_ordered(engine):
+    with engine.begin() as conn:
+        for table in reversed(Base.metadata.sorted_tables):
+            conn.execute(text(f'DROP TABLE IF EXISTS "{table.name}" CASCADE'))
+
+
+def test_recreate_db_tables():
     engine = get_db_engine()
-    Base.metadata.drop_all(bind=engine)
+    drop_all_tables_ordered(engine)
     Base.metadata.create_all(engine)
     create_test_data()
+
 
 def create_test_data():
     """

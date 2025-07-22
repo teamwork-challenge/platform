@@ -45,7 +45,8 @@ class Round(Base):
     allow_resubmit: Mapped[bool] = mapped_column(default=False, nullable=False)
     score_decay: Mapped[str] = mapped_column(default="no", nullable=False)
 
-    challenge = relationship("Challenge", back_populates="rounds")
+    # Tell SQLAlchemy which foreign key to use (Challenge <-> Round reference each other)
+    challenge = relationship("Challenge", back_populates="rounds", foreign_keys="[Round.challenge_id]")
     task_types = relationship("RoundTaskType", back_populates="round", cascade="all, delete-orphan", passive_deletes=True)
 
 
@@ -55,11 +56,12 @@ class Challenge(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     title: Mapped[str] = mapped_column(nullable=False)
     description: Mapped[str] = mapped_column(nullable=False)
-    current_round_id: Mapped[int | None] = mapped_column(nullable=True)
+    current_round_id: Mapped[int | None] = mapped_column( ForeignKey("rounds.id", ondelete="SET NULL"), nullable=True)
     deleted: Mapped[bool] = mapped_column(default=False, nullable=False)
 
     teams = relationship("Team", back_populates="challenge", cascade="all, delete-orphan", passive_deletes=True)
-    rounds = relationship("Round", back_populates="challenge", cascade="all, delete-orphan", passive_deletes=True)
+    # Tell SQLAlchemy which foreign key to use (Challenge <-> Round reference each other)
+    rounds = relationship("Round", back_populates="challenge", cascade="all, delete-orphan", passive_deletes=True, foreign_keys="[Round.challenge_id]")
 
 
 class RoundTaskType(Base):
