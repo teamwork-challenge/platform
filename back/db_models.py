@@ -36,7 +36,7 @@ class Round(Base):
     __tablename__ = "rounds"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    challenge_id: Mapped[int] = mapped_column(ForeignKey("challenges.id", ondelete="CASCADE"), nullable=False, index=True)
+    challenge_id: Mapped[int] = mapped_column(ForeignKey("challenges.id", ondelete="CASCADE", name='fk_rounds_challenge_id'), nullable=False, index=True)
     index: Mapped[int] = mapped_column(nullable=False)
     status: Mapped[str] = mapped_column(default="draft", nullable=False)
     start_time: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
@@ -56,7 +56,7 @@ class Challenge(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     title: Mapped[str] = mapped_column(nullable=False)
     description: Mapped[str] = mapped_column(nullable=False)
-    current_round_id: Mapped[int | None] = mapped_column( ForeignKey("rounds.id", ondelete="SET NULL"), nullable=True)
+    current_round_id: Mapped[int | None] = mapped_column( ForeignKey("rounds.id", ondelete="SET NULL", name='fk_challenges_current_round_id'), nullable=True)
     deleted: Mapped[bool] = mapped_column(default=False, nullable=False)
 
     teams = relationship("Team", back_populates="challenge", cascade="all, delete-orphan", passive_deletes=True)
