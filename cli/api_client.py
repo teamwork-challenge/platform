@@ -128,6 +128,18 @@ class ApiClient:
         data = self._make_request("PUT", f"/rounds/{round_id}", update_data)
         return Round.model_validate(data)
 
+    def create_round(self, round_data: RoundCreateRequest) -> Round:
+        """Create a new round.
+        
+        Args:
+            round_data: Data for creating the round
+            
+        Returns:
+            The created round
+        """
+        data = self._make_request("POST", "/rounds", round_data.model_dump(mode="json"))
+        return Round.model_validate(data)
+        
     def delete_round(self, round_id: int) -> dict:
         """Delete a round."""
         return self._make_request("DELETE", f"/rounds/{round_id}")

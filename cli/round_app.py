@@ -55,6 +55,66 @@ def round_publish(
         raise typer.Exit(1)
 
 
+@round_app.command("create")
+def round_create(
+    challenge_id: int = typer.Option(..., "--challenge", "-c", help="Challenge ID"),
+    index: int = typer.Option(..., "--index", "-i", help="Round index within the challenge"),
+    start_time: str = typer.Option(..., "--start-time", help="Start time (ISO format)"),
+    end_time: str = typer.Option(..., "--end-time", help="End time (ISO format)"),
+    claim_by_type: bool = typer.Option(False, "--claim-by-type", help="Allow claiming tasks by type"),
+    allow_resubmit: bool = typer.Option(False, "--allow-resubmit", help="Allow resubmitting answers"),
+    score_decay: str = typer.Option("no", "--score-decay", help="Score decay type"),
+    status: str = typer.Option("draft", "--status", "-s", help="Round status (draft, published)"),
+    json: bool = json_output_option
+):
+    """Create a new round."""
+    ensure_logged_in()
+
+    try:
+        # Create a RoundCreateRequest object
+        from api_models import RoundCreateRequest
+        from datetime import datetime
+        
+        # Parse the datetime strings
+        start_time_dt = datetime.fromisoformat(start_time)
+        end_time_dt = datetime.fromisoformat(end_time)
+        
+        round_data = RoundCreateRequest(
+            challenge_id=challenge_id,
+            index=index,
+            start_time=start_time_dt,
+            end_time=end_time_dt,
+            claim_by_type=claim_by_type,
+            allow_resubmit=allow_resubmit,
+            score_decay=score_decay,
+            status=status
+        )
+        
+        # Create the round via the API
+        round_info = api_client.create_round(round_data)
+        
+        # If json flag is set, the decorator will handle the output
+        if json:
+            return print_as_json(round_info)
+            
+        # Otherwise, format the data for human-readable output
+        console.print(f"[bold green]Round created successfully![/bold green]")
+        console.print(f"Round ID: {round_info.id}")
+        console.print(f"Challenge ID: {round_info.challenge_id}")
+        console.print(f"Index: {round_info.index}")
+        console.print(f"Status: {round_info.status}")
+        console.print(f"Start Time: {round_info.start_time}")
+        console.print(f"End Time: {round_info.end_time}")
+        console.print(f"Claim by Type: {round_info.claim_by_type}")
+        console.print(f"Allow Resubmit: {round_info.allow_resubmit}")
+        console.print(f"Score Decay: {round_info.score_decay}")
+        
+        return None
+    except Exception as e:
+        console.print(f"[red]Error: {str(e)}[/red]")
+        raise typer.Exit(1)
+
+
 @round_app.command("list")
 def round_list(json: bool = json_output_option):
     """List all rounds."""

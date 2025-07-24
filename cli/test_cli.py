@@ -104,6 +104,28 @@ def test_round_delete():
     result = run_ok("round", "delete", "-r", "1", "--yes")
     assert "Round 1 deleted successfully" in result.output
 
+def test_round_create():
+    login_admin()
+    # Get current date in ISO format for start and end times
+    from datetime import datetime, timedelta
+    now = datetime.now()
+    start_time = now.isoformat()
+    end_time = (now + timedelta(hours=2)).isoformat()
+    
+    # Create a new round
+    result = run_ok(
+        "round", "create",
+        "--challenge", "2",
+        "--index", "2",
+        "--start-time", start_time,
+        "--end-time", end_time,
+        "--claim-by-type",
+        "--allow-resubmit",
+        "--score-decay", "linear",
+        "--status", "draft"
+    )
+    assert "Round created successfully" in result.output
+
 # Task App Tests
 def test_task_claim():
     login_team1()

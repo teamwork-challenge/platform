@@ -1,8 +1,9 @@
 from database import get_db_engine
 from sqlalchemy import text
 from sqlalchemy.orm import Session
+from datetime import datetime, timedelta
 
-from back.db_models import Base, AdminKeys, Team, Challenge, Task
+from db_models import Base, AdminKeys, Team, Challenge, Task, Round, RoundTaskType
 
 
 def test_connection():
@@ -25,7 +26,7 @@ def test_recreate_db_tables():
 
 def create_test_data():
     """
-    Create test data in the tables: AdminKeys, Teams, Challenges, Tasks
+    Create test data in the tables: AdminKeys, Teams, Challenges, Rounds, RoundTaskTypes, Tasks
     Creates 2 objects per each table
     """
     engine = get_db_engine()
@@ -75,6 +76,55 @@ def create_test_data():
             total_score=200
         )
         session.add_all([team1, team2])
+        
+        # Create 2 Rounds
+        now = datetime.now()
+        round1 = Round(
+            id=1,
+            challenge_id=challenge1.id,
+            index=1,
+            status="draft",
+            start_time=now,
+            end_time=now + timedelta(hours=2),
+            claim_by_type=False,
+            allow_resubmit=True,
+            score_decay="no"
+        )
+        round2 = Round(
+            id=2,
+            challenge_id=challenge2.id,
+            index=1,
+            status="published",
+            start_time=now - timedelta(hours=1),
+            end_time=now + timedelta(hours=1),
+            claim_by_type=True,
+            allow_resubmit=False,
+            score_decay="linear"
+        )
+        session.add_all([round1, round2])
+        session.flush()  # Flush to get the generated IDs
+        
+        # Set current round for challenge1
+        challenge1.current_round_id = round1.id
+        session.flush()
+        
+        # Create RoundTaskTypes
+        round_task_type1 = RoundTaskType(
+            round_id=round1.id,
+            type="a_plus_b",
+            generator_url="http://localhost:8000/a_plus_b",
+            generator_settings=None,
+            generator_secret="secret1"
+        )
+        round_task_type2 = RoundTaskType(
+            round_id=round2.id,
+            type="right_time",
+            generator_url="http://localhost:8000/right_time",
+            generator_settings=None,
+            generator_secret="secret2"
+        )
+        session.add_all([round_task_type1, round_task_type2])
+        session.flush()
 
         # Create 2 Tasks
         task1 = Task(
@@ -91,3 +141,8 @@ def create_test_data():
         session.commit()
 
         print("Test data created successfully!")
+
+
+# Run the test_recreate_db_tables function when this script is executed directly
+if __name__ == "__main__":
+    test_recreate_db_tables()
