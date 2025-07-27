@@ -85,7 +85,7 @@ def create_test_data():
             index=1,
             status="draft",
             start_time=now,
-            end_time=now + timedelta(hours=2),
+            end_time=now + timedelta(hours=2000),
             claim_by_type=False,
             allow_resubmit=True,
             score_decay="no"
