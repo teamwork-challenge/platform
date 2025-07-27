@@ -114,14 +114,27 @@ class ApiClient:
         data = self._make_request("GET", endpoint)
         return Round.model_validate(data)
 
-    def list_rounds(self) -> RoundList:
-        """List all rounds."""
-        data = self._make_request("GET", "/rounds")
+    def list_rounds(self, challenge_id: Optional[int] = None) -> RoundList:
+        """List all rounds for a challenge.
+        
+        Args:
+            challenge_id: ID of the challenge to list rounds for. If None, uses the current challenge.
+            
+        Returns:
+            List of rounds for the challenge
+        """
+        if challenge_id is None:
+            # Get the current challenge ID
+            challenge = self.get_challenge_info(None)
+            challenge_id = challenge.id
+            
+        endpoint = f"/rounds?challenge_id={challenge_id}"
+        data = self._make_request("GET", endpoint)
         return RoundList.from_dict(data)
 
     def publish_round(self, round_id: int) -> Round:
         """Publish a round."""
-        return self.update_round(round_id, {"status": "published"})
+        return self.update_round(round_id, {"status": "active"})
 
     def update_round(self, round_id: int, update_data: dict) -> Round:
         """Update a round."""

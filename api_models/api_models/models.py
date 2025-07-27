@@ -297,7 +297,20 @@ class RoundList:
     rounds: List[Round]
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> 'RoundList':
-        """Create a RoundList instance from a dictionary."""
-        rounds = [Round.from_dict(r) for r in data.get('rounds', [])]
+    def from_dict(cls, data: Dict[str, Any] | List[Dict[str, Any]]) -> 'RoundList':
+        """Create a RoundList instance from a dictionary or list.
+        
+        Args:
+            data: Either a dictionary with a 'rounds' key containing a list of round data,
+                  or a list of round data directly.
+                  
+        Returns:
+            A RoundList instance containing the rounds.
+        """
+        if isinstance(data, list):
+            # If data is a list, assume it's a list of round data
+            rounds = [Round.model_validate(r) for r in data]
+        else:
+            # Otherwise, assume it's a dictionary with a 'rounds' key
+            rounds = [Round.model_validate(r) for r in data.get('rounds', [])]
         return cls(rounds=rounds)

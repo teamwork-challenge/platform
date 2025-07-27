@@ -28,7 +28,9 @@ def round_show(
         console.print(f"Status: {round_info.status}")
         console.print(f"Start Time: {round_info.start_time}")
         console.print(f"End Time: {round_info.end_time}")
-        console.print(f"Tasks Available: {round_info.tasks_available}")
+        console.print(f"Claim by Type: {round_info.claim_by_type}")
+        console.print(f"Allow Resubmit: {round_info.allow_resubmit}")
+        console.print(f"Score Decay: {round_info.score_decay}")
 
         return None
     except Exception as e:
@@ -116,13 +118,16 @@ def round_create(
 
 
 @round_app.command("list")
-def round_list(json: bool = json_output_option):
-    """List all rounds."""
+def round_list(
+    challenge_id: Optional[int] = typer.Option(None, "--challenge", "-c", help="Challenge ID"),
+    json: bool = json_output_option
+):
+    """List all rounds for a challenge."""
     ensure_logged_in()
 
     try:
         # Get rounds from the API
-        rounds = api_client.list_rounds()
+        rounds = api_client.list_rounds(challenge_id)
 
         # If json flag is set, the decorator will handle the output
         if json:
