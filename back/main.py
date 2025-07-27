@@ -88,6 +88,17 @@ def get_round_task_type_or_404(round_id: int, task_type_id: int, admin_service: 
     return round_task_type
 
 
+def get_task_or_404(task_id: int, player_service: PlayerService, auth_data: AuthData) -> Task:
+    task = player_service.get_task(task_id)
+    if task is None:
+        raise HTTPException(status_code=404, detail="Task not found")
+
+    if task.challenge_id != auth_data.challenge_id or task.team_id != auth_data.team_id:
+        raise HTTPException(status_code=403, detail="Access to this task is forbidden")
+
+    return task
+
+
 admin = APIRouter(
     prefix="",
     tags=["Admin"],
@@ -296,19 +307,15 @@ def get_round_task_type(round_id: int, task_type_id: int, admin_service: AdminSe
 
 @player.get("/tasks/{task_id}")
 def get_task(task_id: int, auth_data: AuthData = Depends(authenticate_player), player_service: PlayerService = Depends(get_player_service)):
-    task = player_service.get_task(task_id)
-    if task is None:
-        raise HTTPException(status_code=404, detail="Task not found")
-
-    if task.challenge_id != auth_data.challenge_id or task.team_id != auth_data.team_id:
-        raise HTTPException(status_code=403, detail="Access to this task is forbidden")
-
-    return task
+    return get_task_or_404(task_id, player_service, auth_data)
 
 
 @player.post("/tasks")
 def create_task(task_type: Optional[str], auth_data: AuthData = Depends(authenticate_player), player_service: PlayerService = Depends(get_player_service)):
-    return player_service.create_task(auth_data.challenge_id, auth_data.team_id, task_type)
+    try:
+        return player_service.create_task(auth_data.challenge_id, auth_data.team_id, task_type)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 
 app = FastAPI(title="Teamwork Challenge API",

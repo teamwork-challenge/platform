@@ -163,7 +163,7 @@ class ApiClient:
         data = {}
         if task_type:
             data["type"] = task_type
-        response = self._make_request("POST", "/tasks/claim", data)
+        response = self._make_request("POST", "/tasks", data)
         return Task.from_dict(response)
 
     def get_task_info(self, task_id: str) -> Task:

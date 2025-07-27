@@ -97,6 +97,7 @@ class RoundTaskType(BaseModel):
     id: int
     round_id: int
     type: str
+    max_tasks_per_team: int
     generator_url: str
     generator_settings: Optional[str] = None
     generator_secret: str

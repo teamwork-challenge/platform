@@ -1,7 +1,7 @@
 from database import get_db_engine
 from sqlalchemy import text
 from sqlalchemy.orm import Session
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from db_models import Base, AdminKeys, Team, Challenge, Task, Round, RoundTaskType
 
@@ -76,9 +76,9 @@ def create_test_data():
             total_score=200
         )
         session.add_all([team1, team2])
-        
+
         # Create 2 Rounds
-        now = datetime.now()
+        now = datetime.now(timezone.utc)
         round1 = Round(
             id=1,
             challenge_id=challenge1.id,
@@ -103,25 +103,27 @@ def create_test_data():
         )
         session.add_all([round1, round2])
         session.flush()  # Flush to get the generated IDs
-        
+
         # Set current round for challenge1
         challenge1.current_round_id = round1.id
         session.flush()
-        
+
         # Create RoundTaskTypes
         round_task_type1 = RoundTaskType(
             round_id=round1.id,
             type="a_plus_b",
             generator_url="http://localhost:8000/a_plus_b",
             generator_settings=None,
-            generator_secret="secret1"
+            generator_secret="secret1",
+            max_tasks_per_team=3
         )
         round_task_type2 = RoundTaskType(
             round_id=round2.id,
             type="right_time",
             generator_url="http://localhost:8000/right_time",
             generator_settings=None,
-            generator_secret="secret2"
+            generator_secret="secret2",
+            max_tasks_per_team=5
         )
         session.add_all([round_task_type1, round_task_type2])
         session.flush()
@@ -129,11 +131,21 @@ def create_test_data():
         # Create 2 Tasks
         task1 = Task(
             title="Test Task 1",
-            status="PENDING"
+            status="PENDING",
+            challenge_id=challenge1.id,
+            team_id=team1.id,
+            round_id=round1.id,
+            type="a_plus_b",
+            content="{\"input\": \"1 2\"}"
         )
         task2 = Task(
             title="Test Task 2",
-            status="COMPLETED"
+            status="COMPLETED",
+            challenge_id=challenge2.id,
+            team_id=team2.id,
+            round_id=round2.id,
+            type="right_time",
+            content="{\"input\": \"12:00\"}"
         )
         session.add_all([task1, task2])
 
