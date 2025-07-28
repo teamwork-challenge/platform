@@ -58,7 +58,6 @@ def create_test_data():
 
         # Create 2 Teams
         team1 = Team(
-            id=1,
             api_key="team1",
             challenge_id=challenge1.id,
             name="Test Team 1",
@@ -67,7 +66,6 @@ def create_test_data():
             total_score=100
         )
         team2 = Team(
-            id=2,
             api_key="team2",
             challenge_id=challenge2.id,
             name="Test Team 2",
@@ -80,7 +78,6 @@ def create_test_data():
         # Create 2 Rounds
         now = datetime.now(timezone.utc)
         round1 = Round(
-            id=1,
             challenge_id=challenge1.id,
             index=1,
             status="draft",
@@ -91,7 +88,6 @@ def create_test_data():
             score_decay="no"
         )
         round2 = Round(
-            id=2,
             challenge_id=challenge2.id,
             index=1,
             status="published",
