@@ -221,14 +221,10 @@ class PlayerService:
             )
             response.raise_for_status()
             
-            # Parse the response
-            check_results = [CheckResult.model_validate(result) for result in response.json()]
-            
-            # Get the first result (there should only be one)
-            check_result = check_results[0] if check_results else None
-            
+            check_result = CheckResult.model_validate(response.json())
+
             if check_result is None:
-                raise ValueError("No check result returned from task generator")
+                raise RuntimeError("No check result returned from task generator")
                 
             # Create a submission ID
             submission_id = str(uuid.uuid4())

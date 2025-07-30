@@ -37,8 +37,8 @@ async def generate_task(request: GenRequest):
         checker_hint=str(expected_answer)  # Store the expected answer as a hint for the checker
     )
 
-@router.post("/check")
-async def check_answer(request: CheckRequest):
+@router.post("/check", response_model=CheckResult)
+async def check_answer(request: CheckRequest) -> CheckResult:
     """Check the answer for an a_plus_b task"""
     try:
         # Parse the input to get the two numbers
@@ -52,16 +52,16 @@ async def check_answer(request: CheckRequest):
 
         # Check if the answer is correct
         if user_answer == expected_answer:
-            return [CheckResult(status="AC", score=1.0)]
+            return CheckResult(status="AC", score=1.0)
         else:
-            return [CheckResult(
+            return CheckResult(
                 status="WA",
                 score=0.0,
                 error=f"Expected {expected_answer}, got {user_answer}"
-            )]
+            )
     except Exception as e:
-        return [CheckResult(
+        return CheckResult(
             status="WA",
             score=0.0,
             error=f"Error processing answer: {str(e)}"
-        )]
+        )
