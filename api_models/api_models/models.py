@@ -65,8 +65,17 @@ class ChallengeUpdateRequest(BaseModel):
 
 
 class Task(BaseModel):
+    id: str
     title: str
+    type: str
     status: TaskStatus = TaskStatus.PENDING
+    score: int
+    time_remaining: str
+    statement: Optional[str] = None
+    input: Optional[str] = None
+    submissions: List[Submission] = []
+    last_attempt_at: Optional[str] = None
+    solved_at: Optional[str] = None
 
     class Config:
         from_attributes = True
@@ -190,25 +199,9 @@ class SubmissionExtended(BaseModel):
         from_attributes = True
 
 
-class TaskDetail(BaseModel):
-    """Task information."""
-    id: str
-    type: str
-    status: TaskStatus
-    score: int
-    time_remaining: str
-    claimed_at: str
-    submissions: List[Submission] = []
-    last_attempt_at: Optional[str] = None
-    solved_at: Optional[str] = None
-
-    class Config:
-        from_attributes = True
-
-
 class TaskList(BaseModel):
     """List of tasks."""
-    tasks: List[TaskDetail]
+    tasks: List[Task]
 
     class Config:
         from_attributes = True
