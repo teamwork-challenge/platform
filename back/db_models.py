@@ -1,8 +1,9 @@
-from sqlalchemy import DateTime, ForeignKey
+from sqlalchemy import DateTime, ForeignKey, Enum
 from sqlalchemy.orm import DeclarativeBase, relationship
 from sqlalchemy.sql import func
 from sqlalchemy.orm import Mapped, mapped_column
 from datetime import datetime
+from api_models.models import RoundStatus, TaskStatus
 
 
 class Base(DeclarativeBase):
@@ -38,7 +39,7 @@ class Round(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     challenge_id: Mapped[int] = mapped_column(ForeignKey("challenges.id", ondelete="CASCADE", name='fk_rounds_challenge_id'), nullable=False, index=True)
     index: Mapped[int] = mapped_column(nullable=False)
-    status: Mapped[str] = mapped_column(default="draft", nullable=False)
+    status: Mapped[RoundStatus] = mapped_column(Enum(RoundStatus), default=RoundStatus.DRAFT, nullable=False)
     start_time: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     end_time: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     claim_by_type: Mapped[bool] = mapped_column(default=False, nullable=False)
@@ -83,12 +84,13 @@ class Task(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     title: Mapped[str] = mapped_column(nullable=False)
-    status: Mapped[str] = mapped_column(nullable=False, default="PENDING")
+    status: Mapped[TaskStatus] = mapped_column(Enum(TaskStatus), nullable=False, default=TaskStatus.PENDING)
     challenge_id: Mapped[int] = mapped_column(ForeignKey("challenges.id", ondelete="CASCADE"), nullable=False, index=True)
     team_id: Mapped[int] = mapped_column(ForeignKey("teams.id", ondelete="CASCADE"), nullable=False, index=True)
     round_id: Mapped[int] = mapped_column(ForeignKey("rounds.id", ondelete="CASCADE"), nullable=False, index=True)
     type: Mapped[str] = mapped_column(nullable=False)
     content: Mapped[str] = mapped_column(nullable=True)
+    statement: Mapped[str] = mapped_column(nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     
     challenge = relationship("Challenge")

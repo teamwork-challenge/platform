@@ -463,8 +463,10 @@ async def generate_task(request: GenRequest):
     # Store the expected submission time as a hint for the checker
     checker_hint = future_time.isoformat()
 
+    statement_key = f"v{level}"
     return GenResponse(
-        statement_version=f"v{level}",
+        statement_version=statement_key,
+        statement=STATEMENTS[statement_key],
         score="100",
         input=input_data,
         checker_hint=checker_hint

@@ -10,6 +10,23 @@ class UserRole(str, Enum):
     PLAYER = "player"
 
 
+class RoundStatus(str, Enum):
+    DRAFT = "draft"
+    PUBLISHED = "published"
+
+
+class TaskStatus(str, Enum):
+    PENDING = "PENDING"
+    ACTIVE = "ACTIVE"
+    AC = "AC"
+    WA = "WA"
+
+
+class SubmissionStatus(str, Enum):
+    AC = "AC"
+    WA = "WA"
+
+
 class AuthData(BaseModel):
     key: str
     role: UserRole
@@ -49,7 +66,7 @@ class ChallengeUpdateRequest(BaseModel):
 
 class Task(BaseModel):
     title: str
-    status: str = "PENDING"
+    status: TaskStatus = TaskStatus.PENDING
 
     class Config:
         from_attributes = True
@@ -110,7 +127,7 @@ class Round(BaseModel):
     id: int
     challenge_id: int
     index: int
-    status: str = "draft"
+    status: RoundStatus = RoundStatus.DRAFT
     start_time: datetime
     end_time: datetime
     claim_by_type: bool = False
@@ -130,7 +147,7 @@ class RoundCreateRequest(BaseModel):
     claim_by_type: bool = False
     allow_resubmit: bool = False
     score_decay: str = "no"
-    status: str = "draft"
+    status: RoundStatus = RoundStatus.DRAFT
 
     class Config:
         from_attributes = True
@@ -147,55 +164,69 @@ class RoundTaskTypeCreateRequest(BaseModel):
         from_attributes = True
 
 
-@dataclass
-class Submission:
+class Submission(BaseModel):
     """Submission information."""
     id: str
-    status: str
+    status: SubmissionStatus
     submitted_at: str
     task_id: Optional[str] = None
     answer: Optional[str] = None
 
+    class Config:
+        from_attributes = True
+
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> 'Submission':
         """Create a Submission instance from a dictionary."""
+        status_str = data.get('status', 'WA')
+        try:
+            status = SubmissionStatus(status_str)
+        except ValueError:
+            # Default to WA if the status is not a valid SubmissionStatus
+            status = SubmissionStatus.WA
+            
         return cls(
             id=data.get('id', 'N/A'),
-            status=data.get('status', 'N/A'),
+            status=status,
             submitted_at=data.get('submitted_at', 'N/A'),
             task_id=data.get('task_id'),
             answer=data.get('answer')
         )
 
 
-@dataclass
-class Task:
+class TaskDetail(BaseModel):
     """Task information."""
     id: str
     type: str
-    status: str
+    status: TaskStatus
     score: int
     time_remaining: str
     claimed_at: str
-    submissions: List[Submission] = None
+    submissions: List[Submission] = []
     last_attempt_at: Optional[str] = None
     solved_at: Optional[str] = None
 
-    def __post_init__(self):
-        if self.submissions is None:
-            self.submissions = []
+    class Config:
+        from_attributes = True
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> 'Task':
-        """Create a Task instance from a dictionary."""
+    def from_dict(cls, data: Dict[str, Any]) -> 'TaskDetail':
+        """Create a TaskDetail instance from a dictionary."""
         submissions = []
         if 'submissions' in data:
             submissions = [Submission.from_dict(s) for s in data.get('submissions', [])]
 
+        status_str = data.get('status', 'PENDING')
+        try:
+            status = TaskStatus(status_str)
+        except ValueError:
+            # Default to PENDING if the status is not a valid TaskStatus
+            status = TaskStatus.PENDING
+
         return cls(
             id=data.get('id', 'N/A'),
             type=data.get('type', 'N/A'),
-            status=data.get('status', 'N/A'),
+            status=status,
             score=data.get('score', 0),
             time_remaining=data.get('time_remaining', 'N/A'),
             claimed_at=data.get('claimed_at', 'N/A'),
@@ -205,26 +236,30 @@ class Task:
         )
 
 
-@dataclass
-class TaskList:
+class TaskList(BaseModel):
     """List of tasks."""
-    tasks: List[Task]
+    tasks: List[TaskDetail]
+
+    class Config:
+        from_attributes = True
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> 'TaskList':
         """Create a TaskList instance from a dictionary."""
-        tasks = [Task.from_dict(t) for t in data.get('tasks', [])]
+        tasks = [TaskDetail.from_dict(t) for t in data.get('tasks', [])]
         return cls(tasks=tasks)
 
 
-@dataclass
-class TypeStats:
+class TypeStats(BaseModel):
     """Statistics for a task type."""
     total: int
     pending: int
     ac: int
     wa: int
     remaining: int
+
+    class Config:
+        from_attributes = True
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> 'TypeStats':
@@ -238,11 +273,13 @@ class TypeStats:
         )
 
 
-@dataclass
-class Dashboard:
+class Dashboard(BaseModel):
     """Dashboard with task statistics."""
     round_id: int
     stats: Dict[str, TypeStats]
+
+    class Config:
+        from_attributes = True
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> 'Dashboard':
@@ -257,13 +294,15 @@ class Dashboard:
         )
 
 
-@dataclass
-class TeamScore:
+class TeamScore(BaseModel):
     """Team score information."""
     rank: int
     name: str
     total_score: int
     scores: Dict[str, int]
+
+    class Config:
+        from_attributes = True
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> 'TeamScore':
@@ -276,11 +315,13 @@ class TeamScore:
         )
 
 
-@dataclass
-class Leaderboard:
+class Leaderboard(BaseModel):
     """Leaderboard with team scores."""
     round_id: int
     teams: List[TeamScore]
+
+    class Config:
+        from_attributes = True
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> 'Leaderboard':
@@ -292,10 +333,12 @@ class Leaderboard:
         )
 
 
-@dataclass
-class RoundList:
+class RoundList(BaseModel):
     """List of rounds."""
     rounds: List[Round]
+
+    class Config:
+        from_attributes = True
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any] | List[Dict[str, Any]]) -> 'RoundList':

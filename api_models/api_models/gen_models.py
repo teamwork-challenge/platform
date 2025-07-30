@@ -21,6 +21,7 @@ class GenRequest(BaseModel):
 class GenResponse(BaseModel):
     """Response model for the gen endpoint"""
     statement_version: str
+    statement: str = ""
     score: str
     input: str
     checker_hint: str = ""

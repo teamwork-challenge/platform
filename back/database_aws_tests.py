@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 from datetime import datetime, timedelta, timezone
 
 from db_models import Base, AdminKeys, Team, Challenge, Task, Round, RoundTaskType
+from api_models.models import RoundStatus, TaskStatus
 
 
 def test_connection():
@@ -83,7 +84,7 @@ def create_test_data():
             id=1,
             challenge_id=challenge1.id,
             index=1,
-            status="draft",
+            status=RoundStatus.DRAFT,
             start_time=now,
             end_time=now + timedelta(hours=2000),
             claim_by_type=False,
@@ -94,9 +95,9 @@ def create_test_data():
             id=2,
             challenge_id=challenge2.id,
             index=1,
-            status="published",
+            status=RoundStatus.PUBLISHED,
             start_time=now - timedelta(hours=1),
-            end_time=now + timedelta(hours=1),
+            end_time=now + timedelta(hours=2000),
             claim_by_type=True,
             allow_resubmit=False,
             score_decay="linear"
@@ -114,15 +115,15 @@ def create_test_data():
             type="a_plus_b",
             generator_url="http://localhost:8000/a_plus_b",
             generator_settings=None,
-            generator_secret="secret1",
+            generator_secret="twc",
             max_tasks_per_team=3
         )
         round_task_type2 = RoundTaskType(
             round_id=round2.id,
             type="right_time",
             generator_url="http://localhost:8000/right_time",
-            generator_settings=None,
-            generator_secret="secret2",
+            generator_settings="complication2:1,complication3:2,complication4:3",
+            generator_secret="twc",
             max_tasks_per_team=5
         )
         session.add_all([round_task_type1, round_task_type2])
@@ -131,21 +132,23 @@ def create_test_data():
         # Create 2 Tasks
         task1 = Task(
             title="Test Task 1",
-            status="PENDING",
+            status=TaskStatus.PENDING,
             challenge_id=challenge1.id,
             team_id=team1.id,
             round_id=round1.id,
             type="a_plus_b",
-            content="{\"input\": \"1 2\"}"
+            content="{\"input\": \"1 2\"}",
+            statement="Given two integers a and b, find their sum a + b."
         )
         task2 = Task(
             title="Test Task 2",
-            status="COMPLETED",
+            status=TaskStatus.AC,
             challenge_id=challenge2.id,
             team_id=team2.id,
             round_id=round2.id,
             type="right_time",
-            content="{\"input\": \"12:00\"}"
+            content="{\"input\": \"12:00\"}",
+            statement="Send the answer back exactly in the moment of time, specified in the task input."
         )
         session.add_all([task1, task2])
 

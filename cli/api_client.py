@@ -7,6 +7,7 @@ import requests
 
 import api_models.models
 from api_models import *
+from api_models.models import TaskDetail
 from config_manager import ConfigManager
 
 
@@ -158,18 +159,18 @@ class ApiClient:
         return self._make_request("DELETE", f"/rounds/{round_id}")
 
     # Task-related methods
-    def claim_task(self, task_type: Optional[str] = None) -> Task:
+    def claim_task(self, task_type: Optional[str] = None) -> TaskDetail:
         """Claim a new task."""
         data = {}
         if task_type:
             data["type"] = task_type
         response = self._make_request("POST", "/tasks", data)
-        return Task.from_dict(response)
+        return TaskDetail.from_dict(response)
 
-    def get_task_info(self, task_id: str) -> Task:
+    def get_task_info(self, task_id: str) -> TaskDetail:
         """Get task information."""
         data = self._make_request("GET", f"/tasks/{task_id}")
-        return Task.from_dict(data)
+        return TaskDetail.from_dict(data)
 
     def get_task_input(self, task_id: str) -> Dict[str, Any]:
         """Get task input."""

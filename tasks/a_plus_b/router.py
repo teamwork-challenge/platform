@@ -31,6 +31,7 @@ async def generate_task(request: GenRequest):
 
     return GenResponse(
         statement_version="v1",
+        statement=STATEMENTS["v1"],
         score="100",
         input=input_data,
         checker_hint=str(expected_answer)  # Store the expected answer as a hint for the checker

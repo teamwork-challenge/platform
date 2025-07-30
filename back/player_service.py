@@ -120,7 +120,7 @@ class PlayerService:
             # Make request to task generator
             response = requests.post(
                 f"{round_task_type.generator_url}/gen",
-                headers={"Content-Type": "application/json"},
+                headers={"Content-Type": "application/json", "X-API-KEY": round_task_type.generator_secret or ""},
                 data=json.dumps(gen_request.model_dump())
             )
             response.raise_for_status()
@@ -135,6 +135,7 @@ class PlayerService:
                 "input": gen_response.input,
                 "checker_hint": gen_response.checker_hint
             })
+            task.statement = gen_response.statement
             task.status = "ACTIVE"
             
             self.db.commit()
