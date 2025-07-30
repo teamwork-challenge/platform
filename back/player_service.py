@@ -6,7 +6,7 @@ import json
 import uuid
 
 from api_models import Task as ApiTask, Team as ApiTeam
-from api_models.gen_models import GenRequest, GenResponse, TaskProgress, CheckRequest, CheckResult
+from api_models.gen_models import GenRequest, GenResponse, TaskProgress, CheckRequest, CheckResult, CheckStatus
 from api_models.models import SubmissionExtended
 from db_models import Team, Task, Round, Challenge, RoundTaskType
 
@@ -268,7 +268,7 @@ class PlayerService:
             submitted_at = datetime.now(timezone.utc).isoformat()
             
             # Update the task status and team score based on the check result
-            if check_result.status == "AC":
+            if check_result.status == CheckStatus.ACCEPTED:
                 # Answer is correct
                 task.status = "ACCEPTED"
                 
