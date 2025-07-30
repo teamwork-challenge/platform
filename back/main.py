@@ -1,9 +1,9 @@
 import uvicorn
-from fastapi import FastAPI, APIRouter, HTTPException, Depends
+from fastapi import FastAPI, APIRouter, HTTPException, Depends, Body
 from fastapi.security import APIKeyHeader
 
 from api_models import *
-from api_models.models import Round, RoundCreateRequest, TeamsImportResponse, TeamsImportRequest, RoundTaskType, RoundTaskTypeCreateRequest, ChallengeUpdateRequest
+from api_models.models import Round, RoundCreateRequest, TeamsImportResponse, TeamsImportRequest, RoundTaskType, RoundTaskTypeCreateRequest, ChallengeUpdateRequest, SubmitAnswerRequest, SubmissionExtended
 from auth_service import AuthService
 from admin_service import AdminService
 from player_service import PlayerService
@@ -308,6 +308,40 @@ def get_round_task_type(round_id: int, task_type_id: int, admin_service: AdminSe
 @player.get("/tasks/{task_id}")
 def get_task(task_id: int, auth_data: AuthData = Depends(authenticate_player), player_service: PlayerService = Depends(get_player_service)):
     return get_task_or_404(task_id, player_service, auth_data)
+
+
+@player.post("/tasks/{task_id}/submit", response_model=SubmissionExtended)
+def submit_task_answer(
+    task_id: int, 
+    answer_data: SubmitAnswerRequest,
+    auth_data: AuthData = Depends(authenticate_player), 
+    player_service: PlayerService = Depends(get_player_service)
+):
+    """Submited an answer for a task.
+    
+    Args:
+        task_id: The ID of the task to submit an answer for
+        answer_data: A request containing the answer
+        auth_data: Authentication data from the API key
+        player_service: The player service instance
+        
+    Returns:
+        A SubmissionExtended object with the submission details
+        
+    Raises:
+        HTTPException: If the task is not found, doesn't belong to the team,
+                      is not in PENDING status, or the round is not active
+    """
+    # Extracted the answer from the request body
+    answer = answer_data.answer
+        
+    try:
+        # Submit the answer
+        submission = player_service.submit_task_answer(task_id, auth_data.team_id, answer)
+        return submission
+    except ValueError as e:
+        # Convert ValueError to HTTPException
+        raise HTTPException(status_code=400, detail=str(e))
 
 
 @player.post("/tasks")

@@ -194,6 +194,31 @@ class Submission(BaseModel):
         )
 
 
+@dataclass
+class SubmissionExtended:
+    """Extended submission information with the explanation and score."""
+    id: str
+    status: str
+    submitted_at: str
+    task_id: Optional[str] = None
+    answer: Optional[str] = None
+    explanation: Optional[str] = None
+    score: Optional[int] = None
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> 'SubmissionExtended':
+        """Created a SubmissionExtended instance from a dictionary."""
+        return cls(
+            id=data.get('id', 'N/A'),
+            status=data.get('status', 'N/A'),
+            submitted_at=data.get('submitted_at', 'N/A'),
+            task_id=data.get('task_id'),
+            answer=data.get('answer'),
+            explanation=data.get('explanation'),
+            score=data.get('score')
+        )
+
+
 class TaskDetail(BaseModel):
     """Task information."""
     id: str
@@ -358,3 +383,11 @@ class RoundList(BaseModel):
             # Otherwise, assume it's a dictionary with a 'rounds' key
             rounds = [Round.model_validate(r) for r in data.get('rounds', [])]
         return cls(rounds=rounds)
+
+
+class SubmitAnswerRequest(BaseModel):
+    """Request model for submitting an answer to a task."""
+    answer: str
+
+    class Config:
+        from_attributes = True
