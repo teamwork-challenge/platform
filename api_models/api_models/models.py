@@ -175,27 +175,8 @@ class Submission(BaseModel):
     class Config:
         from_attributes = True
 
-    @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> 'Submission':
-        """Create a Submission instance from a dictionary."""
-        status_str = data.get('status', 'WA')
-        try:
-            status = SubmissionStatus(status_str)
-        except ValueError:
-            # Default to WA if the status is not a valid SubmissionStatus
-            status = SubmissionStatus.WA
-            
-        return cls(
-            id=data.get('id', 'N/A'),
-            status=status,
-            submitted_at=data.get('submitted_at', 'N/A'),
-            task_id=data.get('task_id'),
-            answer=data.get('answer')
-        )
 
-
-@dataclass
-class SubmissionExtended:
+class SubmissionExtended(BaseModel):
     """Extended submission information with the explanation and score."""
     id: str
     status: str
@@ -204,19 +185,9 @@ class SubmissionExtended:
     answer: Optional[str] = None
     explanation: Optional[str] = None
     score: Optional[int] = None
-
-    @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> 'SubmissionExtended':
-        """Created a SubmissionExtended instance from a dictionary."""
-        return cls(
-            id=data.get('id', 'N/A'),
-            status=data.get('status', 'N/A'),
-            submitted_at=data.get('submitted_at', 'N/A'),
-            task_id=data.get('task_id'),
-            answer=data.get('answer'),
-            explanation=data.get('explanation'),
-            score=data.get('score')
-        )
+    
+    class Config:
+        from_attributes = True
 
 
 class TaskDetail(BaseModel):
@@ -234,32 +205,6 @@ class TaskDetail(BaseModel):
     class Config:
         from_attributes = True
 
-    @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> 'TaskDetail':
-        """Create a TaskDetail instance from a dictionary."""
-        submissions = []
-        if 'submissions' in data:
-            submissions = [Submission.from_dict(s) for s in data.get('submissions', [])]
-
-        status_str = data.get('status', 'PENDING')
-        try:
-            status = TaskStatus(status_str)
-        except ValueError:
-            # Default to PENDING if the status is not a valid TaskStatus
-            status = TaskStatus.PENDING
-
-        return cls(
-            id=data.get('id', 'N/A'),
-            type=data.get('type', 'N/A'),
-            status=status,
-            score=data.get('score', 0),
-            time_remaining=data.get('time_remaining', 'N/A'),
-            claimed_at=data.get('claimed_at', 'N/A'),
-            submissions=submissions,
-            last_attempt_at=data.get('last_attempt_at'),
-            solved_at=data.get('solved_at')
-        )
-
 
 class TaskList(BaseModel):
     """List of tasks."""
@@ -267,12 +212,6 @@ class TaskList(BaseModel):
 
     class Config:
         from_attributes = True
-
-    @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> 'TaskList':
-        """Create a TaskList instance from a dictionary."""
-        tasks = [TaskDetail.from_dict(t) for t in data.get('tasks', [])]
-        return cls(tasks=tasks)
 
 
 class TypeStats(BaseModel):
@@ -286,17 +225,6 @@ class TypeStats(BaseModel):
     class Config:
         from_attributes = True
 
-    @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> 'TypeStats':
-        """Create a TypeStats instance from a dictionary."""
-        return cls(
-            total=data.get('total', 0),
-            pending=data.get('pending', 0),
-            ac=data.get('ac', 0),
-            wa=data.get('wa', 0),
-            remaining=data.get('remaining', 0)
-        )
-
 
 class Dashboard(BaseModel):
     """Dashboard with task statistics."""
@@ -305,18 +233,6 @@ class Dashboard(BaseModel):
 
     class Config:
         from_attributes = True
-
-    @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> 'Dashboard':
-        """Create a Dashboard instance from a dictionary."""
-        stats = {}
-        for task_type, type_stats in data.get('stats', {}).items():
-            stats[task_type] = TypeStats.from_dict(type_stats)
-
-        return cls(
-            round_id=data.get('round_id', 0),
-            stats=stats
-        )
 
 
 class TeamScore(BaseModel):
@@ -329,16 +245,6 @@ class TeamScore(BaseModel):
     class Config:
         from_attributes = True
 
-    @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> 'TeamScore':
-        """Create a TeamScore instance from a dictionary."""
-        return cls(
-            rank=data.get('rank', 0),
-            name=data.get('name', 'N/A'),
-            total_score=data.get('total_score', 0),
-            scores=data.get('scores', {})
-        )
-
 
 class Leaderboard(BaseModel):
     """Leaderboard with team scores."""
@@ -348,15 +254,6 @@ class Leaderboard(BaseModel):
     class Config:
         from_attributes = True
 
-    @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> 'Leaderboard':
-        """Create a Leaderboard instance from a dictionary."""
-        teams = [TeamScore.from_dict(t) for t in data.get('teams', [])]
-        return cls(
-            round_id=data.get('round_id', 0),
-            teams=teams
-        )
-
 
 class RoundList(BaseModel):
     """List of rounds."""
@@ -364,25 +261,6 @@ class RoundList(BaseModel):
 
     class Config:
         from_attributes = True
-
-    @classmethod
-    def from_dict(cls, data: Dict[str, Any] | List[Dict[str, Any]]) -> 'RoundList':
-        """Create a RoundList instance from a dictionary or list.
-        
-        Args:
-            data: Either a dictionary with a 'rounds' key containing a list of round data,
-                  or a list of round data directly.
-                  
-        Returns:
-            A RoundList instance containing the rounds.
-        """
-        if isinstance(data, list):
-            # If data is a list, assume it's a list of round data
-            rounds = [Round.model_validate(r) for r in data]
-        else:
-            # Otherwise, assume it's a dictionary with a 'rounds' key
-            rounds = [Round.model_validate(r) for r in data.get('rounds', [])]
-        return cls(rounds=rounds)
 
 
 class SubmitAnswerRequest(BaseModel):

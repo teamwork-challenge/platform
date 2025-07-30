@@ -131,7 +131,7 @@ class ApiClient:
             
         endpoint = f"/rounds?challenge_id={challenge_id}"
         data = self._make_request("GET", endpoint)
-        return RoundList.from_dict(data)
+        return RoundList.model_validate(data)
 
     def publish_round(self, round_id: int) -> Round:
         """Publish a round."""
@@ -165,12 +165,12 @@ class ApiClient:
         if task_type:
             data["type"] = task_type
         response = self._make_request("POST", "/tasks", data)
-        return TaskDetail.from_dict(response)
+        return TaskDetail.model_validate(response)
 
     def get_task_info(self, task_id: str) -> TaskDetail:
         """Get task information."""
         data = self._make_request("GET", f"/tasks/{task_id}")
-        return TaskDetail.from_dict(data)
+        return TaskDetail.model_validate(data)
 
     def get_task_input(self, task_id: str) -> Dict[str, Any]:
         """Get task input."""
@@ -180,12 +180,12 @@ class ApiClient:
     def submit_task_answer(self, task_id: str, answer: str) -> Submission:
         """Submit an answer for a task."""
         data = self._make_request("POST", f"/tasks/{task_id}/submit", {"answer": answer})
-        return Submission.from_dict(data)
+        return Submission.model_validate(data)
 
     def get_submission_info(self, submit_id: str) -> Submission:
         """Get submission information."""
         data = self._make_request("GET", f"/submissions/{submit_id}")
-        return Submission.from_dict(data)
+        return Submission.model_validate(data)
 
     def list_tasks(self, status: Optional[str] = None, task_type: Optional[str] = None,
                   round_id: Optional[int] = None, since: Optional[str] = None) -> TaskList:
@@ -202,7 +202,7 @@ class ApiClient:
 
         # In a real implementation, we would add these params to the request
         data = self._make_request("GET", "/tasks")
-        return TaskList.from_dict(data)
+        return TaskList.model_validate(data)
 
     # Board-related methods
     def get_dashboard(self, round_id: Optional[int] = None) -> Dashboard:
@@ -211,7 +211,7 @@ class ApiClient:
         if round_id:
             endpoint += f"?round_id={round_id}"
         data = self._make_request("GET", endpoint)
-        return Dashboard.from_dict(data)
+        return Dashboard.model_validate(data)
 
     def get_leaderboard(self, round_id: Optional[int] = None) -> Leaderboard:
         """Get leaderboard with team scores."""
@@ -219,4 +219,4 @@ class ApiClient:
         if round_id:
             endpoint += f"?round_id={round_id}"
         data = self._make_request("GET", endpoint)
-        return Leaderboard.from_dict(data)
+        return Leaderboard.model_validate(data)
