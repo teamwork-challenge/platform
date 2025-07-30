@@ -170,7 +170,7 @@ class Submission:
 
 @dataclass
 class SubmissionExtended:
-    """Extended submission information with explanation and score."""
+    """Extended submission information with the explanation and score."""
     id: str
     status: str
     submitted_at: str

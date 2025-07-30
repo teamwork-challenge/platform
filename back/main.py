@@ -317,7 +317,7 @@ def submit_task_answer(
     auth_data: AuthData = Depends(authenticate_player), 
     player_service: PlayerService = Depends(get_player_service)
 ):
-    """Submit an answer for a task.
+    """Submited an answer for a task.
     
     Args:
         task_id: The ID of the task to submit an answer for
