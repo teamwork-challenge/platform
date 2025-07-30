@@ -149,7 +149,7 @@ class PlayerService:
         return task
         
     def submit_task_answer(self, task_id: int, team_id: int, answer: str) -> SubmissionExtended:
-        """Submit an answer for a task.
+        """Submit an answer for the task.
         
         Args:
             task_id: The ID of the task to submit an answer for

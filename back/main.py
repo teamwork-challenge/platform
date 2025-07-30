@@ -332,7 +332,7 @@ def submit_task_answer(
         HTTPException: If the task is not found, doesn't belong to the team,
                       is not in PENDING status, or the round is not active
     """
-    # Extract the answer from the request body
+    # Extracted the answer from the request body
     answer = answer_data.answer
         
     try:

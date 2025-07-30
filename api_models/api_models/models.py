@@ -181,7 +181,7 @@ class SubmissionExtended:
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> 'SubmissionExtended':
-        """Create a SubmissionExtended instance from a dictionary."""
+        """Created a SubmissionExtended instance from a dictionary."""
         return cls(
             id=data.get('id', 'N/A'),
             status=data.get('status', 'N/A'),
