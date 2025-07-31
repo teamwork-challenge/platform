@@ -32,7 +32,7 @@ class PlayerService:
         # Create the task with PENDING status
         task = Task(
             title=f"{task_type} Task",
-            status="PENDING",
+            status="PENDING", # TODO use enums!
             challenge_id=challenge_id,
             team_id=team_id,
             type=task_type,
@@ -110,7 +110,7 @@ class PlayerService:
             (Task.round_id == round_id) & 
             (Task.type == task_type)
         )
-        return self.db.execute(stmt).scalars().all()
+        return self.db.execute(stmt).scalars().all() # TODO: fix types!
         
     def ensure_task_limit(self, team_id: int, round_id: int, task_type: str, round_task_type: RoundTaskType) -> None:
         if round_task_type.max_tasks_per_team is not None:
@@ -119,6 +119,7 @@ class PlayerService:
             if len(existing_tasks) >= round_task_type.max_tasks_per_team:
                 raise ValueError(f"Maximum number of tasks of type '{task_type}' already taken")
 
+    # TODO: convert it to function that returns generator response. Handle all task modifications on the calling site.
     def generate_task_content(self, task: Task, team: Team, round: Round, round_task_type: RoundTaskType, task_progress: TaskProgress) -> None:
         # Create request for task generator
         gen_request = GenRequest(
@@ -137,7 +138,7 @@ class PlayerService:
                 data=json.dumps(gen_request.model_dump())
             )
             
-            # Handle HTTP errors
+            #TODO: Do not use ValueError — they are used for validation errors of back client requests. Here nothing is wrong with user request — the configuration of the tasks is wrong. So use RuntimeError to end up with 500-http-error instead of 400.
             try:
                 response.raise_for_status()
             except requests.exceptions.HTTPError as http_err:
@@ -166,7 +167,7 @@ class PlayerService:
                 "checker_hint": gen_response.checker_hint
             })
             task.statement = gen_response.statement
-            task.status = "ACTIVE"
+            task.status = "ACTIVE" # TODO no need this status. PENDING is enough.
             
             self.db.commit()
             self.db.refresh(task)
