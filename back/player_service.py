@@ -183,131 +183,92 @@ class PlayerService:
         except Exception as e:
             # Catch any other unexpected errors
             raise ValueError(f"Unexpected error generating task: {str(e)}")
-        
-    def submit_task_answer(self, task_id: int, team_id: int, answer: str) -> SubmissionExtended:
-        """Submited an answer for the task.
-        
-        Args:
-            task_id: The ID of the task to submit an answer for
-            team_id: The ID of the team submitting the answer
-            answer: The answer to submit
-            
-        Returns:
-            A SubmissionExtended object with the submission details
-            
-        Raises:
-            ValueError: If the task is not found, doesn't belong to the team,
-                       is not in PENDING status, or the round is not active
-        """
-        # Get the task
-        stmt = select(Task).where(Task.id == task_id)
-        task = self.db.execute(stmt).scalar_one_or_none()
-        
-        # Check if the task exists
-        if task is None:
-            raise ValueError("Task not found")
-            
-        # Check if the task belongs to the team
-        if task.team_id != team_id:
-            raise ValueError("Task does not belong to this team")
-            
-        # Check if the task is in PENDING status
-        if task.status != "PENDING":
-            raise ValueError("Task is not in PENDING status")
-            
-        # Get the round
-        stmt = select(Round).where(Round.id == task.round_id)
-        round = self.db.execute(stmt).scalar_one_or_none()
-        
-        # Check if the round is active
-        current_time = datetime.now(timezone.utc)
-        if current_time < round.start_time:
-            raise ValueError("Round has not started yet")
-            
-        if current_time > round.end_time:
-            raise ValueError("Round has already ended")
-            
-        # Get the task type
+
+    def _validate_task_type(self, round_id: int, task_type: str) -> RoundTaskType:
+        """Validate that the task type is available in the round."""
         stmt = select(RoundTaskType).where(
-            (RoundTaskType.round_id == round.id) & 
-            (RoundTaskType.type == task.type)
+            (RoundTaskType.round_id == round_id) &
+            (RoundTaskType.type == task_type)
         )
         round_task_type = self.db.execute(stmt).scalar_one_or_none()
-        
+
         if round_task_type is None:
-            raise ValueError(f"Task type '{task.type}' is not available in this round")
-            
-        # Parse the task content to get the checker_hint
-        task_content = json.loads(task.content)
-        checker_hint = task_content.get("checker_hint")
-        
-        # Create a check request
+            raise ValueError(f"Task type '{task_type}' is not available in this round")
+
+        return round_task_type
+
+    def _check_answer(self, answer: str, checker_hint: str, generator_url: str) -> CheckResult:
+        """Check the answer with the task generator."""
         check_request = CheckRequest(
             answer=answer,
             checker_hint=checker_hint
         )
-        
+
         try:
-            # Make request to task generator to check the answer
             response = requests.post(
-                f"{round_task_type.generator_url}/check",
+                f"{generator_url}/check",
                 headers={"Content-Type": "application/json"},
                 data=json.dumps(check_request.model_dump())
             )
             response.raise_for_status()
-            
+
             check_result = CheckResult.model_validate(response.json())
 
             if check_result is None:
                 raise RuntimeError("No check result returned from task generator")
-                
-            # Create a submission ID
-            submission_id = str(uuid.uuid4())
-            
-            # Get the current time
-            submitted_at = datetime.now(timezone.utc).isoformat()
-            
-            # Update the task status and team score based on the check result
-            if check_result.status == CheckStatus.ACCEPTED:
-                # Answer is correct
-                task.status = "ACCEPTED"
-                
-                # Get the team
-                stmt = select(Team).where(Team.id == team_id)
-                team = self.db.execute(stmt).scalar_one_or_none()
-                
-                # Update the team score
-                score = int(float(task_content.get("score", "0")) * check_result.score)
-                team.total_score += score
-                
-                # Create a submission response
-                submission = SubmissionExtended(
-                    id=submission_id,
-                    status="ACCEPTED",
-                    submitted_at=submitted_at,
-                    task_id=str(task_id),
-                    answer=answer,
-                    score=score
-                )
-            else:
-                # Answer is wrong
-                task.status = "WRONG_ANSWER"
-                
-                # Create a submission response
-                submission = SubmissionExtended(
-                    id=submission_id,
-                    status="WRONG_ANSWER",
-                    submitted_at=submitted_at,
-                    task_id=str(task_id),
-                    answer=answer,
-                    explanation=check_result.error
-                )
-                
-            # Commit the changes to the database
-            self.db.commit()
-            
-            return submission
-            
+
+            return check_result
+
         except Exception as e:
-            # If there's an error, just raise it
             raise ValueError(f"Error checking answer: {str(e)}")
+
+    def _create_submission(self, task_id: int, team_id: int, answer: str,
+                           check_result: CheckResult, task_content: dict, task: Task) -> SubmissionExtended:
+        """Create a submission based on the check result."""
+        submission_id = str(uuid.uuid4())
+        submitted_at = datetime.now(timezone.utc).isoformat()
+
+        if check_result.status == CheckStatus.ACCEPTED:
+            task.status = "ACCEPTED"
+
+            stmt = select(Team).where(Team.id == team_id)
+            team = self.db.execute(stmt).scalar_one_or_none()
+
+            score = int(float(task_content.get("score", "0")) * check_result.score)
+            team.total_score += score
+
+            submission = SubmissionExtended(
+                id=submission_id,
+                status="ACCEPTED",
+                submitted_at=submitted_at,
+                task_id=str(task_id),
+                answer=answer,
+                score=score
+            )
+        else:
+            task.status = "WRONG_ANSWER"
+
+            submission = SubmissionExtended(
+                id=submission_id,
+                status="WRONG_ANSWER",
+                submitted_at=submitted_at,
+                task_id=str(task_id),
+                answer=answer,
+                explanation=check_result.error
+            )
+
+        self.db.commit()
+        return submission
+
+    def submit_task_answer(self, task_id: int, team_id: int, answer: str) -> SubmissionExtended:
+        """Submit an answer for the task."""
+        task = self._validate_task(task_id, team_id)
+        round = self._validate_round(task.round_id)
+        round_task_type = self._validate_task_type(round.id, task.type)
+
+        task_content = json.loads(task.content)
+        checker_hint = task_content.get("checker_hint")
+
+        check_result = self._check_answer(answer, checker_hint, round_task_type.generator_url)
+
+        return self._create_submission(task_id, team_id, answer, check_result, task_content, task)
