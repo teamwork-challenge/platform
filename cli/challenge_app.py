@@ -4,7 +4,6 @@ from typing import Optional
 import typer
 from rich.markdown import Markdown
 
-from api_models import ChallengeUpdateRequest
 from app_deps import api_client, console, ensure_logged_in, json_output_option
 from formatter import print_as_json
 from api_models.models import ChallengeUpdateRequest

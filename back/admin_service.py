@@ -162,7 +162,8 @@ class AdminService:
             type=task_type_data.type,
             generator_url=task_type_data.generator_url,
             generator_settings=task_type_data.generator_settings,
-            generator_secret=task_type_data.generator_secret
+            generator_secret=task_type_data.generator_secret,
+            max_tasks_per_team=task_type_data.max_tasks_per_team
         )
 
         self.db.add(round_task_type)
@@ -195,6 +196,8 @@ class AdminService:
             round_task_type.generator_settings = task_type_data.generator_settings
         if task_type_data.generator_secret is not None:
             round_task_type.generator_secret = task_type_data.generator_secret
+        if task_type_data.max_tasks_per_team is not None:
+            round_task_type.max_tasks_per_team = task_type_data.max_tasks_per_team
 
         self.db.commit()
         self.db.refresh(round_task_type)

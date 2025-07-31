@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+
 from pydantic import BaseModel
 from typing import Dict, List, Optional, Any
 from enum import Enum
@@ -25,6 +26,18 @@ class TaskStatus(str, Enum):
 class SubmissionStatus(str, Enum):
     AC = "AC"
     WA = "WA"
+
+
+class Submission(BaseModel):
+    """Submission information."""
+    id: str
+    status: SubmissionStatus
+    submitted_at: str
+    task_id: Optional[str] = None
+    answer: Optional[str] = None
+
+    class Config:
+        from_attributes = True
 
 
 class AuthData(BaseModel):
@@ -168,18 +181,7 @@ class RoundTaskTypeCreateRequest(BaseModel):
     generator_url: str
     generator_settings: Optional[str] = None
     generator_secret: str
-
-    class Config:
-        from_attributes = True
-
-
-class Submission(BaseModel):
-    """Submission information."""
-    id: str
-    status: SubmissionStatus
-    submitted_at: str
-    task_id: Optional[str] = None
-    answer: Optional[str] = None
+    max_tasks_per_team: Optional[int] = None
 
     class Config:
         from_attributes = True

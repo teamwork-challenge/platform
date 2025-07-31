@@ -74,7 +74,7 @@ def round_create(
 
     try:
         # Create a RoundCreateRequest object
-        from api_models import RoundCreateRequest
+        from api_models.models import RoundCreateRequest
         from datetime import datetime
         
         # Parse the datetime strings

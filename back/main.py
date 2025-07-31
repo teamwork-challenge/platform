@@ -216,7 +216,7 @@ def create_round(
     return round
 
 
-@admin.put("/task-types/{task_type_id}", response_model=RoundTaskType)
+@admin.put("/challenges/{challenge_id}/rounds/{round_id}/task-types/{task_type_id}", response_model=RoundTaskType)
 def update_round_task_type(
     challenge_id: int, 
     round_id: int, 
@@ -237,24 +237,26 @@ def update_round_task_type(
     return updated_round_task_type
 
 
-@admin.delete("/task-types/{task_type_id}")
+@admin.delete("/challenges/{challenge_id}/rounds/{round_id}/task-types/{task_type_id}")
 def delete_round_task_type(
+    challenge_id: int,
+    round_id: int,
     task_type_id: int, 
     admin_service: AdminService = Depends(get_admin_service), 
     auth_data: AuthData = Depends(authenticate_admin)
 ):
-    round_task_type = admin_service.get_round_task_type(task_type_id)
+    ensure_challenge_is_not_deleted(get_challenge_or_404(challenge_id, admin_service, auth_data, "DELETE"))
 
-    get_round_or_404(round_task_type.round_id, admin_service, auth_data, "DELETE")
+    get_round_or_404(round_id, admin_service, auth_data, "DELETE")
 
-    get_round_task_type_or_404(round_task_type.round_id, task_type_id, admin_service, auth_data, "DELETE")
+    get_round_task_type_or_404(round_id, task_type_id, admin_service, auth_data, "DELETE")
 
     deleted_round_task_type = admin_service.delete_round_task_type(task_type_id)
 
     return {"message": "Task type deleted", "task_type": deleted_round_task_type}
 
 
-@admin.post("/task-types", response_model=RoundTaskType)
+@admin.post("/challenges/{challenge_id}/rounds/{round_id}/task-types", response_model=RoundTaskType)
 def create_round_task_type(
     challenge_id: int, 
     round_id: int, 
@@ -378,7 +380,7 @@ def get_round(
     return r
 
 
-@player.get("/task-types", response_model=list[RoundTaskType])
+@player.get("/rounds/{round_id}/task-types", response_model=list[RoundTaskType])
 def get_round_task_types(
     round_id: int, 
     admin_service: AdminService = Depends(get_admin_service), 
@@ -389,7 +391,7 @@ def get_round_task_types(
     return admin_service.get_round_task_types_by_round(round_id)
 
 
-@player.get("/task-types/{task_type_id}", response_model=RoundTaskType)
+@player.get("/rounds/{round_id}/task-types/{task_type_id}", response_model=RoundTaskType)
 def get_round_task_type(
     round_id: int, 
     task_type_id: int, 
