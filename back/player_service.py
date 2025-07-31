@@ -160,12 +160,10 @@ class PlayerService:
                 raise ValueError(f"Invalid response format from task generator: {validation_err}")
             
             # Update task with generated data
-            task.content = json.dumps({
-                "statement_version": gen_response.statement_version,
-                "score": gen_response.score,
-                "input": gen_response.input,
-                "checker_hint": gen_response.checker_hint
-            })
+            task.statement_version = gen_response.statement_version
+            task.score = gen_response.score
+            task.input = gen_response.input
+            task.checker_hint = gen_response.checker_hint
             task.statement = gen_response.statement
             task.status = "ACTIVE" # TODO no need this status. PENDING is enough.
             
@@ -226,7 +224,7 @@ class PlayerService:
 
 
     def _create_submission(self, task_id: int, team_id: int, answer: str,
-                           check_result: CheckResult, task_content: dict, task: Task) -> SubmissionExtended:
+                           check_result: CheckResult, task: Task) -> SubmissionExtended:
         """Create a submission based on the check result."""
         submission_id = str(uuid.uuid4())
         submitted_at = datetime.now(timezone.utc).isoformat()
@@ -237,7 +235,7 @@ class PlayerService:
             stmt = select(Team).where(Team.id == team_id)
             team = self.db.execute(stmt).scalar_one_or_none()
 
-            score = int(float(task_content.get("score", "0")) * check_result.score)
+            score = int(float(task.score or 0) * check_result.score)
             team.total_score += score
 
             submission = SubmissionExtended(
@@ -269,9 +267,8 @@ class PlayerService:
         round = self._validate_round(task.round_id)
         round_task_type = self._validate_task_type(round.id, task.type)
 
-        task_content = json.loads(task.content)
-        checker_hint = task_content.get("checker_hint")
+        checker_hint = task.checker_hint
 
         check_result = self._check_answer(answer, checker_hint, round_task_type.generator_url)
 
-        return self._create_submission(task_id, team_id, answer, check_result, task_content, task)
+        return self._create_submission(task_id, team_id, answer, check_result, task)

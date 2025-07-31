@@ -89,7 +89,10 @@ class Task(Base):
     team_id: Mapped[int] = mapped_column(ForeignKey("teams.id", ondelete="CASCADE"), nullable=False, index=True)
     round_id: Mapped[int] = mapped_column(ForeignKey("rounds.id", ondelete="CASCADE"), nullable=False, index=True)
     type: Mapped[str] = mapped_column(nullable=False)
-    content: Mapped[str] = mapped_column(nullable=True)
+    statement_version: Mapped[str] = mapped_column(nullable=True)
+    score: Mapped[int] = mapped_column(nullable=True)
+    input: Mapped[str] = mapped_column(nullable=True)
+    checker_hint: Mapped[str] = mapped_column(nullable=True)
     statement: Mapped[str] = mapped_column(nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     

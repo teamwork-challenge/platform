@@ -133,7 +133,9 @@ def create_test_data():
             team_id=team1.id,
             round_id=round1.id,
             type="a_plus_b",
-            content="{\"input\": \"1 2\"}",
+            input="1 2",
+            statement_version="1.0",
+            score=100,
             statement="Given two integers a and b, find their sum a + b."
         )
         task2 = Task(
@@ -143,7 +145,9 @@ def create_test_data():
             team_id=team2.id,
             round_id=round2.id,
             type="right_time",
-            content="{\"input\": \"12:00\"}",
+            input="12:00",
+            statement_version="1.0",
+            score=200,
             statement="Send the answer back exactly in the moment of time, specified in the task input."
         )
         session.add_all([task1, task2])
