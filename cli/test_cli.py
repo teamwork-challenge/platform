@@ -12,30 +12,31 @@ import os
 import requests
 from requests.exceptions import RequestException
 
+backend_port = 8888
 
 @pytest.fixture(scope="session", autouse=True)
 def start_server():
-    proc = subprocess.Popen(["uvicorn", "main:app", "--port", "8888"], cwd="../back")
-    os.environ["CHALLENGE_API_URL"] = "http://127.0.0.1:8888" # make CLI use the same port
+    server_url = "http://127.0.0.1:" + str(backend_port)
+    os.environ["CHALLENGE_API_URL"] = server_url # make CLI use the same port
 
-    # Wait for the backend to start responding, with a maximum timeout of 10 seconds
-    start_time = time.time()
-    max_wait_time = 10.0
-    server_url = "http://127.0.0.1:8888"
-
-    while time.time() - start_time < max_wait_time:
-        try:
-            response = requests.get(server_url, timeout=1)
-            if response.status_code == 200 or response.status_code == 404:
-                # Server is responding (200 OK or 404 Not Found are both valid responses)
-                break
-        except RequestException:
-            # Server not responding yet, wait a bit and retry
-            time.sleep(0.5)
+    proc = subprocess.Popen(["uvicorn", "main:app", "--port", backend_port], cwd="../back")
+    wait_endpoint_up(server_url, 10.0)
 
     yield
     proc.terminate()
     proc.wait()
+
+
+def wait_endpoint_up(server_url, max_wait_time):
+    start_time = time.time()
+    while time.time() - start_time < max_wait_time:
+        try:
+            response = requests.get(server_url, timeout=1)
+            if response.status_code == 200 or response.status_code == 404:
+                break
+        except RequestException:
+            time.sleep(0.1)
+
 
 runner = CliRunner()
 
