@@ -168,20 +168,20 @@ class ApiClient:
         Returns:
             List of task types for the round
         """
-        data = self._make_request("GET", f"/rounds/{round_id}/task-types")
+        data = self._make_request("GET", f"/task-types?round_id={round_id}")
         return [RoundTaskType.model_validate(d) for d in data]
     
     def get_round_task_type(self, round_id: int, task_type_id: int) -> RoundTaskType:
         """Get a specific task type.
         
         Args:
-            round_id: ID of the round the task type belongs to
+            round_id: ID of the round (not used in the request but required by CLI)
             task_type_id: ID of the task type to get
             
         Returns:
             The task type
         """
-        data = self._make_request("GET", f"/rounds/{round_id}/task-types/{task_type_id}")
+        data = self._make_request("GET", f"/task-types/{task_type_id}")
         return RoundTaskType.model_validate(data)
     
     def create_round_task_type(self, task_type_data: RoundTaskTypeCreateRequest) -> RoundTaskType:
@@ -193,46 +193,41 @@ class ApiClient:
         Returns:
             The created task type
         """
-        challenge_id = self.get_round_info(task_type_data.round_id).challenge_id
         data = self._make_request(
             "POST", 
-            f"/challenges/{challenge_id}/rounds/{task_type_data.round_id}/task-types", 
+            "/task-types", 
             task_type_data.model_dump(mode="json")
         )
         return RoundTaskType.model_validate(data)
     
-    def update_round_task_type(self, round_id: int, task_type_id: int, 
+    def update_round_task_type(self, task_type_id: int, 
                               task_type_data: RoundTaskTypeCreateRequest) -> RoundTaskType:
         """Update a task type.
         
         Args:
-            round_id: ID of the round the task type belongs to
             task_type_id: ID of the task type to update
             task_type_data: Data for updating the task type
             
         Returns:
             The updated task type
         """
-        challenge_id = self.get_round_info(round_id).challenge_id
         data = self._make_request(
             "PUT", 
-            f"/challenges/{challenge_id}/rounds/{round_id}/task-types/{task_type_id}", 
+            f"/task-types/{task_type_id}", 
             task_type_data.model_dump(mode="json")
         )
         return RoundTaskType.model_validate(data)
     
-    def delete_round_task_type(self, round_id: int, task_type_id: int) -> dict:
+    def delete_round_task_type(self, task_type_id: int) -> dict:
         """Delete a task type.
         
         Args:
-            round_id: ID of the round the task type belongs to
             task_type_id: ID of the task type to delete
             
         Returns:
             Response data
         """
-        challenge_id = self.get_round_info(round_id).challenge_id
-        return self._make_request("DELETE", f"/challenges/{challenge_id}/rounds/{round_id}/task-types/{task_type_id}")
+        return self._make_request("DELETE", f"/task-types/{task_type_id}")
 
     # Task-related methods
     def claim_task(self, task_type: Optional[str] = None) -> Task:
