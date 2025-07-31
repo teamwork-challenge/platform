@@ -185,6 +185,7 @@ class PlayerService:
             # Catch any other unexpected errors
             raise ValueError(f"Unexpected error generating task: {str(e)}")
 
+    #TODO: Duplication? See ensure_valid_round, ensure_valid_task_type, etc
     def _validate_task_type(self, round_id: int, task_type: str) -> RoundTaskType:
         """Validate that the task type is available in the round."""
         stmt = select(RoundTaskType).where(
@@ -221,7 +222,8 @@ class PlayerService:
             return check_result
 
         except Exception as e:
-            raise ValueError(f"Error checking answer: {str(e)}")
+            raise ValueError(f"Error checking answer: {str(e)}")  #TODO: Do not use ValueError here — they are used for validation errors of back client requests. Here nothing is wrong with user request — the configuration of the tasks is wrong. So use RuntimeError to end up with 500-http-error instead of 400.
+
 
     def _create_submission(self, task_id: int, team_id: int, answer: str,
                            check_result: CheckResult, task_content: dict, task: Task) -> SubmissionExtended:
@@ -230,7 +232,7 @@ class PlayerService:
         submitted_at = datetime.now(timezone.utc).isoformat()
 
         if check_result.status == CheckStatus.ACCEPTED:
-            task.status = "ACCEPTED"
+            task.status = "ACCEPTED" #TODO use enums instead of strings
 
             stmt = select(Team).where(Team.id == team_id)
             team = self.db.execute(stmt).scalar_one_or_none()
@@ -263,7 +265,7 @@ class PlayerService:
 
     def submit_task_answer(self, task_id: int, team_id: int, answer: str) -> SubmissionExtended:
         """Submit an answer for the task."""
-        task = self._validate_task(task_id, team_id)
+        task = self._validate_task(task_id, team_id) #TODO: ?!? no such function in this class!
         round = self._validate_round(task.round_id)
         round_task_type = self._validate_task_type(round.id, task.type)
 
