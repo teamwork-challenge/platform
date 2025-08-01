@@ -140,12 +140,10 @@ class PlayerService:
         gen_response = self.generate_task_content(task, team, round, round_task_type, task_progress)
 
         # Update task with generated data
-        task.content = json.dumps({
-            "statement_version": gen_response.statement_version,
-            "score": gen_response.score,
-            "input": gen_response.input,
-            "checker_hint": gen_response.checker_hint
-        })
+        task.statement_version = gen_response.statement_version
+        task.score = gen_response.score
+        task.input = gen_response.input
+        task.checker_hint = gen_response.checker_hint
         task.statement = gen_response.statement
         task.status = TaskStatus.ACTIVE.value
 
@@ -234,9 +232,6 @@ class PlayerService:
             gen_request
         )
 
-    def _validate_task_type(self, round_id: int, task_type: str) -> RoundTaskType:
-        """Validate that the task type is available in the round."""
-        return self.ensure_valid_task_type(round_id, task_type)
 
     def _check_answer(self, answer: str, checker_hint: str, generator_url: str) -> CheckResult:
         """Check the answer with the task generator."""
@@ -293,22 +288,6 @@ class PlayerService:
 
         return task
 
-    def _validate_round(self, round_id: int) -> Round:
-        """Validate that the round exists and is active."""
-        stmt = select(Round).where(Round.id == round_id)
-        round = self.db.execute(stmt).scalar_one_or_none()
-
-        if round is None:
-            raise ValueError(f"Round with id {round_id} not found")
-
-        current_time = datetime.now(timezone.utc)
-        if current_time < round.start_time:
-            raise ValueError("Round has not started yet")
-
-        if current_time > round.end_time:
-            raise ValueError("Round has already ended")
-
-        return round
 
     def submit_task_answer(self, task_id: int, team_id: int, answer: str) -> SubmissionExtended:
         """Submit an answer for the task."""
