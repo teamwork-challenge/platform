@@ -8,7 +8,7 @@ from enum import Enum, auto
 
 from api_models import Task as ApiTask, Team as ApiTeam
 from api_models.gen_models import GenRequest, GenResponse, TaskProgress, CheckRequest, CheckResult, CheckStatus
-from api_models.models import SubmissionExtended
+from api_models.models import Submission
 from db_models import Team, Task, Round, Challenge, RoundTaskType
 
 
@@ -217,7 +217,7 @@ class PlayerService:
                               task_progress: TaskProgress) -> GenResponse:
         """Generate task content by calling the task generator and return the generator response.
         The caller is responsible for updating the task with the response data."""
-        # Create request for task generator
+
         gen_request = GenRequest(
             challenge=str(task.challenge_id),
             team=team.name,
@@ -232,13 +232,12 @@ class PlayerService:
             gen_request
         )
 
-
-    def _check_answer(self, answer: str, checker_hint: str, generator_url: str) -> CheckResult:
+    def check_answer(self, answer: str, checker_hint: str, generator_url: str) -> CheckResult:
         """Check the answer with the task generator."""
         return self.task_gen_client.check_answer(generator_url, answer, checker_hint)
 
-    def _create_submission(self, task_id: int, team_id: int, answer: str,
-                           check_result: CheckResult, task: Task) -> SubmissionExtended:
+    def create_submission(self, task_id: int, team_id: int, answer: str,
+                           check_result: CheckResult, task: Task) -> Submission:
         """Create a submission based on the check result."""
         submission_id = str(uuid.uuid4())
         submitted_at = datetime.now(timezone.utc).isoformat()
@@ -252,7 +251,7 @@ class PlayerService:
             score = int(float(task.score or 0) * check_result.score)
             team.total_score += score
 
-            submission = SubmissionExtended(
+            submission = Submission(
                 id=submission_id,
                 status=TaskStatus.ACCEPTED.value,
                 submitted_at=submitted_at,
@@ -263,7 +262,7 @@ class PlayerService:
         else:
             task.status = TaskStatus.WRONG_ANSWER.value
 
-            submission = SubmissionExtended(
+            submission = Submission(
                 id=submission_id,
                 status=TaskStatus.WRONG_ANSWER.value,
                 submitted_at=submitted_at,
@@ -276,7 +275,6 @@ class PlayerService:
         return submission
 
     def ensure_valid_task(self, task_id: int, team_id: int) -> Task:
-        """Validate that the task exists and belongs to the team."""
         stmt = select(Task).where(
             (Task.id == task_id) &
             (Task.team_id == team_id)
@@ -288,15 +286,13 @@ class PlayerService:
 
         return task
 
-
-    def submit_task_answer(self, task_id: int, team_id: int, answer: str) -> SubmissionExtended:
-        """Submit an answer for the task."""
+    def submit_task_answer(self, task_id: int, team_id: int, answer: str) -> Submission:
         task = self.ensure_valid_task(task_id, team_id)
         round = self.ensure_valid_round(task.challenge_id)
         round_task_type = self.ensure_valid_task_type(round.id, task.type)
 
         checker_hint = task.checker_hint
 
-        check_result = self._check_answer(answer, checker_hint, round_task_type.generator_url)
+        check_result = self.check_answer(answer, checker_hint, round_task_type.generator_url)
 
-        return self._create_submission(task_id, team_id, answer, check_result, task)
+        return self.create_submission(task_id, team_id, answer, check_result, task)

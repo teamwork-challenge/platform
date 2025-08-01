@@ -28,18 +28,6 @@ class SubmissionStatus(str, Enum):
     WA = "WA"
 
 
-class Submission(BaseModel):
-    """Submission information."""
-    id: str
-    status: SubmissionStatus
-    submitted_at: str
-    task_id: Optional[str] = None
-    answer: Optional[str] = None
-
-    class Config:
-        from_attributes = True
-
-
 class AuthData(BaseModel):
     key: str
     role: UserRole
@@ -77,6 +65,26 @@ class ChallengeUpdateRequest(BaseModel):
         from_attributes = True
 
 
+class SubmitAnswerRequest(BaseModel):
+    answer: str
+
+    class Config:
+        from_attributes = True
+
+
+class Submission(BaseModel):
+    id: str
+    status: SubmissionStatus
+    submitted_at: str
+    task_id: Optional[str] = None
+    answer: Optional[str] = None
+    explanation: Optional[str] = None
+    score: Optional[int] = None
+
+    class Config:
+        from_attributes = True
+
+
 class Task(BaseModel):
     id: str
     title: str
@@ -89,6 +97,13 @@ class Task(BaseModel):
     submissions: List[Submission] = []
     last_attempt_at: Optional[str] = None
     solved_at: Optional[str] = None
+
+    class Config:
+        from_attributes = True
+
+
+class TaskList(BaseModel):
+    tasks: List[Task]
 
     class Config:
         from_attributes = True
@@ -127,6 +142,16 @@ class TeamCreateRequest(BaseModel):
 class TeamsImportRequest(BaseModel):
     challenge_id: int
     teams: List[TeamCreateRequest]
+
+    class Config:
+        from_attributes = True
+
+
+class TeamScore(BaseModel):
+    rank: int
+    name: str
+    total_score: int
+    scores: Dict[str, int]
 
     class Config:
         from_attributes = True
@@ -175,6 +200,13 @@ class RoundCreateRequest(BaseModel):
         from_attributes = True
 
 
+class RoundList(BaseModel):
+    rounds: List[Round]
+
+    class Config:
+        from_attributes = True
+
+
 class RoundTaskTypeCreateRequest(BaseModel):
     round_id: int
     type: str
@@ -182,28 +214,6 @@ class RoundTaskTypeCreateRequest(BaseModel):
     generator_settings: Optional[str] = None
     generator_secret: str
     max_tasks_per_team: Optional[int] = None
-
-    class Config:
-        from_attributes = True
-
-
-class SubmissionExtended(BaseModel):
-    """Extended submission information with the explanation and score."""
-    id: str
-    status: str
-    submitted_at: str
-    task_id: Optional[str] = None
-    answer: Optional[str] = None
-    explanation: Optional[str] = None
-    score: Optional[int] = None
-    
-    class Config:
-        from_attributes = True
-
-
-class TaskList(BaseModel):
-    """List of tasks."""
-    tasks: List[Task]
 
     class Config:
         from_attributes = True
@@ -230,37 +240,10 @@ class Dashboard(BaseModel):
         from_attributes = True
 
 
-class TeamScore(BaseModel):
-    """Team score information."""
-    rank: int
-    name: str
-    total_score: int
-    scores: Dict[str, int]
-
-    class Config:
-        from_attributes = True
-
-
 class Leaderboard(BaseModel):
     """Leaderboard with team scores."""
     round_id: int
     teams: List[TeamScore]
-
-    class Config:
-        from_attributes = True
-
-
-class RoundList(BaseModel):
-    """List of rounds."""
-    rounds: List[Round]
-
-    class Config:
-        from_attributes = True
-
-
-class SubmitAnswerRequest(BaseModel):
-    """Request model for submitting an answer to a task."""
-    answer: str
 
     class Config:
         from_attributes = True
