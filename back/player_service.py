@@ -275,7 +275,7 @@ class PlayerService:
         self.db.commit()
         return submission
 
-    def _validate_task(self, task_id: int, team_id: int) -> Task:
+    def ensure_valid_task(self, task_id: int, team_id: int) -> Task:
         """Validate that the task exists and belongs to the team."""
         stmt = select(Task).where(
             (Task.id == task_id) &
@@ -291,9 +291,9 @@ class PlayerService:
 
     def submit_task_answer(self, task_id: int, team_id: int, answer: str) -> SubmissionExtended:
         """Submit an answer for the task."""
-        task = self._validate_task(task_id, team_id)
-        round = self._validate_round(task.round_id)
-        round_task_type = self._validate_task_type(round.id, task.type)
+        task = self.ensure_valid_task(task_id, team_id)
+        round = self.ensure_valid_round(task.challenge_id)
+        round_task_type = self.ensure_valid_task_type(round.id, task.type)
 
         checker_hint = task.checker_hint
 
