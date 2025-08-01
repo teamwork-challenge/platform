@@ -82,7 +82,6 @@ class AdminService:
         return created_teams
 
     def create_round(self, round_data: RoundCreateRequest) -> Round:
-        # Create a new round
         round = Round(
             challenge_id=round_data.challenge_id,
             index=round_data.index,
@@ -156,7 +155,6 @@ class AdminService:
         return round
 
     def create_round_task_type(self, task_type_data: RoundTaskTypeCreateRequest) -> RoundTaskType:
-        # Create a new round task type
         round_task_type = RoundTaskType(
             round_id=task_type_data.round_id,
             type=task_type_data.type,
@@ -167,7 +165,6 @@ class AdminService:
         )
 
         self.db.add(round_task_type)
-        # Raises SQLAlchemyError: If the round_id does not exist (foreign key constraint)
         self.db.commit()
         self.db.refresh(round_task_type)
 

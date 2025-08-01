@@ -39,8 +39,8 @@ def get_db_engine():
         pool_recycle=1800,  # Recycle connections after 30 minutes to avoid stale connections
         # Query execution settings
         connect_args={
-            "connect_timeout": 10,  # Connection timeout in seconds
-            "application_name": "platform-api"  # Identify application in AWS monitoring
+            "connect_timeout": 10,
+            "application_name": "platform-api"
         }
     )
     return engine

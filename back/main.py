@@ -186,7 +186,6 @@ def update_round(
     if updated_round is None:
         raise HTTPException(status_code=404, detail="Round not found")
 
-    # Get the task types for the round to include in the response
     updated_round.task_types = admin_service.get_round_task_types_by_round(round_id)
     return updated_round
 
@@ -223,17 +222,12 @@ def update_round_task_type(
     admin_service: AdminService = Depends(get_admin_service), 
     auth_data: AuthData = Depends(authenticate_admin)
 ):
-    # Get the task type to check if it exists and to get the round_id
     task_type = admin_service.get_round_task_type(task_type_id)
     if task_type is None:
         raise HTTPException(status_code=404, detail="Task type not found")
-    
-    # Get the round to check if it exists and to get the challenge_id
-    round = get_round_or_404(task_type.round_id, admin_service, auth_data, "PUT")
-    
-    # Check if the challenge exists
-    get_challenge_or_404(round.challenge_id, admin_service, auth_data, "PUT")
 
+    round = get_round_or_404(task_type.round_id, admin_service, auth_data, "PUT")
+    get_challenge_or_404(round.challenge_id, admin_service, auth_data, "PUT")
     updated_round_task_type = admin_service.update_round_task_type(task_type_id, task_type_data)
     if updated_round_task_type is None:
         raise HTTPException(status_code=404, detail="Task type not found")
@@ -246,19 +240,13 @@ def delete_round_task_type(
     admin_service: AdminService = Depends(get_admin_service), 
     auth_data: AuthData = Depends(authenticate_admin)
 ):
-    # Get the task type to check if it exists and to get the round_id
     task_type = admin_service.get_round_task_type(task_type_id)
     if task_type is None:
         raise HTTPException(status_code=404, detail="Task type not found")
-    
-    # Get the round to check if it exists and to get the challenge_id
+
     round = get_round_or_404(task_type.round_id, admin_service, auth_data, "DELETE")
-    
-    # Check if the challenge exists and is not deleted
     ensure_challenge_is_not_deleted(get_challenge_or_404(round.challenge_id, admin_service, auth_data, "DELETE"))
-
     deleted_round_task_type = admin_service.delete_round_task_type(task_type_id)
-
     return {"message": "Task type deleted", "task_type": deleted_round_task_type}
 
 
@@ -268,14 +256,9 @@ def create_round_task_type(
     admin_service: AdminService = Depends(get_admin_service), 
     auth_data: AuthData = Depends(authenticate_admin)
 ):
-    # Get the round to check if it exists and to get the challenge_id
     round = get_round_or_404(task_type_data.round_id, admin_service, auth_data, "POST")
-    
-    # Check if the challenge exists and is not deleted
     ensure_challenge_is_not_deleted(get_challenge_or_404(round.challenge_id, admin_service, auth_data, "POST"))
-
     round_task_type = admin_service.create_round_task_type(task_type_data)
-
     return round_task_type
 
 
@@ -302,13 +285,8 @@ def create_teams(
     auth_data: AuthData = Depends(authenticate_admin)
 ):
     challenge = get_challenge_or_404(request.challenge_id, admin_service, auth_data, "POST")
-
-    # Create the teams
     teams_data = admin_service.create_teams(challenge, request.teams)
-
-    # Convert the list of team objects to a list of Team API models
     teams = [Team.model_validate(team) for team in teams_data]
-
     return TeamsImportResponse(challenge_id=challenge.id, teams=teams)
 
 
@@ -407,8 +385,7 @@ def get_round_task_type(
     task_type = admin_service.get_round_task_type(task_type_id)
     if task_type is None:
         raise HTTPException(status_code=404, detail="Task type not found")
-    
-    # Get the round to check if it exists
+
     get_round_or_404(task_type.round_id, admin_service, auth_data, "GET")
 
     return task_type
@@ -430,15 +407,12 @@ def submit_task_answer(
     auth_data: AuthData = Depends(authenticate_player), 
     player_service: PlayerService = Depends(get_player_service)
 ):
-    # Extracted the answer from the request body
     answer = answer_data.answer
         
     try:
-        # Submit the answer
         submission = player_service.submit_task_answer(task_id, auth_data.team_id, answer)
         return submission
     except ValueError as e:
-        # Convert ValueError to HTTPException
         raise HTTPException(status_code=400, detail=str(e))
 
 
@@ -460,7 +434,6 @@ app = FastAPI(title="Teamwork Challenge API",
 app.include_router(admin)
 app.include_router(player)
 
-# Create a handler for AWS Lambda
 
 handler = Mangum(app, lifespan="off")
 

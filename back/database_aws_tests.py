@@ -55,7 +55,7 @@ def create_test_data():
             description="Description for test challenge 2"
         )
         session.add_all([challenge1, challenge2])
-        session.flush()  # Flush to get the generated IDs
+        session.flush()
 
         # Create 2 Teams
         team1 = Team(
@@ -99,9 +99,8 @@ def create_test_data():
             score_decay="linear"
         )
         session.add_all([round1, round2])
-        session.flush()  # Flush to get the generated IDs
+        session.flush()
 
-        # Set current round for challenge1
         challenge1.current_round_id = round1.id
         session.flush()
 
@@ -152,7 +151,6 @@ def create_test_data():
         )
         session.add_all([task1, task2])
 
-        # Commit all changes
         session.commit()
 
         print("Test data created successfully!")

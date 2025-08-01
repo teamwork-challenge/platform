@@ -18,7 +18,6 @@ class TaskGenClient:
     def generate_task(self, generator_url: str, generator_secret: str, gen_request: GenRequest) -> GenResponse:
         """Generate task content by calling the task generator and return the generator response."""
         try:
-            # Make request to task generator
             response = requests.post(
                 f"{generator_url}/gen",
                 headers={"Content-Type": "application/json", "X-API-KEY": generator_secret or ""},
@@ -37,7 +36,6 @@ class TaskGenClient:
                 else:
                     raise RuntimeError(f"HTTP error when calling task generator: {http_err}")
 
-            # Parse response
             try:
                 gen_response = GenResponse.model_validate(response.json())
             except json.JSONDecodeError:
@@ -54,10 +52,8 @@ class TaskGenClient:
         except requests.exceptions.RequestException as req_err:
             raise RuntimeError(f"Error making request to task generator: {req_err}")
         except ValueError:
-            # Re-raise ValueError exceptions for validation errors
             raise
         except Exception as e:
-            # Catch any other unexpected errors
             raise RuntimeError(f"Unexpected error generating task: {str(e)}")
             
     def check_answer(self, generator_url: str, answer: str, checker_hint: str) -> CheckResult:
@@ -112,7 +108,6 @@ class PlayerService:
         team = self.ensure_valid_team(team_id)
         self.ensure_task_limit(team_id, round.id, task_type, round_task_type)
 
-        # Create the task with PENDING status
         task = Task(
             title=f"{task_type} Task",
             status=TaskStatus.PENDING.value,
@@ -126,7 +121,6 @@ class PlayerService:
 
         existing_tasks = self.get_existing_tasks(team_id, round.id, task_type)
 
-        # Create task progress
         current_time = datetime.now(timezone.utc)
 
         task_progress = TaskProgress(
@@ -136,7 +130,6 @@ class PlayerService:
             total_time=int((round.end_time - round.start_time).total_seconds() / 60)
         )
 
-        # Generate task content
         gen_response = self.generate_task_content(task, team, round, round_task_type, task_progress)
 
         # Update task with generated data
@@ -263,7 +256,6 @@ class PlayerService:
         else:
             task.status = TaskStatus.WRONG_ANSWER.value
 
-            # Create Submission
             db_submission = Submission(
                 id=submission_id,
                 status=SubmissionStatus.WA,
