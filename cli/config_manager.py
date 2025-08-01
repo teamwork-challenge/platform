@@ -8,11 +8,7 @@ class ConfigManager:
     """Manager for handling configuration storage and retrieval."""
 
     def __init__(self, config_path: Optional[Path] = None):
-        """Initialize the ConfigManager.
-
-        Args:
-            config_path: Path to the config file.
-        """
+        """Initialize the ConfigManager."""
         self.config_path = config_path
         self._config = self._load_config()
 
@@ -34,33 +30,16 @@ class ConfigManager:
             json.dump(self._config, f)
 
     def get(self, key: str, default: Any = None) -> Any:
-        """Get a configuration value.
-
-        Args:
-            key: Configuration key
-            default: Default value if key is not found
-
-        Returns:
-            Configuration value or default
-        """
+        """Get a configuration value."""
         return self._config.get(key, default)
 
     def set(self, key: str, value: Any) -> None:
-        """Set a configuration value.
-
-        Args:
-            key: Configuration key
-            value: Configuration value
-        """
+        """Set a configuration value."""
         self._config[key] = value
         self.save_config()
 
     def remove(self, key: str) -> None:
-        """Remove a configuration value.
-
-        Args:
-            key: Configuration key
-        """
+        """Remove a configuration value."""
         if key in self._config:
             del self._config[key]
             self.save_config()

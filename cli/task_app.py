@@ -15,14 +15,11 @@ def claim(
     """Claim a new task."""
     ensure_logged_in()
     try:
-        # Claim a task from the API
         task = api_client.claim_task(task_type)
 
-        # If json flag is set, the decorator will handle the output
         if json:
             return print_as_json(task)
 
-        # Otherwise, format the data for human-readable output
         console.print(f"[green]Successfully claimed task:[/green]")
         console.print(f"Task ID: {task.id}")
         console.print(f"Task Type: {task.type}")
@@ -41,14 +38,11 @@ def task_show(task_id: str, json: bool = json_output_option):
     ensure_logged_in()
 
     try:
-        # Get task info from the API
         task = api_client.get_task_info(task_id)
 
-        # If json flag is set, the decorator will handle the output
         if json:
             return print_as_json(task)
 
-        # Otherwise, format the data for human-readable output
         console.print(f"[bold]Task {task_id} Information:[/bold]")
         console.print(f"Type: {task.type}")
         console.print(f"Status: {task.status}")
@@ -78,14 +72,11 @@ def task_show_input(task_id: str, json: bool = json_output_option):
     ensure_logged_in()
 
     try:
-        # Get task input from the API
         task_input = api_client.get_task_input(task_id)
 
-        # If json flag is set, the decorator will handle the output
         if json:
             return print_as_json(task_input)
 
-        # Otherwise, format the data for human-readable output
         console.print(task_input)
 
         return None
@@ -117,14 +108,11 @@ def task_submit(
             answer = f.read()
 
     try:
-        # Submit the answer to the API
         submission = api_client.submit_task_answer(task_id, answer)
 
-        # If json flag is set, the decorator will handle the output
         if json:
             return print_as_json(submission)
 
-        # Otherwise, format the data for human-readable output
         console.print(f"[green]Successfully submitted answer for task {task_id}[/green]")
         console.print(f"Submission ID: {submission.id}")
         console.print(f"Status: {submission.status}")
@@ -141,10 +129,8 @@ def task_show_answer(submit_id: str, json: bool = json_output_option):
     ensure_logged_in()
 
     try:
-        # Get submission from the API
         submission = api_client.get_submission_info(submit_id)
 
-        # If json flag is set, the decorator will handle the output
         if json:
             return print_as_json(submission)
 
@@ -167,14 +153,11 @@ def task_list(
     ensure_logged_in()
 
     try:
-        # Get tasks from the API with filters
         tasks = api_client.list_tasks(status, task_type, round_id, since)
 
-        # If json flag is set, the decorator will handle the output
         if json:
             return print_as_json(tasks)
 
-        # Otherwise, format the data for human-readable output
         table = Table(title="Tasks")
         table.add_column("Task ID", style="cyan")
         table.add_column("Type")
@@ -201,7 +184,6 @@ def task_list(
 
         if watch:
             console.print("[yellow]Watch mode enabled. Press Ctrl+C to exit.[/yellow]")
-            # In a real implementation, we would poll for updates
 
         return None
     except Exception as e:

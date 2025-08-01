@@ -19,7 +19,6 @@ def board_dashboard(
         raise typer.Exit(1)
 
     try:
-        # Get dashboard data from the API
         dashboard = api_client.get_dashboard(round_id)
 
         # If json flag is set, the decorator will handle the output
@@ -81,14 +80,11 @@ def board_leaderboard(
         raise typer.Exit(1)
 
     try:
-        # Get leaderboard data from the API
         leaderboard = api_client.get_leaderboard(round_id)
 
-        # If json flag is set, the decorator will handle the output
         if json:
             return print_as_json(leaderboard)
 
-        # Otherwise, format the data for human-readable output
         table = Table(title=f"Leaderboard for Round {leaderboard.round_id}")
         table.add_column("Rank", justify="right", style="cyan")
         table.add_column("Team")

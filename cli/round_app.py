@@ -16,14 +16,11 @@ def round_show(
     ensure_logged_in()
 
     try:
-        # Get round info from the API
         round_info = api_client.get_round_info(round_id)
 
-        # If json flag is set, the decorator will handle the output
         if json:
             return print_as_json(round_info)
 
-        # Otherwise, format the data for human-readable output
         console.print(f"[bold]Round {round_info.id} Information:[/bold]")
         console.print(f"Status: {round_info.status}")
         console.print(f"Start Time: {round_info.start_time}")
@@ -46,10 +43,8 @@ def round_publish(
     ensure_logged_in()
 
     try:
-        # Publishes the round via the API
         round_info = api_client.publish_round(round_id)
 
-        # Displays the success of the message
         console.print(f"[green]Round published: Round {round_info.index} (Challenge {round_info.challenge_id}), ID: {round_id}[/green]")
         return None
     except Exception as e:
@@ -91,15 +86,12 @@ def round_create(
             score_decay=score_decay,
             status=status
         )
-        
-        # Create the round via the API
+
         round_info = api_client.create_round(round_data)
-        
-        # If json flag is set, the decorator will handle the output
+
         if json:
             return print_as_json(round_info)
-            
-        # Otherwise, format the data for human-readable output
+
         console.print(f"[bold green]Round created successfully![/bold green]")
         console.print(f"Round ID: {round_info.id}")
         console.print(f"Challenge ID: {round_info.challenge_id}")
@@ -126,14 +118,11 @@ def round_list(
     ensure_logged_in()
 
     try:
-        # Get rounds from the API
         rounds = api_client.list_rounds(challenge_id)
 
-        # If json flag is set, the decorator will handle the output
         if json:
             return print_as_json(rounds)
 
-        # Otherwise, format the data for human-readable output
         table = Table(title="Rounds")
         table.add_column("ID", justify="right", style="cyan")
         table.add_column("Status", style="green")
@@ -185,19 +174,15 @@ def round_update(
         if score_decay is not None:
             update_data["score_decay"] = score_decay
 
-        # If no fields were provided, show an error
         if not update_data:
             console.print("[red]Error: At least one field to update must be provided[/red]")
             raise typer.Exit(1)
 
-        # Update round info via the API
         round_info = api_client.update_round(round_id, update_data)
 
-        # If json flag is set, the decorator will handle the output
         if json:
             return print_as_json(round_info)
 
-        # Otherwise, format the data for human-readable output
         console.print(f"[bold green]Round {round_info.id} updated successfully![/bold green]")
         console.print(f"Status: {round_info.status}")
         console.print(f"Start Time: {round_info.start_time}")
@@ -222,30 +207,24 @@ def round_delete(
     ensure_logged_in()
 
     try:
-        # Get round info to show what will be deleted
         round_info = api_client.get_round_info(round_id)
 
-        # If not confirmed, ask for confirmation
         if not confirm:
             console.print(f"[bold yellow]Warning: You are about to delete Round {round_id}[/bold yellow]")
             console.print(f"Status: {round_info.status}")
             console.print(f"Start Time: {round_info.start_time}")
             console.print(f"End Time: {round_info.end_time}")
 
-            # Ask for confirmation
             confirmed = typer.confirm("Are you sure you want to delete this round?")
             if not confirmed:
                 console.print("[yellow]Operation cancelled.[/yellow]")
                 return None
 
-        # Delete the round
         result = api_client.delete_round(round_id)
 
-        # If json flag is set, print the result as JSON
         if json:
             return print_as_json(result)
 
-        # Otherwise, print a success message
         console.print(f"[bold green]Round {round_id} deleted successfully![/bold green]")
 
         return None

@@ -13,11 +13,7 @@ class ApiClient:
     """Client for interacting with the Teamwork Challenge API."""
 
     def __init__(self, config_manager: ConfigManager):
-        """Initialize the API client.
-
-        Args:
-            config_manager: Instance of ConfigManager for handling configuration.
-        """
+        """Initialize the API client."""
         self.config_manager = config_manager
 
         # Store headers as instance variable to avoid rebuilding for every request
@@ -44,19 +40,7 @@ class ApiClient:
         return headers
 
     def _make_request(self, method: str, endpoint: str, data: Dict[str, Any] = None):
-        """Make a request to the API.
-
-        Args:
-            method: HTTP method (GET, POST, PUT, DELETE)
-            endpoint: API endpoint (e.g., /tasks)
-            data: Request data (for POST, PUT)
-
-        Returns:
-            Response data as a dictionary
-
-        Raises:
-            Exception: If the request fails
-        """
+        """Make a request to the API."""
         base_url = self.config_manager.get_base_url()
         url = f"{base_url}{endpoint}"
 
@@ -114,14 +98,7 @@ class ApiClient:
         return Round.model_validate(data)
 
     def list_rounds(self, challenge_id: Optional[int] = None) -> RoundList:
-        """List all rounds for a challenge.
-        
-        Args:
-            challenge_id: ID of the challenge to list rounds for. If None, uses the current challenge.
-            
-        Returns:
-            List of rounds for the challenge
-        """
+        """List all rounds for a challenge."""
         if challenge_id is None:
             # Get the current challenge ID
             challenge = self.get_challenge_info(None)
@@ -143,14 +120,7 @@ class ApiClient:
         return Round.model_validate(data)
 
     def create_round(self, round_data: RoundCreateRequest) -> Round:
-        """Create a new round.
-        
-        Args:
-            round_data: Data for creating the round
-            
-        Returns:
-            The created round
-        """
+        """Create a new round."""
         data = self._make_request("POST", "/rounds", round_data.model_dump(mode="json"))
         return Round.model_validate(data)
         
@@ -160,38 +130,17 @@ class ApiClient:
 
     # Task Type-related methods
     def get_round_task_types(self, round_id: int) -> list[RoundTaskType]:
-        """Get all task types for a round.
-        
-        Args:
-            round_id: ID of the round to get task types for
-            
-        Returns:
-            List of task types for the round
-        """
+        """Get all task types for a round."""
         data = self._make_request("GET", f"/task-types?round_id={round_id}")
         return [RoundTaskType.model_validate(d) for d in data]
     
     def get_round_task_type(self, task_type_id: int) -> RoundTaskType:
-        """Get a specific task type.
-        
-        Args:
-            task_type_id: ID of the task type to get
-            
-        Returns:
-            The task type
-        """
+        """Get a specific task type."""
         data = self._make_request("GET", f"/task-types/{task_type_id}")
         return RoundTaskType.model_validate(data)
     
     def create_round_task_type(self, task_type_data: RoundTaskTypeCreateRequest) -> RoundTaskType:
-        """Create a new task type.
-        
-        Args:
-            task_type_data: Data for creating the task type
-            
-        Returns:
-            The created task type
-        """
+        """Create a new task type."""
         data = self._make_request(
             "POST", 
             "/task-types", 
@@ -201,15 +150,7 @@ class ApiClient:
     
     def update_round_task_type(self, task_type_id: int, 
                               task_type_data: RoundTaskTypeCreateRequest) -> RoundTaskType:
-        """Update a task type.
-        
-        Args:
-            task_type_id: ID of the task type to update
-            task_type_data: Data for updating the task type
-            
-        Returns:
-            The updated task type
-        """
+        """Update a task type."""
         data = self._make_request(
             "PUT", 
             f"/task-types/{task_type_id}", 
@@ -218,14 +159,7 @@ class ApiClient:
         return RoundTaskType.model_validate(data)
     
     def delete_round_task_type(self, task_type_id: int) -> dict:
-        """Delete a task type.
-        
-        Args:
-            task_type_id: ID of the task type to delete
-            
-        Returns:
-            Response data
-        """
+        """Delete a task type."""
         return self._make_request("DELETE", f"/task-types/{task_type_id}")
 
     # Task-related methods
@@ -270,7 +204,6 @@ class ApiClient:
         if since:
             params["since"] = since
 
-        # In a real implementation, we would add these params to the request
         data = self._make_request("GET", "/tasks")
         return TaskList.model_validate(data)
 

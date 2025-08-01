@@ -16,14 +16,11 @@ def task_type_list(
     ensure_logged_in()
 
     try:
-        # Get task types from the API
         task_types = api_client.get_round_task_types(round_id)
 
-        # If json flag is set, print as JSON
         if json:
             return print_as_json(task_types)
 
-        # Otherwise, format the data for human-readable output
         table = Table(title=f"Task Types for Round {round_id}")
         table.add_column("ID", style="cyan")
         table.add_column("Type")
@@ -56,14 +53,11 @@ def task_type_show(
     ensure_logged_in()
 
     try:
-        # Get task type from the API
         task_type = api_client.get_round_task_type(task_type_id)
 
-        # If json flag is set, print as JSON
         if json:
             return print_as_json(task_type)
 
-        # Otherwise, format the data for human-readable output
         console.print(f"[bold]Task Type ID:[/bold] {task_type.id}")
         console.print(f"[bold]Round ID:[/bold] {task_type.round_id}")
         console.print(f"[bold]Type:[/bold] {task_type.type}")
@@ -92,7 +86,6 @@ def task_type_create(
     ensure_logged_in()
 
     try:
-        # Create task type data
         task_type_data = RoundTaskTypeCreateRequest(
             round_id=round_id,
             type=type_name,
@@ -102,14 +95,11 @@ def task_type_create(
             max_tasks_per_team=max_tasks_per_team
         )
 
-        # Create task type
         task_type = api_client.create_round_task_type(task_type_data)
 
-        # If json flag is set, print as JSON
         if json:
             return print_as_json(task_type)
 
-        # Otherwise, format the data for human-readable output
         console.print(f"[green]Task type created successfully with ID: {task_type.id}[/green]")
         console.print(f"[bold]Type:[/bold] {task_type.type}")
         console.print(f"[bold]Round ID:[/bold] {task_type.round_id}")
@@ -136,10 +126,8 @@ def task_type_update(
     ensure_logged_in()
 
     try:
-        # Get current task type
         current_task_type = api_client.get_round_task_type(task_type_id)
 
-        # Create update data with current values as defaults
         task_type_data = RoundTaskTypeCreateRequest(
             round_id=current_task_type.round_id,
             type=type_name if type_name is not None else current_task_type.type,
@@ -149,14 +137,11 @@ def task_type_update(
             max_tasks_per_team=max_tasks_per_team if max_tasks_per_team is not None else current_task_type.max_tasks_per_team
         )
 
-        # Update task type
         task_type = api_client.update_round_task_type(task_type_id, task_type_data)
 
-        # If json flag is set, print as JSON
         if json:
             return print_as_json(task_type)
 
-        # Otherwise, format the data for human-readable output
         console.print(f"[green]Task type updated successfully with ID: {task_type.id}[/green]")
         console.print(f"[bold]Type:[/bold] {task_type.type}")
         console.print(f"[bold]Round ID:[/bold] {task_type.round_id}")
@@ -185,14 +170,11 @@ def task_type_delete(
                 console.print("[yellow]Operation cancelled.[/yellow]")
                 return None
 
-        # Delete task type
         result = api_client.delete_round_task_type(task_type_id)
 
-        # If json flag is set, print as JSON
         if json:
             return print_as_json(result)
 
-        # Otherwise, format the data for human-readable output
         console.print(f"[green]Task type with ID {task_type_id} deleted successfully.[/green]")
 
         return None
