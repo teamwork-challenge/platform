@@ -414,7 +414,7 @@ def get_round_task_type(
     return task_type
 
 
-@player.get("/tasks/{task_id}")
+@player.get("/tasks/{task_id}", response_model=Task)
 def get_task(
     task_id: int, 
     auth_data: AuthData = Depends(authenticate_player), 
@@ -442,7 +442,7 @@ def submit_task_answer(
         raise HTTPException(status_code=400, detail=str(e))
 
 
-@player.post("/tasks")
+@player.post("/tasks", response_model=Task)
 def create_task(
     task_type: Optional[str], 
     auth_data: AuthData = Depends(authenticate_player), 
