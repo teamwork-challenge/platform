@@ -49,7 +49,6 @@ def task_type_list(
 
 @task_type_app.command("show")
 def task_type_show(
-    round_id: int = typer.Option(..., "--round", "-r", help="Round ID"),
     task_type_id: int = typer.Option(..., "--id", help="Task Type ID"),
     json: bool = json_output_option
 ):
@@ -58,7 +57,7 @@ def task_type_show(
 
     try:
         # Get task type from the API
-        task_type = api_client.get_round_task_type(round_id, task_type_id)
+        task_type = api_client.get_round_task_type(task_type_id)
 
         # If json flag is set, print as JSON
         if json:
@@ -125,7 +124,6 @@ def task_type_create(
 
 @task_type_app.command("update")
 def task_type_update(
-    round_id: int = typer.Option(..., "--round", "-r", help="Round ID"),
     task_type_id: int = typer.Option(..., "--id", help="Task Type ID"),
     type_name: Optional[str] = typer.Option(None, "--type", "-t", help="Task type name"),
     generator_url: Optional[str] = typer.Option(None, "--generator-url", "-g", help="Generator URL"),
@@ -139,11 +137,11 @@ def task_type_update(
 
     try:
         # Get current task type
-        current_task_type = api_client.get_round_task_type(round_id, task_type_id)
+        current_task_type = api_client.get_round_task_type(task_type_id)
 
         # Create update data with current values as defaults
         task_type_data = RoundTaskTypeCreateRequest(
-            round_id=round_id,
+            round_id=current_task_type.round_id,
             type=type_name if type_name is not None else current_task_type.type,
             generator_url=generator_url if generator_url is not None else current_task_type.generator_url,
             generator_settings=generator_settings if generator_settings is not None else current_task_type.generator_settings,
@@ -173,7 +171,6 @@ def task_type_update(
 
 @task_type_app.command("delete")
 def task_type_delete(
-    round_id: int = typer.Option(..., "--round", "-r", help="Round ID"),
     task_type_id: int = typer.Option(..., "--id", help="Task Type ID"),
     confirm: bool = typer.Option(False, "--yes", "-y", help="Skip confirmation prompt"),
     json: bool = json_output_option

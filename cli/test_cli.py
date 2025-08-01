@@ -416,7 +416,7 @@ def test_task_type_show():
             break
     
     # Now show the task type
-    result = run_ok("task-type", "show", "--round", round_id, "--id", task_type_id)
+    result = run_ok("task-type", "show", "--id", task_type_id)
     assert "Task Type ID:" in result.output
     assert "test_show_type" in result.output
 
@@ -466,7 +466,6 @@ def test_task_type_update():
     # Now update the task type
     result = run_ok(
         "task-type", "update",
-        "--round", round_id,
         "--id", task_type_id,
         "--type", "updated_test_type",
         "--max-tasks", "10"
@@ -520,7 +519,7 @@ def test_task_type_delete():
     
     # Now delete the task type
     # Use --yes to skip confirmation prompt
-    result = run_ok("task-type", "delete", "--round", round_id, "--id", task_type_id, "--yes")
+    result = run_ok("task-type", "delete", "--id", task_type_id, "--yes")
     assert "Task type with ID" in result.output
     assert "deleted successfully" in result.output
 

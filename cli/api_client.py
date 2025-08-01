@@ -171,11 +171,10 @@ class ApiClient:
         data = self._make_request("GET", f"/task-types?round_id={round_id}")
         return [RoundTaskType.model_validate(d) for d in data]
     
-    def get_round_task_type(self, round_id: int, task_type_id: int) -> RoundTaskType:
+    def get_round_task_type(self, task_type_id: int) -> RoundTaskType:
         """Get a specific task type.
         
         Args:
-            round_id: ID of the round (not used in the request but required by CLI)
             task_type_id: ID of the task type to get
             
         Returns:
