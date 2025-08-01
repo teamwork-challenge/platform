@@ -8,8 +8,8 @@ from enum import Enum, auto
 
 from api_models import Task as ApiTask, Team as ApiTeam
 from api_models.gen_models import GenRequest, GenResponse, TaskProgress, CheckRequest, CheckResult, CheckStatus
-from api_models.models import Submission
-from db_models import Team, Task, Round, Challenge, RoundTaskType
+from api_models.models import Submission as ApiSubmission
+from db_models import Team, Task, Round, Challenge, RoundTaskType, Submission
 
 
 class TaskGenClient:
@@ -237,10 +237,10 @@ class PlayerService:
         return self.task_gen_client.check_answer(generator_url, answer, checker_hint)
 
     def create_submission(self, task_id: int, team_id: int, answer: str,
-                           check_result: CheckResult, task: Task) -> Submission:
+                           check_result: CheckResult, task: Task) -> ApiSubmission:
         """Create a submission based on the check result."""
         submission_id = str(uuid.uuid4())
-        submitted_at = datetime.now(timezone.utc).isoformat()
+        submitted_at = datetime.now(timezone.utc)
 
         if check_result.status == CheckStatus.ACCEPTED:
             task.status = TaskStatus.ACCEPTED.value
@@ -251,28 +251,43 @@ class PlayerService:
             score = int(float(task.score or 0) * check_result.score)
             team.total_score += score
 
-            submission = Submission(
+            # Create Submission
+            db_submission = Submission(
                 id=submission_id,
-                status=TaskStatus.ACCEPTED.value,
+                status=SubmissionStatus.AC,
                 submitted_at=submitted_at,
-                task_id=str(task_id),
+                task_id=task_id,
                 answer=answer,
                 score=score
             )
         else:
             task.status = TaskStatus.WRONG_ANSWER.value
 
-            submission = Submission(
+            # Create Submission
+            db_submission = Submission(
                 id=submission_id,
-                status=TaskStatus.WRONG_ANSWER.value,
+                status=SubmissionStatus.WA,
                 submitted_at=submitted_at,
-                task_id=str(task_id),
+                task_id=task_id,
                 answer=answer,
                 explanation=check_result.error
             )
 
+        self.db.add(db_submission)
         self.db.commit()
-        return submission
+        
+        # Convert to Pydantic
+        api_submission = ApiSubmission(
+            id=db_submission.id,
+            status=db_submission.status,
+            submitted_at=db_submission.submitted_at.isoformat(),
+            task_id=str(db_submission.task_id),
+            answer=db_submission.answer,
+            explanation=db_submission.explanation,
+            score=db_submission.score
+        )
+        
+        return api_submission
 
     def ensure_valid_task(self, task_id: int, team_id: int) -> Task:
         stmt = select(Task).where(
@@ -286,7 +301,7 @@ class PlayerService:
 
         return task
 
-    def submit_task_answer(self, task_id: int, team_id: int, answer: str) -> Submission:
+    def submit_task_answer(self, task_id: int, team_id: int, answer: str) -> ApiSubmission:
         task = self.ensure_valid_task(task_id, team_id)
         round = self.ensure_valid_round(task.challenge_id)
         round_task_type = self.ensure_valid_task_type(round.id, task.type)

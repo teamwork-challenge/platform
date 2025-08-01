@@ -3,7 +3,7 @@ from sqlalchemy.orm import DeclarativeBase, relationship
 from sqlalchemy.sql import func
 from sqlalchemy.orm import Mapped, mapped_column
 from datetime import datetime
-from api_models.models import RoundStatus, TaskStatus
+from api_models.models import RoundStatus, TaskStatus, SubmissionStatus
 
 
 class Base(DeclarativeBase):
@@ -99,3 +99,18 @@ class Task(Base):
     challenge = relationship("Challenge")
     team = relationship("Team")
     round = relationship("Round")
+    submissions = relationship("Submission", back_populates="task", cascade="all, delete-orphan", passive_deletes=True)
+
+
+class Submission(Base):
+    __tablename__ = "submissions"
+
+    id: Mapped[str] = mapped_column(primary_key=True)
+    status: Mapped[SubmissionStatus] = mapped_column(Enum(SubmissionStatus), nullable=False)
+    submitted_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    task_id: Mapped[int] = mapped_column(ForeignKey("tasks.id", ondelete="CASCADE"), nullable=False, index=True)
+    answer: Mapped[str] = mapped_column(nullable=True)
+    explanation: Mapped[str] = mapped_column(nullable=True)
+    score: Mapped[int] = mapped_column(nullable=True)
+    
+    task = relationship("Task", back_populates="submissions")
