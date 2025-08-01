@@ -12,6 +12,80 @@ from api_models.models import SubmissionExtended
 from db_models import Team, Task, Round, Challenge, RoundTaskType
 
 
+class TaskGenClient:
+    """Client for interacting with task generator service."""
+    
+    def generate_task(self, generator_url: str, generator_secret: str, gen_request: GenRequest) -> GenResponse:
+        """Generate task content by calling the task generator and return the generator response."""
+        try:
+            # Make request to task generator
+            response = requests.post(
+                f"{generator_url}/gen",
+                headers={"Content-Type": "application/json", "X-API-KEY": generator_secret or ""},
+                data=json.dumps(gen_request.model_dump())
+            )
+
+            try:
+                response.raise_for_status()
+            except requests.exceptions.HTTPError as http_err:
+                if response.status_code == 401 or response.status_code == 403:
+                    raise RuntimeError(f"Authentication error with task generator: {http_err}")
+                elif response.status_code == 404:
+                    raise RuntimeError(f"Task generator endpoint not found: {generator_url}/gen")
+                elif response.status_code >= 500:
+                    raise RuntimeError(f"Task generator server error: {http_err}")
+                else:
+                    raise RuntimeError(f"HTTP error when calling task generator: {http_err}")
+
+            # Parse response
+            try:
+                gen_response = GenResponse.model_validate(response.json())
+            except json.JSONDecodeError:
+                raise RuntimeError("Invalid JSON response from task generator")
+            except Exception as validation_err:
+                raise RuntimeError(f"Invalid response format from task generator: {validation_err}")
+
+            return gen_response
+
+        except requests.exceptions.ConnectionError:
+            raise RuntimeError(f"Could not connect to task generator at {generator_url}")
+        except requests.exceptions.Timeout:
+            raise RuntimeError(f"Connection to task generator timed out")
+        except requests.exceptions.RequestException as req_err:
+            raise RuntimeError(f"Error making request to task generator: {req_err}")
+        except ValueError:
+            # Re-raise ValueError exceptions for validation errors
+            raise
+        except Exception as e:
+            # Catch any other unexpected errors
+            raise RuntimeError(f"Unexpected error generating task: {str(e)}")
+            
+    def check_answer(self, generator_url: str, answer: str, checker_hint: str) -> CheckResult:
+        """Check the answer with the task generator."""
+        check_request = CheckRequest(
+            answer=answer,
+            checker_hint=checker_hint
+        )
+
+        try:
+            response = requests.post(
+                f"{generator_url}/check",
+                headers={"Content-Type": "application/json"},
+                data=json.dumps(check_request.model_dump())
+            )
+            response.raise_for_status()
+
+            check_result = CheckResult.model_validate(response.json())
+
+            if check_result is None:
+                raise RuntimeError("No check result returned from task generator")
+
+            return check_result
+
+        except Exception as e:
+            raise RuntimeError(f"Error checking answer: {str(e)}")
+
+
 class TaskStatus(Enum):
     PENDING = "PENDING"
     ACTIVE = "ACTIVE"
@@ -22,6 +96,7 @@ class TaskStatus(Enum):
 class PlayerService:
     def __init__(self, db: Session):
         self.db = db
+        self.task_gen_client = TaskGenClient()
 
     def get_task(self, task_id: int) -> Task:
         stmt = select(Task).where(Task.id == task_id)
@@ -153,48 +228,11 @@ class PlayerService:
             task_settings=round_task_type.generator_settings or ""
         )
 
-        try:
-            # Make request to task generator
-            response = requests.post(
-                f"{round_task_type.generator_url}/gen",
-                headers={"Content-Type": "application/json", "X-API-KEY": round_task_type.generator_secret or ""},
-                data=json.dumps(gen_request.model_dump())
-            )
-
-            try:
-                response.raise_for_status()
-            except requests.exceptions.HTTPError as http_err:
-                if response.status_code == 401 or response.status_code == 403:
-                    raise RuntimeError(f"Authentication error with task generator: {http_err}")
-                elif response.status_code == 404:
-                    raise RuntimeError(f"Task generator endpoint not found: {round_task_type.generator_url}/gen")
-                elif response.status_code >= 500:
-                    raise RuntimeError(f"Task generator server error: {http_err}")
-                else:
-                    raise RuntimeError(f"HTTP error when calling task generator: {http_err}")
-
-            # Parse response
-            try:
-                gen_response = GenResponse.model_validate(response.json())
-            except json.JSONDecodeError:
-                raise RuntimeError("Invalid JSON response from task generator")
-            except Exception as validation_err:
-                raise RuntimeError(f"Invalid response format from task generator: {validation_err}")
-
-            return gen_response
-
-        except requests.exceptions.ConnectionError:
-            raise RuntimeError(f"Could not connect to task generator at {round_task_type.generator_url}")
-        except requests.exceptions.Timeout:
-            raise RuntimeError(f"Connection to task generator timed out")
-        except requests.exceptions.RequestException as req_err:
-            raise RuntimeError(f"Error making request to task generator: {req_err}")
-        except ValueError:
-            # Re-raise ValueError exceptions for validation errors
-            raise
-        except Exception as e:
-            # Catch any other unexpected errors
-            raise RuntimeError(f"Unexpected error generating task: {str(e)}")
+        return self.task_gen_client.generate_task(
+            round_task_type.generator_url,
+            round_task_type.generator_secret,
+            gen_request
+        )
 
     def _validate_task_type(self, round_id: int, task_type: str) -> RoundTaskType:
         """Validate that the task type is available in the round."""
@@ -202,28 +240,7 @@ class PlayerService:
 
     def _check_answer(self, answer: str, checker_hint: str, generator_url: str) -> CheckResult:
         """Check the answer with the task generator."""
-        check_request = CheckRequest(
-            answer=answer,
-            checker_hint=checker_hint
-        )
-
-        try:
-            response = requests.post(
-                f"{generator_url}/check",
-                headers={"Content-Type": "application/json"},
-                data=json.dumps(check_request.model_dump())
-            )
-            response.raise_for_status()
-
-            check_result = CheckResult.model_validate(response.json())
-
-            if check_result is None:
-                raise RuntimeError("No check result returned from task generator")
-
-            return check_result
-
-        except Exception as e:
-            raise RuntimeError(f"Error checking answer: {str(e)}")
+        return self.task_gen_client.check_answer(generator_url, answer, checker_hint)
 
     def _create_submission(self, task_id: int, team_id: int, answer: str,
                            check_result: CheckResult, task: Task) -> SubmissionExtended:
