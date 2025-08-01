@@ -3,7 +3,7 @@ from fastapi import FastAPI, APIRouter, HTTPException, Depends, Body
 from fastapi.security import APIKeyHeader
 
 from api_models import *
-from api_models.models import Round, RoundCreateRequest, TeamsImportResponse, TeamsImportRequest, RoundTaskType, RoundTaskTypeCreateRequest, ChallengeUpdateRequest, SubmitAnswerRequest, SubmissionExtended
+from api_models.models import Round, RoundCreateRequest, TeamsImportResponse, TeamsImportRequest, RoundTaskType, RoundTaskTypeCreateRequest, ChallengeUpdateRequest, SubmitAnswerRequest, Submission
 from auth_service import AuthService
 from admin_service import AdminService
 from player_service import PlayerService
@@ -423,7 +423,7 @@ def get_task(
     return get_task_or_404(task_id, player_service, auth_data)
 
 
-@player.post("/tasks/{task_id}/submission", response_model=SubmissionExtended)
+@player.post("/tasks/{task_id}/submission", response_model=Submission)
 def submit_task_answer(
     task_id: int, 
     answer_data: SubmitAnswerRequest,
