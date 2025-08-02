@@ -105,7 +105,7 @@ class Task(Base):
 class Submission(Base):
     __tablename__ = "submissions"
 
-    id: Mapped[str] = mapped_column(primary_key=True)
+    id: Mapped[int] = mapped_column(primary_key=True)
     status: Mapped[SubmissionStatus] = mapped_column(Enum(SubmissionStatus), nullable=False)
     submitted_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     task_id: Mapped[int] = mapped_column(ForeignKey("tasks.id", ondelete="CASCADE"), nullable=False, index=True)

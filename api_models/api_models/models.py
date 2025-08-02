@@ -73,10 +73,10 @@ class SubmitAnswerRequest(BaseModel):
 
 
 class Submission(BaseModel):
-    id: str
+    id: int
     status: SubmissionStatus
     submitted_at: str
-    task_id: Optional[str] = None
+    task_id: Optional[int] = None
     answer: Optional[str] = None
     explanation: Optional[str] = None
     score: Optional[int] = None
@@ -86,7 +86,7 @@ class Submission(BaseModel):
 
 
 class Task(BaseModel):
-    id: str
+    id: int
     title: str
     type: str
     status: TaskStatus = TaskStatus.PENDING

@@ -3,7 +3,6 @@ from sqlalchemy.orm import Session
 from datetime import datetime, timezone
 import requests
 import json
-import uuid
 from enum import Enum, auto
 
 from api_models import Task as ApiTask, Team as ApiTeam
@@ -232,7 +231,6 @@ class PlayerService:
     def create_submission(self, task_id: int, team_id: int, answer: str,
                            check_result: CheckResult, task: Task) -> ApiSubmission:
         """Create a submission based on the check result."""
-        submission_id = str(uuid.uuid4())
         submitted_at = datetime.now(timezone.utc)
 
         if check_result.status == CheckStatus.ACCEPTED:
@@ -246,7 +244,6 @@ class PlayerService:
 
             # Create Submission
             db_submission = Submission(
-                id=submission_id,
                 status=SubmissionStatus.AC,
                 submitted_at=submitted_at,
                 task_id=task_id,
@@ -257,7 +254,6 @@ class PlayerService:
             task.status = TaskStatus.WRONG_ANSWER.value
 
             db_submission = Submission(
-                id=submission_id,
                 status=SubmissionStatus.WA,
                 submitted_at=submitted_at,
                 task_id=task_id,
@@ -273,7 +269,7 @@ class PlayerService:
             id=db_submission.id,
             status=db_submission.status,
             submitted_at=db_submission.submitted_at.isoformat(),
-            task_id=str(db_submission.task_id),
+            task_id=db_submission.task_id,
             answer=db_submission.answer,
             explanation=db_submission.explanation,
             score=db_submission.score
