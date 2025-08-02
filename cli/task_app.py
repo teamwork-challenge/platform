@@ -32,7 +32,7 @@ def claim(
         raise typer.Exit(1)
 
 
-@task_app.command()
+@task_app.command("show")
 def task_show(task_id: str, json: bool = json_output_option):
     """Show task and its submissions."""
     ensure_logged_in()
