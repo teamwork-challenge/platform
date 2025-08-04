@@ -1,18 +1,21 @@
-import uvicorn
-from fastapi import FastAPI, APIRouter, HTTPException, Depends, Body
-from fastapi.security import APIKeyHeader
+from typing import Sequence
 
-from api_models import *
-from api_models.models import Challenge, Round, RoundCreateRequest, TeamsImportResponse, TeamsImportRequest, RoundTaskType, RoundTaskTypeCreateRequest, ChallengeUpdateRequest, SubmitAnswerRequest, Submission
-from auth_service import AuthService
-from admin_service import AdminService
-from player_service import PlayerService
+import uvicorn
+from fastapi import FastAPI, APIRouter, HTTPException, Depends
+from fastapi.security import APIKeyHeader
 from mangum import Mangum
 from sqlalchemy.orm import Session
-from database import get_db_session
-from typing import Optional, Sequence
-from db_models import Challenge as DbChallenge, Round as DbRound, RoundTaskType as DbRoundTaskType, Task as DbTask, Team as DbTeam
+
+from admin_service import AdminService
+from api_models import *
+from api_models.models import Challenge, Round, RoundCreateRequest, TeamsImportResponse, TeamsImportRequest, \
+    RoundTaskType, RoundTaskTypeCreateRequest, ChallengeUpdateRequest, SubmitAnswerRequest, Submission
 from api_models.models import RoundStatus
+from auth_service import AuthService
+from database import get_db_session
+from db_models import Challenge as DbChallenge, Round as DbRound, RoundTaskType as DbRoundTaskType, Task as DbTask, \
+    Team as DbTeam
+from player_service import PlayerService
 
 
 def get_admin_service(db: Session = Depends(get_db_session)) -> AdminService:
