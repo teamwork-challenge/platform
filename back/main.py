@@ -3,7 +3,7 @@ from fastapi import FastAPI, APIRouter, HTTPException, Depends, Body
 from fastapi.security import APIKeyHeader
 
 from api_models import *
-from api_models.models import Round, RoundCreateRequest, TeamsImportResponse, TeamsImportRequest, RoundTaskType, RoundTaskTypeCreateRequest, ChallengeUpdateRequest, SubmitAnswerRequest, Submission
+from api_models.models import Challenge, Round, RoundCreateRequest, TeamsImportResponse, TeamsImportRequest, RoundTaskType, RoundTaskTypeCreateRequest, ChallengeUpdateRequest, SubmitAnswerRequest, Submission
 from auth_service import AuthService
 from admin_service import AdminService
 from player_service import PlayerService
@@ -147,18 +147,18 @@ def create_challenge(
     return admin_service.create_challenge(new_challenge.title, new_challenge.description)
 
 
-@admin.delete("/challenges")
+@admin.delete("/challenges", response_model=Challenge)
 def delete_challenge(
     challenge_id: int, 
     admin_service: AdminService = Depends(get_admin_service), 
     auth_data: AuthData = Depends(authenticate_admin)
-):
+) -> DbChallenge:
     get_challenge_or_404(challenge_id, admin_service, auth_data, "DELETE")
 
     deleted = admin_service.delete_challenge(challenge_id)
     if deleted is None:
         raise HTTPException(status_code=404, detail="No challenges to delete")
-    return {"message": "Challenge deleted", "challenge_id": challenge_id}
+    return deleted
 
 
 @admin.put("/challenges/{challenge_id}", response_model=Challenge)
@@ -193,16 +193,17 @@ def update_round(
     return updated_round
 
 
-@admin.delete("/rounds/{round_id}")
+@admin.delete("/rounds/{round_id}", response_model=Round)
 def delete_round(
     round_id: int, 
     admin_service: AdminService = Depends(get_admin_service), 
     auth_data: AuthData = Depends(authenticate_admin)
-):
+) -> DbRound:
     get_round_or_404(round_id, admin_service, auth_data, "DELETE")
-
-    admin_service.delete_round(round_id)
-    return {"message": "Round deleted", "id": round_id}
+    deleted = admin_service.delete_round(round_id)
+    if deleted is None:
+        raise HTTPException(status_code=404, detail="Round not found")
+    return deleted
 
 
 @admin.post("/rounds", response_model=Round)
@@ -237,12 +238,12 @@ def update_round_task_type(
     return updated_round_task_type
 
 
-@admin.delete("/task-types/{task_type_id}")
+@admin.delete("/task-types/{task_type_id}", response_model=RoundTaskType)
 def delete_round_task_type(
     task_type_id: int, 
     admin_service: AdminService = Depends(get_admin_service), 
     auth_data: AuthData = Depends(authenticate_admin)
-):
+) -> DbRoundTaskType:
     task_type = admin_service.get_round_task_type(task_type_id)
     if task_type is None:
         raise HTTPException(status_code=404, detail="Task type not found")
@@ -252,7 +253,7 @@ def delete_round_task_type(
     deleted_round_task_type = admin_service.delete_round_task_type(task_type_id)
     if deleted_round_task_type is None:
         raise HTTPException(status_code=404, detail="Task type not found")
-    return {"message": "Task type deleted", "task_type": deleted_round_task_type}
+    return deleted_round_task_type
 
 
 @admin.post("/task-types", response_model=RoundTaskType)

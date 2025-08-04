@@ -41,7 +41,6 @@ class Challenge(BaseModel):
     title: str
     description: str
     current_round_id: Optional[int] = None
-    deleted: bool = False
 
     class Config:
         from_attributes = True
