@@ -1,11 +1,6 @@
-import os
-# Default to SQLite for local testing unless explicitly overridden
-os.environ.setdefault("DB_BACKEND", "sqlite")
-
-from database import get_db_engine
 from sqlalchemy import text, inspect
-from database import create_test_data
-from db_models import Base
+from back.database import create_test_data, get_db_engine
+from back.db_models import Base
 
 
 def test_connection() -> None:

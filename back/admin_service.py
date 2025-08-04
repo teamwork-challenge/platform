@@ -2,9 +2,10 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 import uuid
 
+import api_models
 from api_models import ChallengeUpdateRequest
-from api_models.models import TeamCreateRequest, RoundCreateRequest, RoundTaskTypeCreateRequest, RoundStatus
-from db_models import Challenge, Team, Round, RoundTaskType
+from api_models import TeamCreateRequest, RoundCreateRequest, RoundTaskTypeCreateRequest, RoundStatus
+from back.db_models import Challenge, Team, Round, RoundTaskType
 from typing import List, Sequence
 
 

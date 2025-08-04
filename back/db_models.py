@@ -3,7 +3,7 @@ from sqlalchemy.orm import DeclarativeBase, relationship
 from sqlalchemy.sql import func
 from sqlalchemy.orm import Mapped, mapped_column
 from datetime import datetime
-from api_models.models import RoundStatus, TaskStatus, SubmissionStatus
+from api_models import RoundStatus, TaskStatus, SubmissionStatus
 
 
 class Base(DeclarativeBase):

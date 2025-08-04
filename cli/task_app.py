@@ -1,7 +1,7 @@
 import typer
 from pathlib import Path
-from app_deps import api_client, json_output_option, console, ensure_logged_in
-from formatter import print_as_json
+from cli.app_deps import api_client, json_output_option, console, ensure_logged_in
+from cli.formatter import print_as_json
 from typing import Optional
 from rich.table import Table
 
@@ -11,7 +11,7 @@ task_app = typer.Typer(help="Task management commands")
 def claim(
     task_type: Optional[str] = typer.Option(None, "--type", "-t", help="Task type"),
     json: bool = json_output_option
-):
+) -> None:
     """Claim a new task."""
     ensure_logged_in()
     try:
@@ -33,7 +33,7 @@ def claim(
 
 
 @task_app.command("show")
-def task_show(task_id: str, json: bool = json_output_option):
+def task_show(task_id: str, json: bool = json_output_option) -> None:
     """Show task and its submissions."""
     ensure_logged_in()
 
@@ -67,7 +67,7 @@ def task_show(task_id: str, json: bool = json_output_option):
 
 
 @task_app.command("show-input")
-def task_show_input(task_id: str, json: bool = json_output_option):
+def task_show_input(task_id: str, json: bool = json_output_option) -> None:
     """Show raw task input payload."""
     ensure_logged_in()
 
@@ -91,7 +91,7 @@ def task_submit(
     answer: Optional[str] = None,
     file_path: Optional[Path] = typer.Option(None, "--file", help="Path to file with answer"),
     json: bool = json_output_option
-):
+) -> None:
     """Submit an answer for a task."""
     ensure_logged_in()
 
@@ -108,7 +108,7 @@ def task_submit(
             answer = f.read()
 
     try:
-        submission = api_client.submit_task_answer(task_id, answer)
+        submission = api_client.submit_task_answer(task_id, str(answer))
 
         if json:
             return print_as_json(submission)
@@ -124,7 +124,7 @@ def task_submit(
 
 
 @task_app.command("show-answer")
-def task_show_answer(submit_id: str, json: bool = json_output_option):
+def task_show_answer(submit_id: str, json: bool = json_output_option) -> None:
     """Show raw submitted answer."""
     ensure_logged_in()
 
@@ -148,7 +148,7 @@ def task_list(
     since: Optional[str] = typer.Option(None, "--since", help="Show tasks since specified time"),
     watch: bool = typer.Option(False, "--watch", help="Watch for updates"),
     json: bool = json_output_option
-):
+) -> None:
     """List tasks."""
     ensure_logged_in()
 
@@ -170,14 +170,14 @@ def task_list(
 
         for task in tasks.tasks:
             table.add_row(
-                task.id,
+                str(task.id),
                 task.type,
                 task.status,
                 str(task.score),
                 task.time_remaining,
-                task.claimed_at,
-                task.last_attempt_at or "N/A",
-                task.solved_at or "N/A"
+                str(task.claimed_at),
+                str(task.last_attempt_at) or "N/A",
+                str(task.solved_at) or "N/A"
             )
 
         console.print(table)

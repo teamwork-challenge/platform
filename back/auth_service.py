@@ -2,7 +2,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import select
 
 from api_models import AuthData, UserRole
-from db_models import AdminKeys, Team, Challenge
+from back.db_models import AdminKeys, Team, Challenge
 
 class AuthService:
     def __init__(self, db: Session):

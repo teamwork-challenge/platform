@@ -7,12 +7,12 @@ from typing import Optional, Dict, Any
 class ConfigManager:
     """Manager for handling configuration storage and retrieval."""
 
-    def __init__(self, config_path: Optional[Path] = None):
+    def __init__(self, config_path: Path):
         """Initialize the ConfigManager."""
         self.config_path = config_path
         self._config = self._load_config()
 
-    def _load_config(self) -> Dict[str, Any]:
+    def _load_config(self) -> Any:
         """Load configuration from file."""
         if not self.config_path.exists():
             return {}
@@ -44,9 +44,10 @@ class ConfigManager:
             del self._config[key]
             self.save_config()
 
-    def get_api_key(self) -> Optional[str]:
+    def get_api_key(self) -> str | None:
         """Get API key from config."""
-        return self.get("api_key")
+        res = self.get("api_key")
+        return str(res) if res else None
 
     def save_api_key(self, api_key: str) -> None:
         """Save API key to config."""

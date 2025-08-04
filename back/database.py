@@ -7,11 +7,9 @@ from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
 from typing import Generator
 from sqlalchemy.engine import Engine
-from db_models import Base, AdminKeys, Team, Challenge, Task, Round, RoundTaskType
-from api_models.models import RoundStatus, TaskStatus
+from back.db_models import Base, AdminKeys, Team, Challenge, Task, Round, RoundTaskType
+from api_models import RoundStatus, TaskStatus
 from datetime import datetime, timedelta, timezone
-
-from db_models import Base
 
 
 def get_connection_string() -> str:

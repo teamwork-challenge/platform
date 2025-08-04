@@ -1,12 +1,10 @@
-import json
-import os
-from pathlib import Path
 from typing import Optional, Dict, Any
 
 import requests
 
-from api_models.models import Task, RoundTaskType, RoundTaskTypeCreateRequest, Team, Challenge, Round, RoundList, Submission, TaskList, Dashboard, Leaderboard, RoundCreateRequest
-from config_manager import ConfigManager
+from api_models import Task, RoundTaskType, RoundTaskTypeCreateRequest, Team, Challenge, Round, RoundList, Submission, \
+    TaskList, Dashboard, Leaderboard, RoundCreateRequest, RoundUpdateRequest, RoundStatus
+from cli.config_manager import ConfigManager
 
 
 class ApiClient:
@@ -39,7 +37,11 @@ class ApiClient:
             headers["X-API-Key"] = api_key
         return headers
 
-    def _make_request(self, method: str, endpoint: str, data: Dict[str, Any] = None):
+    def logged_in(self) -> bool:
+        """Check if the user is logged in by verifying if an API key is set."""
+        return self.config_manager.get_api_key() is not None
+
+    def _make_request(self, method: str, endpoint: str, data: Dict[str, Any] | None = None) -> Any:
         """Make a request to the API."""
         base_url = self.config_manager.get_base_url()
         url = f"{base_url}{endpoint}"
@@ -54,7 +56,7 @@ class ApiClient:
     def auth(self) -> str:
         """Get team information."""
         data = self._make_request("GET", "/auth")
-        return data
+        return str(data)
 
     # Team-related methods
     def get_team_info(self) -> Team:
@@ -84,11 +86,11 @@ class ApiClient:
         data = self._make_request("PUT", f"/challenges/{challenge_id}", update_data.model_dump(exclude_unset=True))
         return Challenge.model_validate(data)
 
-    def delete_challenge(self, challenge_id: int) -> dict:
+    def delete_challenge(self, challenge_id: int) -> Challenge:
         """Mark a challenge as deleted by setting the deleted flag."""
         # For challenges, we use a flag instead of actual deletion
         data = self._make_request("PUT", f"/challenges/{challenge_id}", {"deleted": True})
-        return data
+        return Challenge.model_validate(data)
 
     # Round-related methods
     def get_round_info(self, round_id: Optional[int] = None) -> Round:
@@ -112,11 +114,11 @@ class ApiClient:
 
     def publish_round(self, round_id: int) -> Round:
         """Publish a round."""
-        return self.update_round(round_id, {"status": "active"})
+        return self.update_round(round_id, RoundUpdateRequest(status=RoundStatus.PUBLISHED))
 
-    def update_round(self, round_id: int, update_data: dict) -> Round:
+    def update_round(self, round_id: int, update_data: RoundUpdateRequest) -> Round:
         """Update a round."""
-        data = self._make_request("PUT", f"/rounds/{round_id}", update_data)
+        data = self._make_request("PUT", f"/rounds/{round_id}", update_data.model_dump(mode="json"))
         return Round.model_validate(data)
 
     def create_round(self, round_data: RoundCreateRequest) -> Round:
@@ -124,9 +126,9 @@ class ApiClient:
         data = self._make_request("POST", "/rounds", round_data.model_dump(mode="json"))
         return Round.model_validate(data)
         
-    def delete_round(self, round_id: int) -> dict:
+    def delete_round(self, round_id: int) -> Round:
         """Delete a round."""
-        return self._make_request("DELETE", f"/rounds/{round_id}")
+        return Round.model_validate(self._make_request("DELETE", f"/rounds/{round_id}"))
 
     # Task Type-related methods
     def get_round_task_types(self, round_id: int) -> list[RoundTaskType]:
@@ -158,9 +160,9 @@ class ApiClient:
         )
         return RoundTaskType.model_validate(data)
     
-    def delete_round_task_type(self, task_type_id: int) -> dict:
+    def delete_round_task_type(self, task_type_id: int) -> RoundTaskType:
         """Delete a task type."""
-        return self._make_request("DELETE", f"/task-types/{task_type_id}")
+        return RoundTaskType.model_validate(self._make_request("DELETE", f"/task-types/{task_type_id}"))
 
     # Task-related methods
     def claim_task(self, task_type: Optional[str] = None) -> Task:
@@ -176,10 +178,10 @@ class ApiClient:
         data = self._make_request("GET", f"/tasks/{task_id}")
         return Task.model_validate(data)
 
-    def get_task_input(self, task_id: str) -> Dict[str, Any]:
+    def get_task_input(self, task_id: str) -> str:
         """Get task input."""
         # This method returns raw task input, which is not a model class
-        return self._make_request("GET", f"/tasks/{task_id}/input")
+        return str(self._make_request("GET", f"/tasks/{task_id}/input"))
 
     def submit_task_answer(self, task_id: str, answer: str) -> Submission:
         """Submit an answer for a task."""
@@ -194,16 +196,7 @@ class ApiClient:
     def list_tasks(self, status: Optional[str] = None, task_type: Optional[str] = None,
                   round_id: Optional[int] = None, since: Optional[str] = None) -> TaskList:
         """List tasks."""
-        params = {}
-        if status:
-            params["status"] = status
-        if task_type:
-            params["type"] = task_type
-        if round_id:
-            params["round_id"] = round_id
-        if since:
-            params["since"] = since
-
+        #TODO Implement filters
         data = self._make_request("GET", "/tasks")
         return TaskList.model_validate(data)
 

@@ -11,7 +11,7 @@ import requests
 from requests.exceptions import RequestException
 from datetime import datetime, timedelta
 
-from main import app
+from cli.main import app
 
 backend_port = 8918
 
@@ -106,7 +106,7 @@ def test_round_publish():
 def test_round_update():
     login_admin()
     round_id = "1"
-    result = runner.invoke(app, ["round", "update", "-r", round_id, "--status", "active"])
+    result = runner.invoke(app, ["round", "update", "-r", round_id, "--status", "published"])
     print(f"Output: {result.output}")
 
     assert (result.exit_code == 0 or 

@@ -3,12 +3,9 @@ from sqlalchemy.orm import Session
 from datetime import datetime, timezone
 import requests
 import json
-from enum import Enum, auto
-
-from api_models import Task as ApiTask, Team as ApiTeam
-from api_models.gen_models import GenRequest, GenResponse, TaskProgress, CheckRequest, CheckResult, CheckStatus
-from api_models.models import Submission as ApiSubmission, SubmissionStatus, TaskStatus as ApiTaskStatus
-from db_models import Team, Task, Round, Challenge, RoundTaskType, Submission
+from api_models import GenRequest, GenResponse, TaskProgress, CheckRequest, CheckResult, CheckStatus
+from api_models import Submission as ApiSubmission, SubmissionStatus, TaskStatus as ApiTaskStatus
+from back.db_models import Team, Task, Round, Challenge, RoundTaskType, Submission
 
 
 class TaskGenClient:

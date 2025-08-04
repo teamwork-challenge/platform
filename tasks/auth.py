@@ -1,6 +1,5 @@
 import json
 import os
-
 import boto3
 from fastapi import HTTPException, Depends
 from fastapi.security import APIKeyHeader
@@ -11,6 +10,8 @@ async def validate_api_key(x_api_key: str = Depends(API_KEY_HEADER)) -> str:
     """
     Validate the API key against the one stored in AWS Secrets Manager.
     """
+    if os.environ["STAGE"] == "local":
+        return "local_api_key"
     if not x_api_key:
         raise HTTPException(status_code=401, detail="API key is required")
     secret_name = "generator-client-keys"

@@ -6,16 +6,15 @@ from fastapi.security import APIKeyHeader
 from mangum import Mangum
 from sqlalchemy.orm import Session
 
-from admin_service import AdminService
+from back.admin_service import AdminService
 from api_models import *
-from api_models.models import Challenge, Round, RoundCreateRequest, TeamsImportResponse, TeamsImportRequest, \
+from api_models import Challenge, Round, RoundStatus, RoundCreateRequest, TeamsImportResponse, TeamsImportRequest, \
     RoundTaskType, RoundTaskTypeCreateRequest, ChallengeUpdateRequest, SubmitAnswerRequest, Submission
-from api_models.models import RoundStatus
-from auth_service import AuthService
-from database import get_db_session
-from db_models import Challenge as DbChallenge, Round as DbRound, RoundTaskType as DbRoundTaskType, Task as DbTask, \
+from back.auth_service import AuthService
+from back.database import get_db_session
+from back.db_models import Challenge as DbChallenge, Round as DbRound, RoundTaskType as DbRoundTaskType, Task as DbTask, \
     Team as DbTeam
-from player_service import PlayerService
+from back.player_service import PlayerService
 
 
 def get_admin_service(db: Session = Depends(get_db_session)) -> AdminService:
@@ -273,7 +272,7 @@ def create_round_task_type(
 
 @admin.get("/teams", response_model=list[Team])
 def get_teams(
-    challenge_id: Optional[int] = None, 
+    challenge_id: int | None = None,
     admin_service: AdminService = Depends(get_admin_service), 
     auth_data: AuthData = Depends(authenticate_admin)
 ) -> Sequence[DbTeam]:
@@ -437,7 +436,7 @@ def submit_task_answer(
 
 @player.post("/tasks", response_model=Task)
 def create_task(
-    task_type: Optional[str], 
+    task_type: str | None,
     auth_data: AuthData = Depends(authenticate_player), 
     player_service: PlayerService = Depends(get_player_service)
 ) -> DbTask:
@@ -463,7 +462,7 @@ handler = Mangum(app, lifespan="off")
 
 if __name__ == "__main__":
     uvicorn.run(
-        "main:app",
+        "back.main:app",
         reload=True,
         reload_dirs=[".", "../api_models"],
         port=8088,

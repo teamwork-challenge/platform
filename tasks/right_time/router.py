@@ -1,13 +1,14 @@
-from typing import Dict, Tuple
-from fastapi import APIRouter, Request
 import random
-from datetime import datetime, timedelta
-import pytz
-from dateutil import parser
-from dateutil.relativedelta import relativedelta
 import re
-import time
-from api_models import GenRequest, GenResponse, CheckRequest, CheckResult
+from datetime import datetime, timedelta, timezone
+from typing import Dict, Tuple, cast
+from zoneinfo import ZoneInfo
+
+from dateutil import parser  # type: ignore[import-untyped]
+from dateutil.relativedelta import relativedelta  # type: ignore[import-untyped]
+from fastapi import APIRouter
+
+from api_models import GenRequest, GenResponse, CheckRequest, CheckResult, CheckStatus
 
 router = APIRouter()
 
@@ -43,7 +44,7 @@ TIMEZONES = {
 
 def get_current_time() -> datetime:
     """Get the current time in UTC timezone"""
-    return datetime.now(pytz.UTC)
+    return datetime.now(timezone.utc)
 
 def format_iso_time(dt: datetime) -> str:
     """Format a datetime object to ISO 8601 format with proper timezone formatting"""
@@ -60,9 +61,9 @@ def add_time_delta(dt: datetime, minutes: int = 0, hours: int = 0, seconds: int 
     """Add a time delta to a datetime object"""
     return dt + timedelta(minutes=minutes, hours=hours, seconds=seconds)
 
-def get_timezone(timezone_name: str) -> pytz.timezone:
+def get_timezone(timezone_name: str) -> ZoneInfo:
     """Get a timezone object from a timezone name"""
-    return pytz.timezone(TIMEZONES[timezone_name])
+    return ZoneInfo(TIMEZONES[timezone_name])
 
 def get_difficulty_level(request: GenRequest) -> int:
     """Determine the difficulty level based on task settings and progress"""
@@ -279,22 +280,22 @@ def parse_time_expression(time_expr: str) -> datetime:
     for tz_name in TIMEZONES:
         if tz_name in time_expr:
             # Replace timezone abbreviation with its offset
-            tz = pytz.timezone(TIMEZONES[tz_name])
+            tz = ZoneInfo(TIMEZONES[tz_name])
             time_expr = time_expr.replace(tz_name, '')
-            dt = parser.parse(time_expr)
+            dt = cast(datetime, parser.parse(time_expr))
             return dt.replace(tzinfo=tz)
 
     # Try parsing as ISO 8601
     if re.search(iso_pattern, time_expr):
-        return parser.parse(time_expr)
+        return cast(datetime, parser.parse(time_expr))
 
     # Try parsing as RFC 2822
     elif re.search(rfc_pattern, time_expr):
-        return parser.parse(time_expr)
+        return cast(datetime, parser.parse(time_expr))
 
     # Try parsing as Unix timestamp
     elif re.search(unix_pattern, time_expr):
-        return datetime.fromtimestamp(int(time_expr), pytz.UTC)
+        return datetime.fromtimestamp(int(time_expr), timezone.utc)
 
     # Try parsing as duration
     elif re.search(duration_pattern, time_expr):
@@ -444,12 +445,12 @@ def parse_time_expression(time_expr: str) -> datetime:
     return now
 
 @router.get("/statements", response_model=Dict[str, str])
-async def get_statements():
+async def get_statements() -> Dict[str, str]:
     """Get the task statements"""
     return STATEMENTS
 
 @router.post("/gen", response_model=GenResponse)
-async def generate_task(request: GenRequest):
+async def generate_task(request: GenRequest) -> GenResponse:
     """Generate a new right_time task"""
     # Determine the difficulty level
     level = get_difficulty_level(request)
@@ -467,7 +468,7 @@ async def generate_task(request: GenRequest):
     return GenResponse(
         statement_version=statement_key,
         statement=STATEMENTS[statement_key],
-        score="100",
+        score=100,
         input=input_data,
         checker_hint=checker_hint
     )
@@ -480,23 +481,23 @@ async def check_answer(request: CheckRequest) -> CheckResult:
         target_time = parser.parse(request.checker_hint.strip())
 
         # Get the current time
-        now = datetime.now(pytz.UTC)
+        now = datetime.now(timezone.utc)
 
         # Calculate the time difference in seconds
         time_diff = abs((now - target_time).total_seconds())
 
         # Check if the submission is within the allowed time window (±2 seconds)
         if time_diff <= 2:
-            return CheckResult(status="AC", score=1.0)
+            return CheckResult(status=CheckStatus.ACCEPTED, score=1.0)
         else:
             return CheckResult(
-                status="WA",
+                status=CheckStatus.WRONG_ANSWER,
                 score=0.0,
                 error=f"Expected submission at {target_time.isoformat()}, but received at {now.isoformat()}. Time difference: {time_diff:.2f} seconds."
             )
     except Exception as e:
         return CheckResult(
-            status="WA",
+            status=CheckStatus.WRONG_ANSWER,
             score=0.0,
             error=f"Error processing answer: {str(e)}"
         )

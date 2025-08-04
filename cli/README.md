@@ -8,16 +8,25 @@ A command-line interface for interacting with the Teamwork Challenge platform.
 2. Install the required dependencies:
 
 ```bash
-pip install -r requirements-dev.txt
+cli> pip install -r requirements-dev.txt
 ```
 
 ## Usage
 
 The CLI provides various commands for interacting with the Teamwork Challenge platform:
+From the root directory, run:
+```bash
+platform> python -m cli.main [COMMAND] [SUBCOMMAND] [OPTIONS]
+```
+
+## Type checking
+
+In the root directory:
 
 ```bash
-python main.py [COMMAND] [SUBCOMMAND] [OPTIONS]
+platform> mypy back
 ```
+
 
 ### Global Options
 

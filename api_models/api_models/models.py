@@ -93,9 +93,10 @@ class Task(BaseModel):
     time_remaining: str
     statement: Optional[str] = None
     input: Optional[str] = None
+    claimed_at: datetime
     submissions: List[Submission] = []
-    last_attempt_at: Optional[str] = None
-    solved_at: Optional[str] = None
+    last_attempt_at: Optional[datetime] = None
+    solved_at: Optional[datetime] = None
 
     class Config:
         from_attributes = True
@@ -194,6 +195,18 @@ class RoundCreateRequest(BaseModel):
     allow_resubmit: bool = False
     score_decay: str = "no"
     status: RoundStatus = RoundStatus.DRAFT
+
+    class Config:
+        from_attributes = True
+
+class RoundUpdateRequest(BaseModel):
+    index: int | None = None
+    start_time: datetime | None = None
+    end_time: datetime | None = None
+    claim_by_type: bool | None = None
+    allow_resubmit: bool | None = None
+    score_decay: str | None = None
+    status: RoundStatus | None = None
 
     class Config:
         from_attributes = True

@@ -1,9 +1,9 @@
 import typer
-from app_deps import api_client, json_output_option, console, ensure_logged_in
+from cli.app_deps import api_client, json_output_option, console, ensure_logged_in
 from typing import Optional
 from rich.table import Table
-from formatter import print_as_json
-from api_models.models import RoundTaskTypeCreateRequest
+from cli.formatter import print_as_json
+from api_models import RoundTaskTypeCreateRequest
 
 task_type_app = typer.Typer(help="Task type management")
 
@@ -11,7 +11,7 @@ task_type_app = typer.Typer(help="Task type management")
 def task_type_list(
     round_id: int = typer.Option(..., "--round", "-r", help="Round ID"),
     json: bool = json_output_option
-):
+) -> None:
     """List all task types for a round."""
     ensure_logged_in()
 
@@ -48,7 +48,7 @@ def task_type_list(
 def task_type_show(
     task_type_id: int = typer.Option(..., "--id", help="Task Type ID"),
     json: bool = json_output_option
-):
+) -> None:
     """Show details of a specific task type."""
     ensure_logged_in()
 
@@ -81,7 +81,7 @@ def task_type_create(
     generator_secret: str = typer.Option(..., "--generator-secret", help="Generator secret"),
     max_tasks_per_team: Optional[int] = typer.Option(None, "--max-tasks", "-m", help="Maximum tasks per team"),
     json: bool = json_output_option
-):
+) -> None:
     """Create a new task type."""
     ensure_logged_in()
 
@@ -121,7 +121,7 @@ def task_type_update(
     generator_secret: Optional[str] = typer.Option(None, "--generator-secret", help="Generator secret"),
     max_tasks_per_team: Optional[int] = typer.Option(None, "--max-tasks", "-m", help="Maximum tasks per team"),
     json: bool = json_output_option
-):
+) -> None:
     """Update an existing task type."""
     ensure_logged_in()
 
@@ -159,7 +159,7 @@ def task_type_delete(
     task_type_id: int = typer.Option(..., "--id", help="Task Type ID"),
     confirm: bool = typer.Option(False, "--yes", "-y", help="Skip confirmation prompt"),
     json: bool = json_output_option
-):
+) -> None:
     """Delete a task type."""
     ensure_logged_in()
 
