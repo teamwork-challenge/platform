@@ -6,6 +6,7 @@ from botocore.exceptions import ClientError
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
 from typing import Generator
+from sqlalchemy.engine import Engine
 from db_models import Base, AdminKeys, Team, Challenge, Task, Round, RoundTaskType
 from api_models.models import RoundStatus, TaskStatus
 from datetime import datetime, timedelta, timezone
@@ -13,7 +14,7 @@ from datetime import datetime, timedelta, timezone
 from db_models import Base
 
 
-def get_connection_string():
+def get_connection_string() -> str:
     secret_name = "rds-db-credentials/cluster-H2HS3S7S4UFREZFDQIJEL4JBZY/postgres/1750785162158"
     region_name = "eu-north-1"
     # Create a Secrets Manager client
@@ -34,7 +35,7 @@ def get_connection_string():
     return conn_string
 
 
-def get_db_engine():
+def get_db_engine() -> Engine:
     """
     Returns a database engine.
     - Uses in-memory SQLite
@@ -62,7 +63,7 @@ def get_db_engine():
             },
         )
 
-def get_test_db_engine():
+def get_test_db_engine() -> Engine:
     engine = create_engine(
         "sqlite:///:memory:",
         connect_args={"check_same_thread": False},
@@ -73,12 +74,12 @@ def get_test_db_engine():
     return engine
 
 
-def get_test_db_session(create_tables=True):
+def get_test_db_session(create_tables: bool = True) -> Session:
     engine = get_test_db_engine()
     Base.metadata.create_all(engine) if create_tables else None
     return Session(bind=engine, autocommit=False, autoflush=False)
 
-def create_test_data(engine = None):
+def create_test_data(engine: Engine | None = None) -> None:
     """
     Create test data in the tables: AdminKeys, Teams, Challenges, Rounds, RoundTaskTypes, Tasks
     Creates 2 objects per each table

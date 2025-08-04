@@ -8,7 +8,7 @@ from database import create_test_data
 from db_models import Base
 
 
-def test_connection():
+def test_connection() -> None:
     """
     Read README.md to know how to make it work!
     Works with both PostgreSQL and SQLite.
@@ -25,7 +25,7 @@ def test_connection():
             print(insp.get_table_names())
 
 
-def test_recreate_db_tables():
+def test_recreate_db_tables() -> None:
     engine = get_db_engine()
     Base.metadata.drop_all(bind=engine)
     Base.metadata.create_all(engine)

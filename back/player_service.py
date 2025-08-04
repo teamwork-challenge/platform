@@ -7,7 +7,7 @@ from enum import Enum, auto
 
 from api_models import Task as ApiTask, Team as ApiTeam
 from api_models.gen_models import GenRequest, GenResponse, TaskProgress, CheckRequest, CheckResult, CheckStatus
-from api_models.models import Submission as ApiSubmission
+from api_models.models import Submission as ApiSubmission, SubmissionStatus, TaskStatus as ApiTaskStatus
 from db_models import Team, Task, Round, Challenge, RoundTaskType, Submission
 
 
@@ -55,9 +55,10 @@ class TaskGenClient:
         except Exception as e:
             raise RuntimeError(f"Unexpected error generating task: {str(e)}")
             
-    def check_answer(self, generator_url: str, answer: str, checker_hint: str) -> CheckResult:
+    def check_answer(self, generator_url: str, answer: str, checker_hint: str, input_text: str) -> CheckResult:
         """Check the answer with the task generator."""
         check_request = CheckRequest(
+            input=input_text,
             answer=answer,
             checker_hint=checker_hint
         )
@@ -81,11 +82,6 @@ class TaskGenClient:
             raise RuntimeError(f"Error checking answer: {str(e)}")
 
 
-class TaskStatus(Enum):
-    PENDING = "PENDING"
-    ACTIVE = "ACTIVE"
-    ACCEPTED = "ACCEPTED"
-    WRONG_ANSWER = "WRONG_ANSWER"
 
 
 class PlayerService:
@@ -93,11 +89,11 @@ class PlayerService:
         self.db = db
         self.task_gen_client = TaskGenClient()
 
-    def get_task(self, task_id: int) -> Task:
+    def get_task(self, task_id: int) -> Task | None:
         stmt = select(Task).where(Task.id == task_id)
         return self.db.execute(stmt).scalar_one_or_none()
 
-    def get_team(self, team_id: int) -> Team:
+    def get_team(self, team_id: int) -> Team | None:
         stmt = select(Team).where(Team.id == team_id)
         return self.db.execute(stmt).scalar_one_or_none()
 
@@ -109,7 +105,7 @@ class PlayerService:
 
         task = Task(
             title=f"{task_type} Task",
-            status=TaskStatus.PENDING.value,
+            status=ApiTaskStatus.PENDING,
             challenge_id=challenge_id,
             team_id=team_id,
             type=task_type,
@@ -137,7 +133,7 @@ class PlayerService:
         task.input = gen_response.input
         task.checker_hint = gen_response.checker_hint
         task.statement = gen_response.statement
-        task.status = TaskStatus.ACTIVE.value
+        task.status = ApiTaskStatus.ACTIVE
 
         self.db.commit()
         self.db.refresh(task)
@@ -196,7 +192,7 @@ class PlayerService:
             (Task.round_id == round_id) &
             (Task.type == task_type)
         )
-        return self.db.execute(stmt).scalars().all()
+        return list(self.db.execute(stmt).scalars().all())
 
     def ensure_task_limit(self, team_id: int, round_id: int, task_type: str, round_task_type: RoundTaskType) -> None:
         if round_task_type.max_tasks_per_team is not None:
@@ -224,9 +220,9 @@ class PlayerService:
             gen_request
         )
 
-    def check_answer(self, answer: str, checker_hint: str, generator_url: str) -> CheckResult:
+    def check_answer(self, answer: str, checker_hint: str, generator_url: str, input_text: str) -> CheckResult:
         """Check the answer with the task generator."""
-        return self.task_gen_client.check_answer(generator_url, answer, checker_hint)
+        return self.task_gen_client.check_answer(generator_url, answer, checker_hint, input_text)
 
     def create_submission(self, task_id: int, team_id: int, answer: str,
                            check_result: CheckResult, task: Task) -> ApiSubmission:
@@ -234,10 +230,10 @@ class PlayerService:
         submitted_at = datetime.now(timezone.utc)
 
         if check_result.status == CheckStatus.ACCEPTED:
-            task.status = TaskStatus.ACCEPTED.value
+            task.status = ApiTaskStatus.AC
 
             stmt = select(Team).where(Team.id == team_id)
-            team = self.db.execute(stmt).scalar_one_or_none()
+            team = self.db.execute(stmt).scalar_one()
 
             score = int(float(task.score or 0) * check_result.score)
             team.total_score += score
@@ -251,7 +247,7 @@ class PlayerService:
                 score=score
             )
         else:
-            task.status = TaskStatus.WRONG_ANSWER.value
+            task.status = ApiTaskStatus.WA
 
             db_submission = Submission(
                 status=SubmissionStatus.WA,
@@ -296,6 +292,6 @@ class PlayerService:
 
         checker_hint = task.checker_hint
 
-        check_result = self.check_answer(answer, checker_hint, round_task_type.generator_url)
+        check_result = self.check_answer(answer, checker_hint, round_task_type.generator_url, task.input)
 
         return self.create_submission(task_id, team_id, answer, check_result, task)

@@ -9,15 +9,15 @@ class AuthService:
         self.db = db
 
     def get_auth_data(self, api_key: str) -> AuthData | None:
-        stmt = select(AdminKeys).where(AdminKeys.api_key == api_key)
-        key = self.db.execute(stmt).scalar_one_or_none()
+        keys_query = select(AdminKeys).where(AdminKeys.api_key == api_key)
+        key = self.db.execute(keys_query).scalar_one_or_none()
         if key is not None:
             return AuthData(
                 key=key.api_key,
                 role=UserRole.ADMIN,
             )
-        stmt = select(Team).where(Team.api_key == api_key)
-        team = self.db.execute(stmt).scalar_one_or_none()
+        team_query = select(Team).where(Team.api_key == api_key)
+        team = self.db.execute(team_query).scalar_one_or_none()
         if team is not None:
             # Get the challenge to retrieve current_round_id
             stmt = select(Challenge).where(Challenge.id == team.challenge_id)
