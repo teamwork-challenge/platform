@@ -20,8 +20,8 @@ def start_server():
     server_url = "http://127.0.0.1:" + str(backend_port)
     os.environ["CHALLENGE_API_URL"] = server_url # make CLI use the same port
 
-    proc = subprocess.Popen(["uvicorn", "main:app", "--port", str(backend_port)], cwd="../back")
-    wait_endpoint_up(server_url, 10.0)
+    proc = subprocess.Popen(["uvicorn", "back.main:app", "--port", str(backend_port)], cwd="..")
+    wait_endpoint_up(server_url, 1.0)
 
     yield
     proc.terminate()
