@@ -142,8 +142,7 @@ def test_round_create():
 # Task App Tests
 def test_task_claim():
     login_team1()
-    result = runner.invoke(app, ["task", "claim"])
-    print(f"Output: {result.output}")
+    result = run_ok("task", "claim")
 
     assert result.exit_code == 0 or "422 Client Error: Unprocessable Entity" in result.output
 

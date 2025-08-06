@@ -48,8 +48,10 @@ class ApiClient:
 
         print(f"Making {method} request to {url} with data: {data}")
         response = requests.request(method, url, headers=self._headers, json=data)
+        res = response.json()
+        print(f"Response: {res}")
         response.raise_for_status()
-        return response.json()
+        return res
 
 
     # Team-related methods
