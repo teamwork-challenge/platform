@@ -39,6 +39,7 @@ class CheckRequest(BaseModel):
     input: str
     checker_hint: str = ""
     answer: str
+    task_id: Optional[str] = None
 
 
 class CheckResult(BaseModel):

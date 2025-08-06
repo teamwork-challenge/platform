@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from datetime import datetime, timezone
 import requests
 import json
-from api_models import GenRequest, GenResponse, TaskProgress, CheckRequest, CheckResult, CheckStatus
+from api_models import GenRequest, GenResponse, TaskProgress, CheckRequest, CheckResult, CheckStatus, CheckResponse
 from api_models import Submission as ApiSubmission, SubmissionStatus, TaskStatus as ApiTaskStatus
 from back.db_models import Team, Task, Round, Challenge, RoundTaskType, Submission
 
@@ -51,9 +51,8 @@ class TaskGenClient:
             raise
         except Exception as e:
             raise RuntimeError(f"Unexpected error generating task: {str(e)}")
-            
-    def check_answer(self, generator_url: str, answer: str, checker_hint: str, input_text: str) -> CheckResult:
-        """Check the answer with the task generator."""
+
+    def check_answer(self, generator_url: str, answer: str, checker_hint: str, input_text: str) -> CheckResponse:
         check_request = CheckRequest(
             input=input_text,
             answer=answer,
@@ -68,17 +67,15 @@ class TaskGenClient:
             )
             response.raise_for_status()
 
-            check_result = CheckResult.model_validate(response.json())
+            check_response = CheckResponse.model_validate(response.json())
 
-            if check_result is None:
-                raise RuntimeError("No check result returned from task generator")
+            if check_response is None or len(check_response) == 0:
+                raise RuntimeError("No check results returned from task generator")
 
-            return check_result
+            return check_response
 
         except Exception as e:
             raise RuntimeError(f"Error checking answer: {str(e)}")
-
-
 
 
 class PlayerService:
@@ -217,13 +214,11 @@ class PlayerService:
             gen_request
         )
 
-    def check_answer(self, answer: str, checker_hint: str, generator_url: str, input_text: str) -> CheckResult:
-        """Check the answer with the task generator."""
+    def check_answer(self, answer: str, checker_hint: str, generator_url: str, input_text: str) -> CheckResponse:
         return self.task_gen_client.check_answer(generator_url, answer, checker_hint, input_text)
 
     def create_submission(self, task_id: int, team_id: int, answer: str,
                            check_result: CheckResult, task: Task) -> ApiSubmission:
-        """Create a submission based on the check result."""
         submitted_at = datetime.now(timezone.utc)
 
         if check_result.status == CheckStatus.ACCEPTED:
@@ -289,6 +284,14 @@ class PlayerService:
 
         checker_hint = task.checker_hint
 
-        check_result = self.check_answer(answer, checker_hint, round_task_type.generator_url, task.input)
+        check_response = self.check_answer(answer, checker_hint, round_task_type.generator_url, task.input)
 
-        return self.create_submission(task_id, team_id, answer, check_result, task)
+        submissions = []
+
+        # Create a submission for each check result
+        for check_result in check_response:
+            submission = self.create_submission(task_id, team_id, answer, check_result, task)
+            submissions.append(submission)
+
+        # Return the first submission for backward compatibility
+        return submissions[0]

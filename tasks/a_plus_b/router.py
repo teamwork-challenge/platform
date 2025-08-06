@@ -2,7 +2,7 @@ from typing import Dict
 
 from fastapi import APIRouter
 import random
-from api_models import GenRequest, GenResponse, CheckRequest, CheckResult, CheckStatus
+from api_models import GenRequest, GenResponse, CheckRequest, CheckResult, CheckResponse, CheckStatus
 
 router = APIRouter()
 
@@ -11,14 +11,14 @@ STATEMENTS = {
     "v1": "Given two integers a and b, find their sum a + b."
 }
 
+
 @router.get("/statements", response_model=Dict[str, str])
 async def get_statements() -> Dict[str, str]:
-    """Get the task statements"""
     return STATEMENTS
+
 
 @router.post("/gen", response_model=GenResponse)
 async def generate_task(request: GenRequest) -> GenResponse:
-    """Generate a new a_plus_b task"""
     # Generate two random integers
     a = random.randint(1, 100)
     b = random.randint(1, 100)
@@ -37,9 +37,9 @@ async def generate_task(request: GenRequest) -> GenResponse:
         checker_hint=str(expected_answer)  # Store the expected answer as a hint for the checker
     )
 
-@router.post("/check", response_model=CheckResult)
-async def check_answer(request: CheckRequest) -> CheckResult:
-    """Check the answer for an a_plus_b task"""
+
+@router.post("/check", response_model=CheckResponse)
+async def check_answer(request: CheckRequest) -> CheckResponse:
     try:
         # Parse the input to get the two numbers
         a, b = map(int, request.input.strip().split())
@@ -52,16 +52,25 @@ async def check_answer(request: CheckRequest) -> CheckResult:
 
         # Check if the answer is correct
         if user_answer == expected_answer:
-            return CheckResult(status=CheckStatus.ACCEPTED, score=1.0)
+            return CheckResponse([
+                CheckResult(
+                    status=CheckStatus.ACCEPTED,
+                    score=1.0
+                )
+            ])
         else:
-            return CheckResult(
+            return CheckResponse([
+                CheckResult(
+                    status=CheckStatus.WRONG_ANSWER,
+                    score=0.0,
+                    error=f"Expected {expected_answer}, got {user_answer}"
+                )
+            ])
+    except Exception as e:
+        return CheckResponse([
+            CheckResult(
                 status=CheckStatus.WRONG_ANSWER,
                 score=0.0,
-                error=f"Expected {expected_answer}, got {user_answer}"
+                error=f"Error processing answer: {str(e)}"
             )
-    except Exception as e:
-        return CheckResult(
-            status=CheckStatus.WRONG_ANSWER,
-            score=0.0,
-            error=f"Error processing answer: {str(e)}"
-        )
+        ])
