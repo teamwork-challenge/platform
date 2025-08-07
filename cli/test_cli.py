@@ -83,10 +83,10 @@ def test_team_show_ok():
 # Round App Tests
 def test_round_show():
     login_admin()
-    round_id = "1"
+    round_id, round_index = create_round()
 
     result = run_ok("round", "show", "-r", round_id)
-    assert "Round 1" in result.output
+    assert f"Round {round_id}" in result.output
 
 
 def test_round_list():
@@ -187,56 +187,77 @@ def test_task_list():
 def test_task_type_create():
     login_admin()
 
-    round_id = get_round_id()
+    # Create a round first to ensure we have a valid round ID
+    round_id, _ = create_round()
 
-    type_name = f"test_create_type_{int(time.time())}"
-
-    cmd = f"task-type create --round {round_id} --type {type_name} --generator-url http://example.com/generator --generator-settings {{\"difficulty\": \"easy\"}} --generator-secret test_secret --max-tasks 5"
-    result = run_ok(*cmd.split())
-    print(f"Output: {result.output}")
-    assert True
+    # Create a task type for the round
+    task_type_id, type_name = create_task_type(round_id, "test_create_type")
+    
+    assert task_type_id is not None
+    assert type_name is not None
 
 def test_task_type_list():
     login_admin()
 
-    round_id = get_round_id()
+    # Create a round first to ensure we have a valid round ID
+    round_id, _ = create_round()
+
+    # Create a task type for the round
+    _, type_name = create_task_type(round_id, "test_list_type")
 
     cmd = f"task-type list --round {round_id}"
     result = run_ok(*cmd.split())
-    assert "a_plus_b" in result.output
+    # The table output truncates the type name with an ellipsis
+    assert "test_list_type…" in result.output
 
 def test_task_type_show():
     login_admin()
 
-    task_type_id = get_task_type_id()
+    # Create a round first to ensure we have a valid round ID
+    round_id, _ = create_round()
+
+    # Create a task type for the round
+    task_type_id, type_name = create_task_type(round_id, "test_show_type")
+    
+    # Now show the task type
     result = run_ok("task-type", "show", "--id", task_type_id)
-    assert "Type: a_plus_b" in result.output
+    assert f"Type: {type_name}" in result.output
     assert "Generator URL:" in result.output
 
 
 def test_task_type_update():
     login_admin()
 
-    # TODO: create a task type first, then delete it
-    task_type_id = "1"
+    # Create a round first
+    round_id, _ = create_round()
+    
+    # Create a task type for the round
+    task_type_id, _ = create_task_type(round_id, "test_update_type")
 
+    # Now update the task type
     result = run_ok(
         "task-type", "update",
         "--id", task_type_id,
         "--type", "updated_test_type",
         "--max-tasks", "100500"
     )
-    assert "Task type updated successfully with ID: 1" in result.output
+    assert f"Task type updated successfully with ID: {task_type_id}" in result.output
     assert "Type: updated_test_type" in result.output
     assert "Max Tasks Per Team: 100500" in result.output
 
 
 def test_task_type_delete():
     login_admin()
-    # TODO: create a task type first, then delete it
-    task_type_id = "1"
+    
+    # Create a round first
+    round_id, _ = create_round()
+    
+    # Create a task type for the round
+    task_type_id, _ = create_task_type(round_id, "test_delete_type")
+    
+    # Now delete the task type
     result = run_ok("task-type", "delete", "--id", task_type_id, "--yes")
-    assert "Task type with ID 1 deleted successfully" in result.output
+    assert f"Task type with ID {task_type_id} deleted successfully" in result.output
 
 
 # Board App Tests
@@ -285,6 +306,30 @@ def get_round_id(challenge_id: str = DEFAULT_CHALLENGE_ID) -> str:
 
 def get_task_type_id(round_id: str = None) -> str:
     return "1"
+
+def create_task_type(round_id: str, type_name_prefix: str = "test_type") -> tuple[str, str]:
+    type_name = f"{type_name_prefix}_{int(time.time())}"
+    create_result = run_ok(
+        "task-type", "create",
+        "--round", round_id,
+        "--type", type_name,
+        "--generator-url", "http://example.com/generator",
+        "--generator-settings", "{\"difficulty\": \"easy\"}",
+        "--generator-secret", "test_secret",
+        "--max-tasks", "5"
+    )
+    
+    # Extract the task type ID from the output
+    task_type_id = None
+    for line in create_result.output.splitlines():
+        if "Task type created successfully with ID:" in line:
+            task_type_id = line.split("ID:")[1].strip()
+            break
+    
+    if not task_type_id:
+        assert False, "Failed to create task type, no ID found in output"
+        
+    return task_type_id, type_name
 
 def get_task_id() -> str:
     return "1"
