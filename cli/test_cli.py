@@ -83,13 +83,9 @@ def test_round_show():
     login_admin()
     round_id = "1"
 
-    result = runner.invoke(app, ["round", "show", "-r", round_id])
+    result = run_ok("round", "show", "-r", round_id)
     print(f"Output: {result.output}")
 
-    assert (result.exit_code == 0 or 
-            "404 Client Error: Not Found" in result.output or
-            "Round not found" in result.output or
-            "Round" in result.output)
 
 def test_round_list():
     login_team1()
@@ -100,31 +96,23 @@ def test_round_publish():
     login_admin()
     round_id = "1"
 
-    result = runner.invoke(app, ["round", "publish", round_id])
+    result = run_ok("round", "publish", round_id)
     print(f"Output: {result.output}")
 
 def test_round_update():
     login_admin()
     round_id = "1"
-    result = runner.invoke(app, ["round", "update", "-r", round_id, "--status", "published"])
+    result = run_ok("round", "update", "-r", round_id, "--status", "published")
     print(f"Output: {result.output}")
 
-    assert (result.exit_code == 0 or 
-            "404 Client Error: Not Found" in result.output or
-            "422 Client Error: Unprocessable Entity" in result.output or
-            "Round updated successfully" in result.output)
 
 def test_round_delete():
     login_admin()
 
     round_id = "1"
-    result = runner.invoke(app, ["round", "delete", "-r", round_id, "--yes"])
+    result = run_ok("round", "delete", "-r", round_id, "--yes")
     print(f"Output: {result.output}")
 
-    assert (result.exit_code == 0 or 
-            "404 Client Error: Not Found" in result.output or
-            "Round not found" in result.output or
-            "deleted successfully" in result.output)
 
 def test_round_create():
     login_admin()
@@ -135,7 +123,7 @@ def test_round_create():
 
     unique_index = f"test_{int(time.time())}"
     cmd = f"round create --challenge {challenge_id} --index {unique_index} --start-time {start_time} --end-time {end_time} --status draft"
-    result = runner.invoke(app, cmd.split())
+    result = run_ok(*cmd.split())
     print(f"Output: {result.output}")
     assert True
 
@@ -150,7 +138,7 @@ def test_task_show():
     login_team1()
     task_id = get_task_id()
 
-    result = runner.invoke(app, ["task", "show", task_id])
+    result = run_ok("task", "show", task_id)
     print(f"Output: {result.output}")
     assert True
 
@@ -158,7 +146,7 @@ def test_task_show_input():
     login_team1()
     task_id = get_task_id()
 
-    result = runner.invoke(app, ["task", "show-input", task_id])
+    result = run_ok("task", "show-input", task_id)
     print(f"Output: {result.output}")
 
     assert result.exit_code == 0 or "404 Client Error: Not Found" in result.output
@@ -172,7 +160,7 @@ def test_task_submit():
         temp_file = f.name
 
     try:
-        result = runner.invoke(app, ["task", "submit", task_id, "--file", temp_file])
+        result = run_ok("task", "submit", task_id, "--file", temp_file)
         print(f"Output: {result.output}")
 
         assert result.exit_code == 0 or "404 Client Error: Not Found" in result.output
@@ -181,7 +169,7 @@ def test_task_submit():
 
 def test_task_list():
     login_team1()
-    result = runner.invoke(app, ["task", "list"])
+    result = run_ok("task", "list")
     print(f"Output: {result.output}")
     assert result.exit_code == 0 or "405 Client Error: Method Not Allowed" in result.output
 
@@ -194,7 +182,7 @@ def test_task_type_create():
     type_name = f"test_create_type_{int(time.time())}"
 
     cmd = f"task-type create --round {round_id} --type {type_name} --generator-url http://example.com/generator --generator-settings {{\"difficulty\": \"easy\"}} --generator-secret test_secret --max-tasks 5"
-    result = runner.invoke(app, cmd.split())
+    result = run_ok(*cmd.split())
     print(f"Output: {result.output}")
     assert True
 
@@ -204,7 +192,7 @@ def test_task_type_list():
     round_id = get_round_id()
 
     cmd = f"task-type list --round {round_id}"
-    result = runner.invoke(app, cmd.split())
+    result = run_ok(*cmd.split())
     print(f"Output: {result.output}")
     assert True
 
@@ -212,41 +200,31 @@ def test_task_type_show():
     login_admin()
 
     task_type_id = get_task_type_id()
-    result = runner.invoke(app, ["task-type", "show", "--id", task_type_id])
+    result = run_ok("task-type", "show", "--id", task_type_id)
     print(f"Output: {result.output}")
 
-    assert (result.exit_code == 0 or 
-            "404 Client Error: Not Found" in result.output or
-            "Task Type ID:" in result.output)
 
 def test_task_type_update():
     login_admin()
 
     task_type_id = "1"
 
-    result = runner.invoke(app, [
+    result = run_ok(
         "task-type", "update",
         "--id", task_type_id,
         "--type", "updated_test_type",
         "--max-tasks", "10"
-    ])
+    )
     print(f"Output: {result.output}")
 
-    assert (result.exit_code == 0 or 
-            "404 Client Error: Not Found" in result.output or
-            "Task type updated successfully" in result.output)
 
 def test_task_type_delete():
     login_admin()
 
     task_type_id = "1"
-    result = runner.invoke(app, ["task-type", "delete", "--id", task_type_id, "--yes"])
+    result = run_ok("task-type", "delete", "--id", task_type_id, "--yes")
     print(f"Output: {result.output}")
 
-    assert (result.exit_code == 0 or 
-            "404 Client Error: Not Found" in result.output or
-            "Task type with ID" in result.output or
-            "deleted successfully" in result.output)
 
 # Board App Tests
 def test_board_dashboard():
