@@ -1,3 +1,5 @@
+from random import sample
+
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 from datetime import datetime, timezone
@@ -6,6 +8,7 @@ import json
 from api_models import GenRequest, GenResponse, TaskProgress, CheckRequest, CheckResult, CheckStatus, CheckResponse
 from api_models import Submission as ApiSubmission, SubmissionStatus, TaskStatus as ApiTaskStatus
 from back.db_models import Team, Task, Round, Challenge, RoundTaskType, Submission
+import random
 
 
 class TaskGenClient:
@@ -110,7 +113,7 @@ class PlayerService:
 
         existing_tasks = self.get_existing_tasks(team_id, round.id, task_type)
 
-        current_time = datetime.now(timezone.utc)
+        current_time = datetime.now()
 
         task_progress = TaskProgress(
             task_index=len(existing_tasks),
@@ -142,12 +145,9 @@ class PlayerService:
             raise ValueError("No active round found for this challenge")
 
         if round.status.lower() != "published":
-            raise ValueError("Current round is not published")
+            raise ValueError("No current round available for this challenge")
 
-        if not round.claim_by_type:
-            raise ValueError("Claiming tasks by type is not enabled for this round")
-
-        current_time = datetime.now(timezone.utc)
+        current_time = datetime.now()
         if current_time < round.start_time:
             raise ValueError("Round has not started yet")
 
@@ -180,12 +180,11 @@ class PlayerService:
 
         return team
 
-    def get_existing_tasks(self, team_id: int, round_id: int, task_type: str) -> list[Task]:
-        stmt = select(Task).where(
-            (Task.team_id == team_id) &
-            (Task.round_id == round_id) &
-            (Task.type == task_type)
-        )
+    def get_existing_tasks(self, team_id: int, round_id: int, task_type: str | None = None) -> list[Task]:
+        condition = (Task.team_id == team_id) & (Task.round_id == round_id)
+        if task_type is not None:
+            condition &= (Task.type == task_type)
+        stmt = select(Task).where(condition)
         return list(self.db.execute(stmt).scalars().all())
 
     def ensure_task_limit(self, team_id: int, round_id: int, task_type: str, round_task_type: RoundTaskType) -> None:
@@ -295,3 +294,24 @@ class PlayerService:
 
         # Return the first submission for backward compatibility
         return submissions[0]
+
+    def get_random_task_type(self, round: Round, team_id: int) -> RoundTaskType:
+        """Get a random task type for the current round that the team has not yet taken."""
+        stmt = select(RoundTaskType).where(RoundTaskType.round_id == round.id)
+        task_types = self.db.execute(stmt).scalars().all()
+
+        if not task_types:
+            raise ValueError("No task types available for this round")
+
+        existing_tasks = self.get_existing_tasks(team_id, round.id)
+
+        def get_probability(task_type: RoundTaskType) -> float:
+            taken_tasks_count = len([t for t in existing_tasks if t.type == task_type.type])
+            return max(0.0, task_type.max_tasks_per_team - taken_tasks_count)
+
+        probs = list(map(get_probability, task_types))
+        if not any(prob > 0 for prob in probs):
+            raise ValueError("All tasks was already taken for this round")
+        choices = random.choices(task_types, weights=probs, k=1)
+        return choices[0]
+

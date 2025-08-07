@@ -17,7 +17,6 @@ def login(api_key: str) -> None:
     api_client.save_api_key(api_key)
     role = api_client.auth()
     console.print(f"[green]Successfully logged in with role {role} using API key: {api_key}[/green]")
-    return None
 
 @app.command()
 def logout() -> None:

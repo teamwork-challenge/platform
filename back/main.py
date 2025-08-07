@@ -195,17 +195,15 @@ def update_round(
     return updated_round
 
 
-@admin.delete("/rounds/{round_id}", response_model=Round)
+@admin.delete("/rounds/{round_id}", response_model=DeleteResponse)
 def delete_round(
     round_id: int, 
     admin_service: AdminService = Depends(get_admin_service), 
     auth_data: AuthData = Depends(authenticate_admin)
-) -> DbRound:
+) -> DeleteResponse:
     get_round_or_404(round_id, admin_service, auth_data, "DELETE")
-    deleted = admin_service.delete_round(round_id)
-    if deleted is None:
-        raise HTTPException(status_code=404, detail="Round not found")
-    return deleted
+    admin_service.delete_round(round_id)
+    return DeleteResponse(deleted_id=round_id)
 
 
 @admin.post("/rounds", response_model=Round)
@@ -436,15 +434,20 @@ def submit_task_answer(
 
 @player.post("/tasks", response_model=Task)
 def create_task(
-    task_type: str | None,
+    task_type: str | None = None,
     auth_data: AuthData = Depends(authenticate_player), 
-    player_service: PlayerService = Depends(get_player_service)
+    player_service: PlayerService = Depends(get_player_service),
+    admin_service: AdminService = Depends(get_admin_service)
+
 ) -> DbTask:
+    round = get_round_or_404(auth_data.round_id, admin_service, auth_data)
     try:
         if auth_data.challenge_id is None or auth_data.team_id is None:
             raise HTTPException(status_code=400, detail="Invalid team or challenge context")
         if task_type is None:
-            raise HTTPException(status_code=400, detail="Task type must be specified")
+            task_type = player_service.get_random_task_type(round, auth_data.team_id).type
+        elif not round.claim_by_type:
+            raise HTTPException(status_code=400, detail="Round does not allow task creation by type")
         return player_service.create_task(auth_data.challenge_id, auth_data.team_id, task_type)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))

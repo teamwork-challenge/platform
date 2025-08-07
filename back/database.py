@@ -134,7 +134,7 @@ def create_test_data(engine: Engine | None = None) -> None:
         round1 = Round(
             challenge_id=challenge1.id,
             index=1,
-            status=RoundStatus.DRAFT,
+            status=RoundStatus.PUBLISHED,
             start_time=now,
             end_time=now + timedelta(hours=2000),
             claim_by_type=False,
@@ -144,7 +144,7 @@ def create_test_data(engine: Engine | None = None) -> None:
         round2 = Round(
             challenge_id=challenge2.id,
             index=1,
-            status=RoundStatus.PUBLISHED,
+            status=RoundStatus.DRAFT,
             start_time=now - timedelta(hours=1),
             end_time=now + timedelta(hours=2000),
             claim_by_type=True,
@@ -203,6 +203,9 @@ def create_test_data(engine: Engine | None = None) -> None:
             statement="Send the answer back exactly in the moment of time, specified in the task input."
         )
         session.add_all([task1, task2])
+
+        challenge1.current_round_id = round1.id
+        challenge2.current_round_id = round2.id
 
         session.commit()
 

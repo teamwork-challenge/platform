@@ -48,7 +48,9 @@ def test_login_ok():
 
 def test_login_fail():
     result = runner.invoke(app, ["login", "team1123123"])
+    print(result.output)
     assert result.exit_code != 0
+    assert "Invalid API key" in result.exception.args[0]
 
 def test_logout():
     login_team1()
@@ -84,100 +86,63 @@ def test_round_show():
     round_id = "1"
 
     result = run_ok("round", "show", "-r", round_id)
-    print(f"Output: {result.output}")
+    assert "Round 1" in result.output
 
 
 def test_round_list():
     login_team1()
     result = run_ok("round", "list")
     assert "Rounds" in result.output
+    assert "Round 1" in result.output
+
+
+def test_round_create():
+    login_admin()
+    create_round()
+
 
 def test_round_publish():
     login_admin()
-    
-    # Create a round first
-    now = datetime.now()
-    start_time = now.isoformat()
-    end_time = (now + timedelta(hours=2)).isoformat()
-    challenge_id = get_challenge_id()
-    
-    # Use a numeric index based on current timestamp
-    unique_index = int(time.time()) % 1000  # Use modulo to keep it a reasonable size
-    cmd = f"round create --challenge {challenge_id} --index {unique_index} --start-time {start_time} --end-time {end_time} --status draft"
-    create_result = run_ok(*cmd.split())
-    print(f"Create Output: {create_result.output}")
-    
-    # Extract the round ID from the output
-    round_id = None
-    for line in create_result.output.splitlines():
-        if "Round ID:" in line:
-            round_id = line.split("Round ID:")[1].strip()
-            break
-    
-    if not round_id:
-        round_id = "1"  # Fallback to default
-    
+
+    round_id, round_index = create_round()
+
     # Now publish the round
     result = run_ok("round", "publish", round_id)
-    print(f"Publish Output: {result.output}")
+
+    assert "Round published" in result.output
+    assert f"Round {round_index}" in result.output
 
 def test_round_update():
     login_admin()
-    
-    # Create a round first
-    now = datetime.now()
-    start_time = now.isoformat()
-    end_time = (now + timedelta(hours=2)).isoformat()
-    challenge_id = get_challenge_id()
-    
-    # Use a numeric index based on current timestamp
-    unique_index = int(time.time()) % 1000  # Use modulo to keep it a reasonable size
-    cmd = f"round create --challenge {challenge_id} --index {unique_index} --start-time {start_time} --end-time {end_time} --status draft"
-    create_result = run_ok(*cmd.split())
-    print(f"Create Output: {create_result.output}")
-    
-    # Extract the round ID from the output
-    round_id = None
-    for line in create_result.output.splitlines():
-        if "Round ID:" in line:
-            round_id = line.split("Round ID:")[1].strip()
-            break
-    
-    if not round_id:
-        round_id = "1"  # Fallback to default
-    
-    # Now update the round
-    result = run_ok("round", "update", "-r", round_id, "--status", "published")
-    print(f"Output: {result.output}")
+    round_id, round_index = create_round()
+
+    result = run_ok("round", "update", "-r", round_id, "--claim-by-type=true", "--allow-resubmit=true", "--score-decay", "linear")
+
+    assert f"Round {round_id} updated" in result.output
+    assert f"Claim by Type: True" in result.output
+    assert f"Allow Resubmit: True" in result.output
+    assert f"Score Decay: linear" in result.output
 
 
 def test_round_delete():
     login_admin()
 
-    round_id = "1"
-    result = run_ok("round", "delete", "-r", round_id, "--yes")
-    print(f"Output: {result.output}")
+    challenge_id = "2"
+    id, index = create_round(challenge_id)
+    result = run_ok("round", "list", "-c", challenge_id)
+    assert f"Round {id}" in result.output
 
+    run_ok("round", "delete", "-r", id, "--yes")
+    result = run_ok("round", "list", "-c", challenge_id)
+    assert f"Round {id}" not in result.output
 
-def test_round_create():
-    login_admin()
-    now = datetime.now()
-    start_time = now.isoformat()
-    end_time = (now + timedelta(hours=2)).isoformat()
-    challenge_id = get_challenge_id()
-
-    unique_index = f"test_{int(time.time())}"
-    cmd = f"round create --challenge {challenge_id} --index {unique_index} --start-time {start_time} --end-time {end_time} --status draft"
-    result = run_ok(*cmd.split())
-    print(f"Output: {result.output}")
-    assert True
 
 # Task App Tests
 def test_task_claim():
     login_team1()
     result = run_ok("task", "claim")
 
-    assert result.exit_code == 0 or "422 Client Error: Unprocessable Entity" in result.output
+
 
 def test_task_show():
     login_team1()
@@ -238,37 +203,40 @@ def test_task_type_list():
 
     cmd = f"task-type list --round {round_id}"
     result = run_ok(*cmd.split())
-    print(f"Output: {result.output}")
-    assert True
+    assert "a_plus_b" in result.output
 
 def test_task_type_show():
     login_admin()
 
     task_type_id = get_task_type_id()
     result = run_ok("task-type", "show", "--id", task_type_id)
-    print(f"Output: {result.output}")
+    assert "Type: a_plus_b" in result.output
+    assert "Generator URL:" in result.output
 
 
 def test_task_type_update():
     login_admin()
 
+    # TODO: create a task type first, then delete it
     task_type_id = "1"
 
     result = run_ok(
         "task-type", "update",
         "--id", task_type_id,
         "--type", "updated_test_type",
-        "--max-tasks", "10"
+        "--max-tasks", "100500"
     )
-    print(f"Output: {result.output}")
+    assert "Task type updated successfully with ID: 1" in result.output
+    assert "Type: updated_test_type" in result.output
+    assert "Max Tasks Per Team: 100500" in result.output
 
 
 def test_task_type_delete():
     login_admin()
-
+    # TODO: create a task type first, then delete it
     task_type_id = "1"
     result = run_ok("task-type", "delete", "--id", task_type_id, "--yes")
-    print(f"Output: {result.output}")
+    assert "Task type with ID 1 deleted successfully" in result.output
 
 
 # Board App Tests
@@ -320,3 +288,21 @@ def get_task_type_id(round_id: str = None) -> str:
 
 def get_task_id() -> str:
     return "1"
+
+def create_round(challenge_id = DEFAULT_CHALLENGE_ID):
+    # Create a round first
+    now = datetime.now()
+    start_time = now.isoformat()
+    end_time = (now + timedelta(hours=2)).isoformat()
+    round_index = 2
+    cmd = f"round create --challenge {challenge_id} --index {round_index} --start-time {start_time} --end-time {end_time} --status draft"
+    create_result = run_ok(*cmd.split())
+    # Extract the round ID from the output
+    round_id = None
+    for line in create_result.output.splitlines():
+        if "Round ID:" in line:
+            round_id = line.split("Round ID:")[1].strip()
+            break
+    if not round_id:
+        assert False, "Failed to create round, no Round ID found in output:\n" + create_result.output
+    return round_id, round_index

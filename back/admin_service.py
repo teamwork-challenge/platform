@@ -1,3 +1,4 @@
+import sqlalchemy
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 import uuid
@@ -134,23 +135,10 @@ class AdminService:
 
         return round
 
-    def delete_round(self, round_id: int) -> Round | None:
-        challenge_stmt = select(Challenge).where(Challenge.current_round_id == round_id)
-        challenge = self.db.execute(challenge_stmt).scalar_one_or_none()
-        if challenge:
-            challenge.current_round_id = None
-            self.db.flush()
-
-        round_stmt = select(Round).where(Round.id == round_id)
-        round = self.db.execute(round_stmt).scalar_one_or_none()
-
-        if round is None:
-            return None
-
-        self.db.delete(round)
+    def delete_round(self, round_id: int) -> None:
+        round_stmt = sqlalchemy.delete(Round).where(Round.id == round_id)
+        self.db.execute(round_stmt)
         self.db.commit()
-
-        return round
 
     def create_round_task_type(self, task_type_data: RoundTaskTypeCreateRequest) -> RoundTaskType:
         round_task_type = RoundTaskType(

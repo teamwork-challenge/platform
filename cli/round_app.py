@@ -124,13 +124,15 @@ def round_list(
 
         table = Table(title="Rounds")
         table.add_column("ID", justify="right", style="cyan")
+        table.add_column("Index", justify="right", style="cyan")
         table.add_column("Status", style="green")
         table.add_column("Start Time")
         table.add_column("End Time")
 
         for round_info in rounds.rounds:
             table.add_row(
-                str(round_info.id),
+                "Round " + str(round_info.id),
+                str(round_info.index),
                 round_info.status,
                 str(round_info.start_time),
                 str(round_info.end_time)
@@ -149,8 +151,8 @@ def round_update(
     status: Optional[str] = typer.Option(None, "--status", "-s", help="Round status (draft, active, completed)"),
     start_time: Optional[str] = typer.Option(None, "--start-time", help="Start time (ISO format)"),
     end_time: Optional[str] = typer.Option(None, "--end-time", help="End time (ISO format)"),
-    claim_by_type: Optional[bool] = typer.Option(None, "--claim-by-type", help="Allow claiming tasks by type"),
-    allow_resubmit: Optional[bool] = typer.Option(None, "--allow-resubmit", help="Allow resubmitting answers"),
+    claim_by_type: Optional[str] = typer.Option(None, "--claim-by-type", help="Allow claiming tasks by type"),
+    allow_resubmit: Optional[str] = typer.Option(None, "--allow-resubmit", help="Allow resubmitting answers"),
     score_decay: Optional[str] = typer.Option(None, "--score-decay", help="Score decay type"),
     json: bool = json_output_option
 ) -> None:
@@ -167,9 +169,9 @@ def round_update(
         if end_time is not None:
             update_data.end_time = datetime.fromisoformat(end_time)
         if claim_by_type is not None:
-            update_data.claim_by_type = claim_by_type
+            update_data.claim_by_type = claim_by_type.lower() in ["true", "1", "yes", "y"]
         if allow_resubmit is not None:
-            update_data.allow_resubmit = allow_resubmit
+            update_data.allow_resubmit = allow_resubmit.lower() in ["true", "1", "yes", "y"]
         if score_decay is not None:
             update_data.score_decay = score_decay
 

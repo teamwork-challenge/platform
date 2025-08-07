@@ -3,7 +3,7 @@ from typing import Optional, Dict, Any
 import requests
 
 from api_models import Task, RoundTaskType, RoundTaskTypeCreateRequest, Team, Challenge, Round, RoundList, Submission, \
-    TaskList, Dashboard, Leaderboard, RoundCreateRequest, RoundUpdateRequest, RoundStatus
+    TaskList, Dashboard, Leaderboard, RoundCreateRequest, RoundUpdateRequest, RoundStatus, DeleteResponse
 from cli.config_manager import ConfigManager
 
 
@@ -48,10 +48,15 @@ class ApiClient:
 
         print(f"Making {method} request to {url} with data: {data}")
         response = requests.request(method, url, headers=self._headers, json=data)
-        res = response.json()
-        print(f"Response: {res}")
+        if 400 <= response.status_code < 500:
+            res = response.json()
+            if "detail" in res:
+                res = res["detail"]
+            else:
+                res = str(res)
+            raise requests.HTTPError(f"{res} (status code: {response.status_code})")
         response.raise_for_status()
-        return res
+        return response.json()
 
 
     # Team-related methods
@@ -161,9 +166,9 @@ class ApiClient:
         data = self._make_request("POST", "/rounds", round_data.model_dump(mode="json"))
         return Round.model_validate(data)
         
-    def delete_round(self, round_id: int) -> Round:
+    def delete_round(self, round_id: int) -> DeleteResponse:
         """Delete a round."""
-        return Round.model_validate(self._make_request("DELETE", f"/rounds/{round_id}"))
+        return DeleteResponse.model_validate(self._make_request("DELETE", f"/rounds/{round_id}"))
 
     # Task Type-related methods
     def get_round_task_types(self, round_id: int) -> list[RoundTaskType]:
@@ -202,10 +207,8 @@ class ApiClient:
     # Task-related methods
     def claim_task(self, task_type: Optional[str] = None) -> Task:
         """Claim a new task."""
-        data = {}
-        if task_type:
-            data["type"] = task_type
-        response = self._make_request("POST", "/tasks", data)
+        query = "" if task_type is None else f"?task_type={task_type}"
+        response = self._make_request("POST", f"/tasks{query}")
         return Task.model_validate(response)
 
     def get_task_info(self, task_id: str) -> Task:

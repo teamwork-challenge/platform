@@ -5,6 +5,9 @@ from typing import Dict, List, Optional, Any
 from enum import Enum
 from datetime import datetime
 
+class DeleteResponse(BaseModel):
+    deleted_id: int
+
 
 class UserRole(str, Enum):
     ADMIN = "admin"
