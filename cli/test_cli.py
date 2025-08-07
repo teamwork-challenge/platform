@@ -94,14 +94,59 @@ def test_round_list():
 
 def test_round_publish():
     login_admin()
-    round_id = "1"
-
+    
+    # Create a round first
+    now = datetime.now()
+    start_time = now.isoformat()
+    end_time = (now + timedelta(hours=2)).isoformat()
+    challenge_id = get_challenge_id()
+    
+    # Use a numeric index based on current timestamp
+    unique_index = int(time.time()) % 1000  # Use modulo to keep it a reasonable size
+    cmd = f"round create --challenge {challenge_id} --index {unique_index} --start-time {start_time} --end-time {end_time} --status draft"
+    create_result = run_ok(*cmd.split())
+    print(f"Create Output: {create_result.output}")
+    
+    # Extract the round ID from the output
+    round_id = None
+    for line in create_result.output.splitlines():
+        if "Round ID:" in line:
+            round_id = line.split("Round ID:")[1].strip()
+            break
+    
+    if not round_id:
+        round_id = "1"  # Fallback to default
+    
+    # Now publish the round
     result = run_ok("round", "publish", round_id)
-    print(f"Output: {result.output}")
+    print(f"Publish Output: {result.output}")
 
 def test_round_update():
     login_admin()
-    round_id = "1"
+    
+    # Create a round first
+    now = datetime.now()
+    start_time = now.isoformat()
+    end_time = (now + timedelta(hours=2)).isoformat()
+    challenge_id = get_challenge_id()
+    
+    # Use a numeric index based on current timestamp
+    unique_index = int(time.time()) % 1000  # Use modulo to keep it a reasonable size
+    cmd = f"round create --challenge {challenge_id} --index {unique_index} --start-time {start_time} --end-time {end_time} --status draft"
+    create_result = run_ok(*cmd.split())
+    print(f"Create Output: {create_result.output}")
+    
+    # Extract the round ID from the output
+    round_id = None
+    for line in create_result.output.splitlines():
+        if "Round ID:" in line:
+            round_id = line.split("Round ID:")[1].strip()
+            break
+    
+    if not round_id:
+        round_id = "1"  # Fallback to default
+    
+    # Now update the round
     result = run_ok("round", "update", "-r", round_id, "--status", "published")
     print(f"Output: {result.output}")
 

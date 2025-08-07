@@ -116,11 +116,44 @@ class ApiClient:
 
     def publish_round(self, round_id: int) -> Round:
         """Publish a round."""
-        return self.update_round(round_id, RoundUpdateRequest(status=RoundStatus.PUBLISHED))
+        # First get the round info to get the challenge_id and other required fields
+        round_info = self.get_round_info(round_id)
+        # Create update request with all required fields
+        update_data = RoundUpdateRequest(
+            status=RoundStatus.PUBLISHED,
+            index=round_info.index,
+            start_time=round_info.start_time,
+            end_time=round_info.end_time,
+            claim_by_type=round_info.claim_by_type,
+            allow_resubmit=round_info.allow_resubmit,
+            score_decay=round_info.score_decay
+        )
+        return self.update_round(round_id, update_data)
 
     def update_round(self, round_id: int, update_data: RoundUpdateRequest) -> Round:
         """Update a round."""
-        data = self._make_request("PUT", f"/rounds/{round_id}", update_data.model_dump(mode="json"))
+        # First get the round info to get the challenge_id and other required fields
+        round_info = self.get_round_info(round_id)
+        
+        # Create a dictionary with all the required fields from the existing round
+        # Convert datetime objects to ISO format strings
+        data_dict = {
+            "challenge_id": round_info.challenge_id,
+            "index": round_info.index,
+            "start_time": round_info.start_time.isoformat() if hasattr(round_info.start_time, 'isoformat') else round_info.start_time,
+            "end_time": round_info.end_time.isoformat() if hasattr(round_info.end_time, 'isoformat') else round_info.end_time,
+            "claim_by_type": round_info.claim_by_type,
+            "allow_resubmit": round_info.allow_resubmit,
+            "score_decay": round_info.score_decay,
+            "status": round_info.status
+        }
+        
+        # Update with the new values
+        update_dict = update_data.model_dump(mode="json", exclude_none=True)
+        data_dict.update(update_dict)
+        
+        # Make the request with all required fields
+        data = self._make_request("PUT", f"/rounds/{round_id}", data_dict)
         return Round.model_validate(data)
 
     def create_round(self, round_data: RoundCreateRequest) -> Round:
