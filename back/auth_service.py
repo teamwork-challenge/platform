@@ -4,6 +4,7 @@ from sqlalchemy import select
 from api_models import AuthData, UserRole
 from back.db_models import AdminKeys, Team, Challenge
 
+
 class AuthService:
     def __init__(self, db: Session):
         self.db = db
@@ -32,5 +33,3 @@ class AuthService:
                 round_id=current_round_id,
             )
         return None
-
-

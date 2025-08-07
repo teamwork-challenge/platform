@@ -29,7 +29,10 @@ def get_connection_string() -> str:
         # https://docs.aws.amazon.com/secretsmanager/latest/apireference/API_GetSecretValue.html
         raise e
     secret = json.loads(response['SecretString'])
-    conn_string = f"postgresql://{secret['username']}:{secret['password']}@{secret['host']}:{secret['port']}/{secret['dbInstanceIdentifier']}"
+    conn_string = (
+        f"postgresql://{secret['username']}:{secret['password']}"
+        f"@{secret['host']}:{secret['port']}/{secret['dbInstanceIdentifier']}"
+    )
     return conn_string
 
 
@@ -61,6 +64,7 @@ def get_db_engine() -> Engine:
             },
         )
 
+
 def get_test_db_engine() -> Engine:
     engine = create_engine(
         "sqlite:///:memory:",
@@ -76,6 +80,7 @@ def get_test_db_session(create_tables: bool = True) -> Session:
     engine = get_test_db_engine()
     Base.metadata.create_all(engine) if create_tables else None
     return Session(bind=engine, autocommit=False, autoflush=False)
+
 
 def create_test_data(engine: Engine | None = None) -> None:
     """
@@ -211,7 +216,9 @@ def create_test_data(engine: Engine | None = None) -> None:
 
         print("Test data created successfully!")
 
+
 SessionLocal = sessionmaker(bind=get_db_engine(), autoflush=False, autocommit=False)
+
 
 def get_db_session() -> Generator[Session, None, None]:
     db = SessionLocal()
@@ -219,4 +226,3 @@ def get_db_session() -> Generator[Session, None, None]:
         yield db
     finally:
         db.close()
-

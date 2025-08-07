@@ -12,8 +12,8 @@ from api_models import Challenge, Round, RoundStatus, RoundCreateRequest, TeamsI
     RoundTaskType, RoundTaskTypeCreateRequest, ChallengeUpdateRequest, SubmitAnswerRequest, Submission
 from back.auth_service import AuthService
 from back.database import get_db_session
-from back.db_models import Challenge as DbChallenge, Round as DbRound, RoundTaskType as DbRoundTaskType, Task as DbTask, \
-    Team as DbTeam
+from back.db_models import Challenge as DbChallenge, Round as DbRound, RoundTaskType as DbRoundTaskType, \
+    Task as DbTask, Team as DbTeam
 from back.player_service import PlayerService
 
 
@@ -81,20 +81,20 @@ def get_round_or_404(
     auth_data: AuthData, 
     req_method: str = "GET"
 ) -> DbRound:
-    round = admin_service.get_round(round_id)
-    if round is None:
+    game_round = admin_service.get_round(round_id)
+    if game_round is None:
         raise HTTPException(status_code=404, detail="Round not found")
 
-    challenge = get_challenge_or_404(round.challenge_id, admin_service, auth_data, req_method)
+    challenge = get_challenge_or_404(game_round.challenge_id, admin_service, auth_data, req_method)
 
-    if round.challenge_id != challenge.id:
+    if game_round.challenge_id != challenge.id:
         raise HTTPException(status_code=404, detail="Round not found for this challenge")
 
     if auth_data.role == UserRole.PLAYER:
-        if round.challenge_id != auth_data.challenge_id or round.status != RoundStatus.PUBLISHED:
+        if game_round.challenge_id != auth_data.challenge_id or game_round.status != RoundStatus.PUBLISHED:
             raise HTTPException(status_code=404, detail="Round not found")
 
-    return round
+    return game_round
 
 
 def get_round_task_type_or_404(
@@ -187,12 +187,12 @@ def update_round(
 ) -> DbRound:
     get_round_or_404(round_id, admin_service, auth_data, "PUT")
 
-    updated_round = admin_service.update_round(round_id, round_data)
-    if updated_round is None:
+    updated_game_round = admin_service.update_round(round_id, round_data)
+    if updated_game_round is None:
         raise HTTPException(status_code=404, detail="Round not found")
 
-    updated_round.task_types = admin_service.get_round_task_types_by_round(round_id)
-    return updated_round
+    updated_game_round.task_types = admin_service.get_round_task_types_by_round(round_id)
+    return updated_game_round
 
 
 @admin.delete("/rounds/{round_id}", response_model=DeleteResponse)
@@ -214,9 +214,9 @@ def create_round(
 ) -> DbRound:
     get_challenge_or_404(round_data.challenge_id, admin_service, auth_data, "POST")
 
-    round = admin_service.create_round(round_data=round_data)
+    game_round = admin_service.create_round(round_data=round_data)
 
-    return round
+    return game_round
 
 
 @admin.put("/task-types/{task_type_id}", response_model=RoundTaskType)
@@ -230,8 +230,8 @@ def update_round_task_type(
     if task_type is None:
         raise HTTPException(status_code=404, detail="Task type not found")
 
-    round = get_round_or_404(task_type.round_id, admin_service, auth_data, "PUT")
-    get_challenge_or_404(round.challenge_id, admin_service, auth_data, "PUT")
+    game_round = get_round_or_404(task_type.round_id, admin_service, auth_data, "PUT")
+    get_challenge_or_404(game_round.challenge_id, admin_service, auth_data, "PUT")
     updated_round_task_type = admin_service.update_round_task_type(task_type_id, task_type_data)
     if updated_round_task_type is None:
         raise HTTPException(status_code=404, detail="Task type not found")
@@ -248,8 +248,8 @@ def delete_round_task_type(
     if task_type is None:
         raise HTTPException(status_code=404, detail="Task type not found")
 
-    round = get_round_or_404(task_type.round_id, admin_service, auth_data, "DELETE")
-    ensure_challenge_is_not_deleted(get_challenge_or_404(round.challenge_id, admin_service, auth_data, "DELETE"))
+    game_round = get_round_or_404(task_type.round_id, admin_service, auth_data, "DELETE")
+    ensure_challenge_is_not_deleted(get_challenge_or_404(game_round.challenge_id, admin_service, auth_data, "DELETE"))
     deleted_round_task_type = admin_service.delete_round_task_type(task_type_id)
     if deleted_round_task_type is None:
         raise HTTPException(status_code=404, detail="Task type not found")
@@ -262,8 +262,8 @@ def create_round_task_type(
     admin_service: AdminService = Depends(get_admin_service), 
     auth_data: AuthData = Depends(authenticate_admin)
 ) -> DbRoundTaskType:
-    round = get_round_or_404(task_type_data.round_id, admin_service, auth_data, "POST")
-    ensure_challenge_is_not_deleted(get_challenge_or_404(round.challenge_id, admin_service, auth_data, "POST"))
+    game_round = get_round_or_404(task_type_data.round_id, admin_service, auth_data, "POST")
+    ensure_challenge_is_not_deleted(get_challenge_or_404(game_round.challenge_id, admin_service, auth_data, "POST"))
     round_task_type = admin_service.create_round_task_type(task_type_data)
     return round_task_type
 
@@ -440,13 +440,13 @@ def create_task(
     admin_service: AdminService = Depends(get_admin_service)
 
 ) -> DbTask:
-    round = get_round_or_404(auth_data.round_id, admin_service, auth_data)
+    game_round = get_round_or_404(auth_data.round_id, admin_service, auth_data)
     try:
         if auth_data.challenge_id is None or auth_data.team_id is None:
             raise HTTPException(status_code=400, detail="Invalid team or challenge context")
         if task_type is None:
-            task_type = player_service.get_random_task_type(round, auth_data.team_id).type
-        elif not round.claim_by_type:
+            task_type = player_service.get_random_task_type(game_round, auth_data.team_id).type
+        elif not game_round.claim_by_type:
             raise HTTPException(status_code=400, detail="Round does not allow task creation by type")
         return player_service.create_task(auth_data.challenge_id, auth_data.team_id, task_type)
     except ValueError as e:

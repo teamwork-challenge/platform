@@ -1,5 +1,3 @@
-from random import sample
-
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 from datetime import datetime, timezone
@@ -7,7 +5,7 @@ import requests
 import json
 from api_models import GenRequest, GenResponse, TaskProgress, CheckRequest, CheckResult, CheckStatus, CheckResponse
 from api_models import Submission as ApiSubmission, SubmissionStatus, TaskStatus as ApiTaskStatus
-from back.db_models import Team, Task, Round, Challenge, RoundTaskType, Submission
+from back.db_models import Team, Task, Round, RoundTaskType, Submission
 import random
 
 
@@ -95,10 +93,10 @@ class PlayerService:
         return self.db.execute(stmt).scalar_one_or_none()
 
     def create_task(self, challenge_id: int, team_id: int, task_type: str) -> Task:
-        round = self.ensure_valid_round(challenge_id)
-        round_task_type = self.ensure_valid_task_type(round.id, task_type)
+        game_round = self.ensure_valid_round(challenge_id)
+        round_task_type = self.ensure_valid_task_type(game_round.id, task_type)
         team = self.ensure_valid_team(team_id)
-        self.ensure_task_limit(team_id, round.id, task_type, round_task_type)
+        self.ensure_task_limit(team_id, game_round.id, task_type, round_task_type)
 
         task = Task(
             title=f"{task_type} Task",
@@ -106,23 +104,23 @@ class PlayerService:
             challenge_id=challenge_id,
             team_id=team_id,
             type=task_type,
-            round_id=round.id
+            round_id=game_round.id
         )
 
         self.db.add(task)
 
-        existing_tasks = self.get_existing_tasks(team_id, round.id, task_type)
+        existing_tasks = self.get_existing_tasks(team_id, game_round.id, task_type)
 
         current_time = datetime.now()
 
         task_progress = TaskProgress(
             task_index=len(existing_tasks),
             task_count=round_task_type.max_tasks_per_team or 0,
-            elapsed_time=int((current_time - round.start_time).total_seconds() / 60),
-            total_time=int((round.end_time - round.start_time).total_seconds() / 60)
+            elapsed_time=int((current_time - game_round.start_time).total_seconds() / 60),
+            total_time=int((game_round.end_time - game_round.start_time).total_seconds() / 60)
         )
 
-        gen_response = self.generate_task_content(task, team, round, round_task_type, task_progress)
+        gen_response = self.generate_task_content(task, team, game_round, round_task_type, task_progress)
 
         # Update task with generated data
         task.statement_version = gen_response.statement_version
@@ -139,22 +137,22 @@ class PlayerService:
 
     def ensure_valid_round(self, challenge_id: int) -> Round:
         stmt = select(Round).where(Round.challenge_id == challenge_id)
-        round = self.db.execute(stmt).scalar_one_or_none()
+        game_round = self.db.execute(stmt).scalar_one_or_none()
 
-        if round is None:
+        if game_round is None:
             raise ValueError("No active round found for this challenge")
 
-        if round.status.lower() != "published":
+        if game_round.status.lower() != "published":
             raise ValueError("No current round available for this challenge")
 
         current_time = datetime.now()
-        if current_time < round.start_time:
+        if current_time < game_round.start_time:
             raise ValueError("Round has not started yet")
 
-        if current_time > round.end_time:
+        if current_time > game_round.end_time:
             raise ValueError("Round has already ended")
 
-        return round
+        return game_round
 
     def ensure_valid_task_type(self, round_id: int, task_type: str) -> RoundTaskType:
         if task_type is None:
@@ -194,7 +192,7 @@ class PlayerService:
             if len(existing_tasks) >= round_task_type.max_tasks_per_team:
                 raise ValueError(f"Maximum number of tasks of type '{task_type}' already taken")
 
-    def generate_task_content(self, task: Task, team: Team, round: Round, round_task_type: RoundTaskType,
+    def generate_task_content(self, task: Task, team: Team, game_round: Round, round_task_type: RoundTaskType,
                               task_progress: TaskProgress) -> GenResponse:
         """Generate task content by calling the task generator and return the generator response.
         The caller is responsible for updating the task with the response data."""
@@ -202,7 +200,7 @@ class PlayerService:
         gen_request = GenRequest(
             challenge=str(task.challenge_id),
             team=team.name,
-            round=str(round.id),
+            round=str(game_round.id),
             progress=task_progress,
             task_settings=round_task_type.generator_settings or ""
         )
@@ -278,8 +276,8 @@ class PlayerService:
 
     def submit_task_answer(self, task_id: int, team_id: int, answer: str) -> ApiSubmission:
         task = self.ensure_valid_task(task_id, team_id)
-        round = self.ensure_valid_round(task.challenge_id)
-        round_task_type = self.ensure_valid_task_type(round.id, task.type)
+        game_round = self.ensure_valid_round(task.challenge_id)
+        round_task_type = self.ensure_valid_task_type(game_round.id, task.type)
 
         checker_hint = task.checker_hint
 
@@ -295,15 +293,15 @@ class PlayerService:
         # Return the first submission for backward compatibility
         return submissions[0]
 
-    def get_random_task_type(self, round: Round, team_id: int) -> RoundTaskType:
+    def get_random_task_type(self, game_round: Round, team_id: int) -> RoundTaskType:
         """Get a random task type for the current round that the team has not yet taken."""
-        stmt = select(RoundTaskType).where(RoundTaskType.round_id == round.id)
+        stmt = select(RoundTaskType).where(RoundTaskType.round_id == game_round.id)
         task_types = self.db.execute(stmt).scalars().all()
 
         if not task_types:
             raise ValueError("No task types available for this round")
 
-        existing_tasks = self.get_existing_tasks(team_id, round.id)
+        existing_tasks = self.get_existing_tasks(team_id, game_round.id)
 
         def get_probability(task_type: RoundTaskType) -> float:
             taken_tasks_count = len([t for t in existing_tasks if t.type == task_type.type])
@@ -314,4 +312,3 @@ class PlayerService:
             raise ValueError("All tasks was already taken for this round")
         choices = random.choices(task_types, weights=probs, k=1)
         return choices[0]
-

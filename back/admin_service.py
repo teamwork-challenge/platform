@@ -3,9 +3,8 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 import uuid
 
-import api_models
 from api_models import ChallengeUpdateRequest
-from api_models import TeamCreateRequest, RoundCreateRequest, RoundTaskTypeCreateRequest, RoundStatus
+from api_models import TeamCreateRequest, RoundCreateRequest, RoundTaskTypeCreateRequest
 from back.db_models import Challenge, Team, Round, RoundTaskType
 from typing import List, Sequence
 
@@ -84,7 +83,7 @@ class AdminService:
         return created_teams
 
     def create_round(self, round_data: RoundCreateRequest) -> Round:
-        round = Round(
+        game_round = Round(
             challenge_id=round_data.challenge_id,
             index=round_data.index,
             start_time=round_data.start_time,
@@ -95,12 +94,12 @@ class AdminService:
             status=round_data.status
         )
 
-        self.db.add(round)
+        self.db.add(game_round)
         # Raises SQLAlchemyError: If the challenge_id does not exist (foreign key constraint)
         self.db.commit()
-        self.db.refresh(round)
+        self.db.refresh(game_round)
 
-        return round
+        return game_round
 
     def get_rounds_by_challenge(self, challenge_id: int) -> Sequence[Round]:
         stmt = select(Round).where(Round.challenge_id == challenge_id)
@@ -112,28 +111,28 @@ class AdminService:
 
     def update_round(self, round_id: int, round_data: RoundCreateRequest) -> Round | None:
         stmt = select(Round).where(Round.id == round_id)
-        round = self.db.execute(stmt).scalar_one_or_none()
+        game_round = self.db.execute(stmt).scalar_one_or_none()
 
-        if round is None:
+        if game_round is None:
             return None
 
         if round_data.start_time is not None:
-            round.start_time = round_data.start_time
+            game_round.start_time = round_data.start_time
         if round_data.end_time is not None:
-            round.end_time = round_data.end_time
+            game_round.end_time = round_data.end_time
         if round_data.claim_by_type is not None:
-            round.claim_by_type = round_data.claim_by_type
+            game_round.claim_by_type = round_data.claim_by_type
         if round_data.allow_resubmit is not None:
-            round.allow_resubmit = round_data.allow_resubmit
+            game_round.allow_resubmit = round_data.allow_resubmit
         if round_data.score_decay is not None:
-            round.score_decay = round_data.score_decay
+            game_round.score_decay = round_data.score_decay
         if round_data.status is not None:
-            round.status = round_data.status
+            game_round.status = round_data.status
 
         self.db.commit()
-        self.db.refresh(round)
+        self.db.refresh(game_round)
 
-        return round
+        return game_round
 
     def delete_round(self, round_id: int) -> None:
         round_stmt = sqlalchemy.delete(Round).where(Round.id == round_id)

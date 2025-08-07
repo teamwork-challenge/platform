@@ -12,7 +12,11 @@ def test_connection() -> None:
     with engine.connect() as conn:
         try:
             # Try a PostgreSQL-specific query to list tables
-            res = conn.execute(text("SELECT table_name from information_schema.tables WHERE table_type = 'BASE TABLE' AND table_schema = 'public'"))
+            query = text(
+                "SELECT table_name from information_schema.tables "
+                "WHERE table_type = 'BASE TABLE' AND table_schema = 'public'"
+            )
+            res = conn.execute(query)
             print(res.all())
         except Exception:
             # Fallback to SQLAlchemy inspector for SQLite or generic backends
