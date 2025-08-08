@@ -1,9 +1,8 @@
-from dataclasses import dataclass
-
 from pydantic import BaseModel
-from typing import Dict, List, Optional, Any
+from typing import Dict, List, Optional
 from enum import Enum
 from datetime import datetime
+
 
 class DeleteResponse(BaseModel):
     deleted_id: int
@@ -168,6 +167,7 @@ class RoundTaskType(BaseModel):
     generator_url: str
     generator_settings: Optional[str] = None
     generator_secret: str
+    score: int = 100
 
     class Config:
         from_attributes = True
@@ -202,6 +202,7 @@ class RoundCreateRequest(BaseModel):
     class Config:
         from_attributes = True
 
+
 class RoundUpdateRequest(BaseModel):
     index: int | None = None
     start_time: datetime | None = None
@@ -229,6 +230,7 @@ class RoundTaskTypeCreateRequest(BaseModel):
     generator_settings: Optional[str] = None
     generator_secret: str
     max_tasks_per_team: Optional[int] = None
+    score: Optional[int] = 100
 
     class Config:
         from_attributes = True

@@ -53,11 +53,12 @@ class TaskGenClient:
         except Exception as e:
             raise RuntimeError(f"Unexpected error generating task: {str(e)}")
 
-    def check_answer(self, generator_url: str, answer: str, checker_hint: str, input_text: str) -> CheckResponse:
+    def check_answer(self, generator_url: str, answer: str, checker_hint: str, input_text: str, task_id: Optional[str] = None) -> CheckResponse:
         check_request = CheckRequest(
             input=input_text,
             answer=answer,
-            checker_hint=checker_hint
+            checker_hint=checker_hint,
+            task_id=task_id
         )
 
         try:
@@ -124,7 +125,7 @@ class PlayerService:
 
         # Update task with generated data
         task.statement_version = gen_response.statement_version
-        task.score = gen_response.score
+        task.score = round_task_type.score
         task.input = gen_response.input
         task.checker_hint = gen_response.checker_hint
         task.statement = gen_response.statement
@@ -201,6 +202,7 @@ class PlayerService:
             challenge=str(task.challenge_id),
             team=team.name,
             round=str(game_round.id),
+            task_id=str(task.id),
             progress=task_progress,
             task_settings=round_task_type.generator_settings or ""
         )
@@ -287,8 +289,26 @@ class PlayerService:
 
         # Create a submission for each check result
         for check_result in check_response:
+            # Process the main task submission
             submission = self.create_submission(task_id, team_id, answer, check_result, task)
             submissions.append(submission)
+            
+            # Process collaborative scores if present
+            if check_result.collaborative_scores:
+                for collab_score in check_result.collaborative_scores:
+                    try:
+                        collab_task_id = int(collab_score.task_id)
+                        collab_task = self.get_task(collab_task_id)
+                        if collab_task:
+                            # Update the collaborative task score
+                            collab_team = self.get_team(collab_task.team_id)
+                            if collab_team:
+                                score_update = int(float(collab_task.score or 0) * collab_score.score)
+                                collab_team.total_score += score_update
+                                self.db.commit()
+                    except (ValueError, TypeError) as e:
+                        # Log error but continue processing
+                        print(f"Error processing collaborative score: {e}")
 
         # Return the first submission for backward compatibility
         return submissions[0]
