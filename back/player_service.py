@@ -53,7 +53,7 @@ class TaskGenClient:
         except Exception as e:
             raise RuntimeError(f"Unexpected error generating task: {str(e)}")
 
-    def check_answer(self, generator_url: str, answer: str, checker_hint: str, input_text: str, task_id: Optional[str] = None) -> CheckResponse:
+    def check_answer(self, generator_url: str, answer: str, checker_hint: str, input_text: str, task_id: str | None = None) -> CheckResponse:
         check_request = CheckRequest(
             input=input_text,
             answer=answer,

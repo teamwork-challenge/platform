@@ -33,7 +33,7 @@ def wait_endpoint_up(server_url, max_wait_time):
     while time.time() - start_time < max_wait_time:
         try:
             response = requests.get(server_url, timeout=1)
-            if response.status_code == 200 or response.status_code == 404:
+            if response.status_code == 200:
                 break
         except RequestException:
             time.sleep(0.1)
@@ -149,8 +149,6 @@ def test_task_show():
     task_id = get_task_id()
 
     result = run_ok("task", "show", task_id)
-    print(f"Output: {result.output}")
-    assert True
 
 def test_task_show_input():
     login_team1()

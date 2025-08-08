@@ -440,6 +440,8 @@ def create_task(
     admin_service: AdminService = Depends(get_admin_service)
 
 ) -> DbTask:
+    if auth_data.round_id is None:
+        raise HTTPException(status_code=400, detail="No current round available")
     game_round = get_round_or_404(auth_data.round_id, admin_service, auth_data)
     try:
         if auth_data.challenge_id is None or auth_data.team_id is None:
@@ -458,6 +460,11 @@ app = FastAPI(title="Teamwork Challenge API",
               version="1.0.0")
 app.include_router(admin)
 app.include_router(player)
+
+
+@app.get("/", response_model=str)
+def home() -> str:
+    return "hello"
 
 
 handler = Mangum(app, lifespan="off")

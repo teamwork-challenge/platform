@@ -168,6 +168,7 @@ class RoundTaskType(BaseModel):
     generator_settings: Optional[str] = None
     generator_secret: str
     score: int = 100
+    # TODO add time_to_solve field here and in the database model
 
     class Config:
         from_attributes = True
