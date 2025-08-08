@@ -25,6 +25,7 @@ def task_type_list(
         table.add_column("ID", style="cyan")
         table.add_column("Type")
         table.add_column("Max Tasks Per Team")
+        table.add_column("Time to Solve (min)")
         table.add_column("Generator URL")
         table.add_column("Generator Settings")
 
@@ -33,6 +34,7 @@ def task_type_list(
                 str(task_type.id),
                 task_type.type,
                 str(task_type.max_tasks_per_team) if task_type.max_tasks_per_team is not None else "N/A",
+                str(task_type.time_to_solve // 60),
                 task_type.generator_url,
                 task_type.generator_settings if task_type.generator_settings else "N/A"
             )
@@ -62,6 +64,7 @@ def task_type_show(
         console.print(f"[bold]Round ID:[/bold] {task_type.round_id}")
         console.print(f"[bold]Type:[/bold] {task_type.type}")
         console.print(f"[bold]Max Tasks Per Team:[/bold] {task_type.max_tasks_per_team if task_type.max_tasks_per_team is not None else 'N/A'}")
+        console.print(f"[bold]Time to Solve:[/bold] {task_type.time_to_solve // 60} minutes")
         console.print(f"[bold]Generator URL:[/bold] {task_type.generator_url}")
         console.print(f"[bold]Generator Settings:[/bold] {task_type.generator_settings if task_type.generator_settings else 'N/A'}")
         console.print(f"[bold]Generator Secret:[/bold] {'*' * 8} (hidden)")
@@ -80,6 +83,7 @@ def task_type_create(
     generator_settings: Optional[str] = typer.Option(None, "--generator-settings", "-s", help="Generator settings (JSON)"),
     generator_secret: str = typer.Option(..., "--generator-secret", help="Generator secret"),
     max_tasks_per_team: Optional[int] = typer.Option(None, "--max-tasks", "-m", help="Maximum tasks per team"),
+    time_to_solve: int = typer.Option(..., "--time-to-solve", help="Time limit to solve the task in minutes"),
     json: bool = json_output_option
 ) -> None:
     """Create a new task type."""
@@ -92,7 +96,8 @@ def task_type_create(
             generator_url=generator_url,
             generator_settings=generator_settings,
             generator_secret=generator_secret,
-            max_tasks_per_team=max_tasks_per_team
+            max_tasks_per_team=max_tasks_per_team,
+            time_to_solve=time_to_solve
         )
 
         task_type = api_client.create_round_task_type(task_type_data)
@@ -104,6 +109,7 @@ def task_type_create(
         console.print(f"[bold]Type:[/bold] {task_type.type}")
         console.print(f"[bold]Round ID:[/bold] {task_type.round_id}")
         console.print(f"[bold]Max Tasks Per Team:[/bold] {task_type.max_tasks_per_team if task_type.max_tasks_per_team is not None else 'N/A'}")
+        console.print(f"[bold]Time to Solve:[/bold] {task_type.time_to_solve // 60} minutes")
         console.print(f"[bold]Generator URL:[/bold] {task_type.generator_url}")
 
         return None
@@ -120,6 +126,7 @@ def task_type_update(
     generator_settings: Optional[str] = typer.Option(None, "--generator-settings", "-s", help="Generator settings (JSON)"),
     generator_secret: Optional[str] = typer.Option(None, "--generator-secret", help="Generator secret"),
     max_tasks_per_team: Optional[int] = typer.Option(None, "--max-tasks", "-m", help="Maximum tasks per team"),
+    time_to_solve: Optional[int] = typer.Option(None, "--time-to-solve", help="Time limit to solve the task in minutes"),
     json: bool = json_output_option
 ) -> None:
     """Update an existing task type."""
@@ -134,7 +141,8 @@ def task_type_update(
             generator_url=generator_url if generator_url is not None else current_task_type.generator_url,
             generator_settings=generator_settings if generator_settings is not None else current_task_type.generator_settings,
             generator_secret=generator_secret if generator_secret is not None else current_task_type.generator_secret,
-            max_tasks_per_team=max_tasks_per_team if max_tasks_per_team is not None else current_task_type.max_tasks_per_team
+            max_tasks_per_team=max_tasks_per_team if max_tasks_per_team is not None else current_task_type.max_tasks_per_team,
+            time_to_solve=time_to_solve if time_to_solve is not None else current_task_type.time_to_solve
         )
 
         task_type = api_client.update_round_task_type(task_type_id, task_type_data)
@@ -146,6 +154,7 @@ def task_type_update(
         console.print(f"[bold]Type:[/bold] {task_type.type}")
         console.print(f"[bold]Round ID:[/bold] {task_type.round_id}")
         console.print(f"[bold]Max Tasks Per Team:[/bold] {task_type.max_tasks_per_team if task_type.max_tasks_per_team is not None else 'N/A'}")
+        console.print(f"[bold]Time to Solve:[/bold] {task_type.time_to_solve // 60} minutes")
         console.print(f"[bold]Generator URL:[/bold] {task_type.generator_url}")
 
         return None

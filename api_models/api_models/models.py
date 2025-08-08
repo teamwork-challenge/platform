@@ -92,7 +92,6 @@ class Task(BaseModel):
     type: str
     status: TaskStatus = TaskStatus.PENDING
     score: int
-    time_remaining: str
     statement: Optional[str] = None
     input: Optional[str] = None
     claimed_at: datetime
@@ -168,7 +167,7 @@ class RoundTaskType(BaseModel):
     generator_settings: Optional[str] = None
     generator_secret: str
     score: int = 100
-    # TODO add time_to_solve field here and in the database model
+    time_to_solve: int
 
     class Config:
         from_attributes = True
@@ -232,6 +231,7 @@ class RoundTaskTypeCreateRequest(BaseModel):
     generator_secret: str
     max_tasks_per_team: Optional[int] = None
     score: Optional[int] = 100
+    time_to_solve: int
 
     class Config:
         from_attributes = True

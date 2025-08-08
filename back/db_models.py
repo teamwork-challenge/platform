@@ -94,6 +94,7 @@ class RoundTaskType(Base):
     generator_settings: Mapped[str] = mapped_column(nullable=True)
     generator_secret: Mapped[str] = mapped_column(nullable=False)
     score: Mapped[int] = mapped_column(default=100, nullable=False)
+    time_to_solve: Mapped[int] = mapped_column(nullable=False)
 
     game_round = relationship("Round", back_populates="task_types")
 

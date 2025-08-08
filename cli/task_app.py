@@ -24,7 +24,6 @@ def claim(
         console.print(f"Task ID: {task.id}")
         console.print(f"Task Type: {task.type}")
         console.print(f"Score: {task.score}")
-        console.print(f"Time Remaining: {task.time_remaining}")
 
         return None
     except Exception as e:
@@ -47,7 +46,6 @@ def task_show(task_id: str, json: bool = json_output_option) -> None:
         console.print(f"Type: {task.type}")
         console.print(f"Status: {task.status}")
         console.print(f"Score: {task.score}")
-        console.print(f"Time Remaining: {task.time_remaining}")
         console.print(f"Claimed At: {task.claimed_at}")
 
         console.print("\n[bold]Submissions:[/bold]")
@@ -163,7 +161,6 @@ def task_list(
         table.add_column("Type")
         table.add_column("Status", style="green")
         table.add_column("Score")
-        table.add_column("Time Remaining")
         table.add_column("Claimed At")
         table.add_column("Last Attempt At")
         table.add_column("Solved At")
@@ -174,7 +171,6 @@ def task_list(
                 task.type,
                 task.status,
                 str(task.score),
-                task.time_remaining,
                 str(task.claimed_at),
                 str(task.last_attempt_at) or "N/A",
                 str(task.solved_at) or "N/A"
