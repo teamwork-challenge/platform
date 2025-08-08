@@ -7,7 +7,7 @@ from api_models import GenRequest, GenResponse, TaskProgress, CheckRequest, Chec
 from api_models import Submission as ApiSubmission, SubmissionStatus, TaskStatus as ApiTaskStatus
 from back.db_models import Team, Task, Round, RoundTaskType, Submission
 import random
-
+from pydantic import TypeAdapter
 
 class TaskGenClient:
     """Client for interacting with task generator service."""
@@ -69,9 +69,11 @@ class TaskGenClient:
             )
             response.raise_for_status()
 
-            check_response = CheckResponse.model_validate(response.json())
+            adapter = TypeAdapter(list[CheckResult])
+            parsed = adapter.validate_python(response.json())
+            check_response = CheckResponse(parsed)
 
-            if check_response is None or len(check_response) == 0:
+            if len(check_response) == 0:
                 raise RuntimeError("No check results returned from task generator")
 
             return check_response
