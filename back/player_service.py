@@ -1,6 +1,6 @@
 from sqlalchemy import select
 from sqlalchemy.orm import Session
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 import requests
 import json
 from api_models import GenRequest, GenResponse, TaskProgress, CheckRequest, CheckResult, CheckStatus, CheckResponse
@@ -280,6 +280,13 @@ class PlayerService:
         task = self.ensure_valid_task(task_id, team_id)
         game_round = self.ensure_valid_round(task.challenge_id)
         round_task_type = self.ensure_valid_task_type(game_round.id, task.type)
+
+        # Check if the submission is within the time limit
+        current_time = datetime.now(timezone.utc)
+        deadline = task.created_at + timedelta(seconds=round_task_type.time_to_solve * 60)
+        
+        if current_time > deadline:
+            raise ValueError(f"Time limit exceeded. The task had to be solved within {round_task_type.time_to_solve} minutes.")
 
         checker_hint = task.checker_hint
 
