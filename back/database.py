@@ -169,7 +169,8 @@ def create_test_data(engine: Engine | None = None) -> None:
             generator_url="http://localhost:8000/a_plus_b",
             generator_settings=None,
             generator_secret="twc",
-            max_tasks_per_team=3
+            max_tasks_per_team=3,
+            time_to_solve=30
         )
         round_task_type2 = RoundTaskType(
             round_id=round2.id,
@@ -177,7 +178,8 @@ def create_test_data(engine: Engine | None = None) -> None:
             generator_url="http://localhost:8000/right_time",
             generator_settings="complication2:1,complication3:2,complication4:3",
             generator_secret="twc",
-            max_tasks_per_team=5
+            max_tasks_per_team=5,
+            time_to_solve=45
         )
         session.add_all([round_task_type1, round_task_type2])
         session.flush()
