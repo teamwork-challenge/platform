@@ -94,7 +94,7 @@ class Task(BaseModel):
     score: int
     statement: Optional[str] = None
     input: Optional[str] = None
-    claimed_at: datetime
+    claimed_at: Optional[datetime] = None
     submissions: List[Submission] = []
     last_attempt_at: Optional[datetime] = None
     solved_at: Optional[datetime] = None

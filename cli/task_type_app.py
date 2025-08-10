@@ -23,7 +23,7 @@ def task_type_list(
 
         table = Table(title=f"Task Types for Round {round_id}")
         table.add_column("ID", style="cyan")
-        table.add_column("Type")
+        table.add_column("Type", max_width=15, overflow="ellipsis", no_wrap=True)
         table.add_column("Max Tasks Per Team")
         table.add_column("Time to Solve (min)")
         table.add_column("Generator URL")

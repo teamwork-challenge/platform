@@ -283,14 +283,18 @@ class PlayerService:
         game_round = self.ensure_valid_round(task.challenge_id)
         round_task_type = self.ensure_valid_task_type(game_round.id, task.type)
 
-        # Check if the submission is within the time limit
+        # Check if the submission is within the time limit (handle naive vs aware datetimes)
+        created_at = task.created_at
+        if created_at.tzinfo is None or created_at.tzinfo.utcoffset(created_at) is None:
+            # Assume naive timestamps are in UTC
+            created_at = created_at.replace(tzinfo=timezone.utc)
         current_time = datetime.now(timezone.utc)
-        deadline = task.created_at + timedelta(seconds=round_task_type.time_to_solve * 60)
+        deadline = created_at + timedelta(seconds=round_task_type.time_to_solve * 60)
         
         if current_time > deadline:
             raise ValueError(f"Time limit exceeded. The task had to be solved within {round_task_type.time_to_solve} minutes.")
 
-        checker_hint = task.checker_hint
+        checker_hint = task.checker_hint or ""
 
         check_response = self.check_answer(answer, checker_hint, round_task_type.generator_url, task.input)
 

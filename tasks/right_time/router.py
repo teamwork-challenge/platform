@@ -489,8 +489,8 @@ async def generate_task(request: GenRequest) -> GenResponse:
     )
 
 
-@router.post("/check", response_model=CheckResponse)
-async def check_answer(request: CheckRequest) -> CheckResponse:
+@router.post("/check", response_model=list[CheckResult])
+async def check_answer(request: CheckRequest) -> list[CheckResult]:
     try:
         # Get the target time from the checker hint
         target_time = parser.parse(request.checker_hint.strip())
@@ -503,22 +503,22 @@ async def check_answer(request: CheckRequest) -> CheckResponse:
 
         # Check if the submission is within the allowed time window (±2 seconds)
         if time_diff <= 2:
-            return CheckResponse([
+            return [
                 CheckResult(status=CheckStatus.ACCEPTED, score=1.0)
-            ])
+            ]
         else:
-            return CheckResponse([
+            return [
                 CheckResult(
                     status=CheckStatus.WRONG_ANSWER,
                     score=0.0,
                     error=f"Expected submission at {target_time.isoformat()}, but received at {now.isoformat()}. Time difference: {time_diff:.2f} seconds."
                 )
-            ])
+            ]
     except Exception as e:
-        return CheckResponse([
+        return [
             CheckResult(
                 status=CheckStatus.WRONG_ANSWER,
                 score=0.0,
                 error=f"Error processing answer: {str(e)}"
             )
-        ])
+        ]

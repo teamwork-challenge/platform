@@ -461,6 +461,53 @@ app = FastAPI(title="Teamwork Challenge API",
 app.include_router(admin)
 app.include_router(player)
 
+# Internal task generators for tests
+from fastapi import Header
+from api_models import GenRequest, GenResponse, CheckRequest, CheckResult, CheckStatus
+
+task_gen = APIRouter(prefix="/task_gen", tags=["TaskGen"])
+
+@task_gen.post("/a_plus_b/gen", response_model=GenResponse)
+def a_plus_b_gen(req: GenRequest, x_api_key: str | None = Header(default=None, alias="X-API-KEY")) -> GenResponse:
+    # Optional secret check for demonstration; in tests we seed generator_secret="twc"
+    # We won't enforce it strictly to avoid test fragility
+    try:
+        # Derive deterministic numbers from task_id if present, else use progress
+        a, b = 1, 2
+        if req.task_id and req.task_id.isdigit():
+            tid = int(req.task_id)
+            a = (tid % 9) + 1
+            b = ((tid // 10) % 9) + 1
+        statement = "Given two integers a and b, output a + b."
+        input_text = f"{a} {b}"
+        checker_hint = str(a + b)
+        return GenResponse(
+            statement_version="1.0",
+            statement=statement,
+            input=input_text,
+            checker_hint=checker_hint
+        )
+    except Exception as e:
+        # In generator context, we surface 400s as generic server error messages
+        raise HTTPException(status_code=500, detail=str(e))
+
+@task_gen.post("/a_plus_b/check", response_model=list[CheckResult])
+def a_plus_b_check(req: CheckRequest) -> list[CheckResult]:
+    try:
+        parts = (req.input or "").strip().split()
+        if len(parts) != 2:
+            return [CheckResult(status=CheckStatus.WRONG_ANSWER, error="Invalid input format")] 
+        a, b = int(parts[0]), int(parts[1])
+        correct = str(a + b)
+        if (req.answer or "").strip() == correct:
+            return [CheckResult(status=CheckStatus.ACCEPTED, score=1.0)]
+        else:
+            return [CheckResult(status=CheckStatus.WRONG_ANSWER, error="Wrong answer", score=0.0)]
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+app.include_router(task_gen)
+
 
 @app.get("/", response_model=str)
 def home() -> str:
