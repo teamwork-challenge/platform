@@ -11,10 +11,10 @@ STATEMENTS = {
     "v2": "Given two numbers a and b, find their sum a + b.",
     "v3": "Given two numbers a and b, find their sum a + b.",
     "v4": "Given two matrices a and b, find their sum a + b.",
-    "v5": "Given two numbers a and b in Fibonacci system (marked with F), find their sum a + b in decimal representation.",
-    "v6": "Given two numbers a and b in Roman numerals, find their sum a + b in decimal representation.",
-    "v7": "Given two numbers a and b in Factorial system (marked with !), find their sum a + b in decimal representation.",
-    "v8": "Given two numbers a and b, find their sum a + b.",
+    "v5": "Given two matrices a and b, find their sum a + b.",
+    "v6": "Given two matrices a and b, find their sum a + b. Numbers in Fibonacci numeral system could also appear.",
+    "v7": "Given two matrices a and b, find their sum a + b.",
+    "v8": "Given two matrices a and b, find their sum a + b.",
 }
 
 
