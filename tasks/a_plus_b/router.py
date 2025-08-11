@@ -33,7 +33,7 @@ def gen_int() -> int:
 def gen_base5() -> str:
     """Generate random base-5 integers (e.g., '342_5')"""
     digits = random.randint(1, 10)  # Max 10-digit base-5 numbers
-    num = ''.join(random.choice('01234') for _ in range(digits))
+    num = ''.join(random.choice('01234') for _ in range(digits)).lstrip('0')
     return f"{num}_5"
 
 
@@ -91,14 +91,13 @@ def gen_roman_num() -> str:
 
     return int_to_roman(random.randint(1, 4999))
 
-
-def gen_word_num() -> str:
+def gen_word_num() -> Tuple:
     """Generate random number expressed in words (e.g., 'two hundred seventy-two million')"""
     # Generate numbers up to 1 trillion (1,000,000,000,000)
     num = random.randint(1, 10 ** 12)
 
     # Convert to words with proper formatting
-    return num2words(num).replace(" and ", " ")  # Remove "and" for cleaner format
+    return num2words(num).replace(" and ", " "), num  # Remove "and" for cleaner format
 # --------------------------
 # Level Generator Functions
 # --------------------------
@@ -121,6 +120,7 @@ def generate_mixed_types(type_a: int, type_b: int) -> Tuple:
         5: gen_matrix,
         6: gen_fib_num,
         7: gen_roman_num,
+        8: gen_word_num
     }
 
     return generators[type_a](), generators[type_b]()
@@ -153,13 +153,14 @@ def convert_to_decimal(x, type_x):
             prev_value = curr_value
         return total
     elif type_x == 8:  # Word number
-        return w2n.word_to_num(x)
+        return x[1]
     return x
 
 
 def get_answer(a, b, type_a: int, type_b: int, ) -> str:
     """Calculate the correct answer based on input types, returning full-precision string"""
     # Handle matrix operations
+
     if type_a == 5 and type_b == 5:
         return str([[a[i][j] + b[i][j] for j in range(len(a[0]))] for i in range(len(a))])
 
@@ -215,7 +216,7 @@ async def generate_task(request: GenRequest):
     input_data = f"{a}\n{b}"
 
     # Get statement based on highest complexity type
-    statement_key = f"{level}"
+    statement_key = f"v{level}"
     return GenResponse(
         statement_version=statement_key,
         statement=STATEMENTS[statement_key],
