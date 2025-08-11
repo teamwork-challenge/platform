@@ -1,6 +1,9 @@
 from typing import Dict, Tuple, List
 import random
 from fastapi import APIRouter
+from num2words import num2words
+from word2number import w2n
+
 from api_models import GenRequest, GenResponse, CheckRequest, CheckResult
 
 router = APIRouter()
@@ -89,6 +92,13 @@ def gen_roman_num() -> str:
     return int_to_roman(random.randint(1, 4999))
 
 
+def gen_word_num() -> str:
+    """Generate random number expressed in words (e.g., 'two hundred seventy-two million')"""
+    # Generate numbers up to 1 trillion (1,000,000,000,000)
+    num = random.randint(1, 10 ** 12)
+
+    # Convert to words with proper formatting
+    return num2words(num).replace(" and ", " ")  # Remove "and" for cleaner format
 # --------------------------
 # Level Generator Functions
 # --------------------------
@@ -142,10 +152,12 @@ def convert_to_decimal(x, type_x):
                 total += curr_value
             prev_value = curr_value
         return total
+    elif type_x == 8:  # Word number
+        return w2n.word_to_num(x)
     return x
 
 
-def get_answer(a, b, type_a: int, type_b: int) -> str:
+def get_answer(a, b, type_a: int, type_b: int, ) -> str:
     """Calculate the correct answer based on input types, returning full-precision string"""
     # Handle matrix operations
     if type_a == 5 and type_b == 5:
