@@ -1,9 +1,12 @@
 import random
 import unittest
 from typing import Any, List
+
+from num2words import num2words
+from word2number import w2n
+
 from router import (
     convert_to_decimal,
-    generate_mixed_types,
     get_answer,
     gen_int,
     gen_base5,
@@ -11,7 +14,7 @@ from router import (
     gen_complex,
     gen_matrix,
     gen_fib_num,
-    gen_roman_num
+    gen_roman_num, gen_word_num, generate_mixed_types
 )
 
 
@@ -129,7 +132,6 @@ class TestNumericalOperations(unittest.TestCase):
         result = get_answer(c1, 5, 4, 1)
         self.assertEqual(result, "(6+2j)")
 
-
     def test_mixed_type_operations(self):
         # Test base5 + int
         result = get_answer("12_5", 3, 2, 1)
@@ -169,6 +171,56 @@ class TestNumericalOperations(unittest.TestCase):
         # Test with large Fibonacci numbers
         fib_num = "101010101010101010101010101010F"  # Large Fibonacci number
         self.assertTrue(convert_to_decimal(fib_num, 6) > 1000000)
+
+    def test_gen_word_num_range(self):
+        """Test that generated word numbers are in correct format"""
+        a, b = generate_mixed_types(8, 8)
+        print('\nTEST_CASE:\n', a[0], a[1], b[0], b[1], get_answer(a, b, 8, 8), sep='\n')
+        a, b = generate_mixed_types(8, 4)
+        print('\nTEST_CASE:\n', a[0], a[1], b, get_answer(a, b, 8, 4), sep='\n')
+        a, b = generate_mixed_types(8, 5)
+        print('\nTEST_CASE:\n', a[0], a[1], b, get_answer(a, b, 8, 5), sep='\n')
+        a, b = generate_mixed_types(8, 2)
+        print('\nTEST_CASE:\n', a[0], a[1], b, get_answer(a, b, 8, 2), sep='\n')
+        a, b = generate_mixed_types(8, 2)
+        print('\nTEST_CASE:\n', a[0], a[1], b, get_answer(a, b, 8, 2), sep='\n')
+        a, b = generate_mixed_types(8, 3)
+        print('\nTEST_CASE:\n', a[0], a[1], b, get_answer(a, b, 8, 3), sep='\n')
+
+    def test_edge_cases(self):
+        """Test special cases and malformed inputs"""
+        edge_cases = [
+            ("zero", 0),  # Should handle zero if your generator allows it
+            ("", ValueError),  # Empty string
+            ("not a number", ValueError),  # Invalid words
+            ("one hundred and two", 102),  # With 'and'
+            ("one-hundred", 100),  # Alternative hyphenation
+        ]
+
+        for word, expected in edge_cases:
+            with self.subTest(word=word):
+                if isinstance(expected, type) and issubclass(expected, Exception):
+                    with self.assertRaises(expected):
+                        convert_to_decimal(word, 8)
+                else:
+                    result = convert_to_decimal(word, 8)
+                    self.assertEqual(result, expected)
+
+    def test_random_roundtrip(self):
+        """Test that generated word numbers convert back correctly"""
+        for _ in range(1000):  # Test many random samples
+            word_num = gen_word_num()
+            try:
+                converted = convert_to_decimal(word_num, 8)
+                # Convert back to words to verify
+                reconstructed = num2words(converted).replace(" and ", " ")
+                # Compare normalized versions (handle synonyms and formatting)
+                self.assertEqual(
+                    w2n.word_to_num(word_num),
+                    w2n.word_to_num(reconstructed)
+                )
+            except Exception as e:
+                self.fail(f"Failed on {word_num}: {str(e)}")
 
 
 if __name__ == "__main__":
