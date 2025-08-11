@@ -11,34 +11,39 @@ class TaskProgress(BaseModel):
     elapsed_time: int
     total_time: int
 
+
 class GenRequest(BaseModel):
-    """Request model for the gen endpoint"""
     challenge: str
     team: str
     round: str
+    task_id: Optional[str] = None
     progress: TaskProgress
     task_settings: str = ""
 
+
 class GenResponse(BaseModel):
-    """Response model for the gen endpoint"""
     statement_version: str
     statement: str = ""
-    score: str
     input: str
     checker_hint: str = ""
 
 
-# Models for /check endpoint
 class CheckStatus(str, Enum):
     ACCEPTED = "AC"
     WRONG_ANSWER = "WA"
 
 
 class CheckRequest(BaseModel):
-    """Request model for the check endpoint"""
     input: str
     checker_hint: str = ""
     answer: str
+    task_id: Optional[str] = None
+
+
+class CollaborativeScore(BaseModel):
+    """Model for collaborative task score updates"""
+    task_id: str
+    score: float = 1.0
 
 
 class CheckResult(BaseModel):
@@ -47,8 +52,8 @@ class CheckResult(BaseModel):
     status: CheckStatus  # "AC" or "WA"
     score: float = 1.0
     error: str = ""
+    collaborative_scores: Optional[List[CollaborativeScore]] = None
 
 
 class CheckResponse(List[CheckResult]):
-    """Response model for the check endpoint"""
     pass

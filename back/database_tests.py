@@ -1,14 +1,9 @@
-import os
-# Default to SQLite for local testing unless explicitly overridden
-os.environ.setdefault("DB_BACKEND", "sqlite")
-
-from database import get_db_engine
 from sqlalchemy import text, inspect
-from database import create_test_data
-from db_models import Base
+from back.database import create_test_data, get_db_engine
+from back.db_models import Base
 
 
-def test_connection():
+def test_connection() -> None:
     """
     Read README.md to know how to make it work!
     Works with both PostgreSQL and SQLite.
@@ -17,7 +12,11 @@ def test_connection():
     with engine.connect() as conn:
         try:
             # Try a PostgreSQL-specific query to list tables
-            res = conn.execute(text("SELECT table_name from information_schema.tables WHERE table_type = 'BASE TABLE' AND table_schema = 'public'"))
+            query = text(
+                "SELECT table_name from information_schema.tables "
+                "WHERE table_type = 'BASE TABLE' AND table_schema = 'public'"
+            )
+            res = conn.execute(query)
             print(res.all())
         except Exception:
             # Fallback to SQLAlchemy inspector for SQLite or generic backends
@@ -25,7 +24,7 @@ def test_connection():
             print(insp.get_table_names())
 
 
-def test_recreate_db_tables():
+def test_recreate_db_tables() -> None:
     engine = get_db_engine()
     Base.metadata.drop_all(bind=engine)
     Base.metadata.create_all(engine)

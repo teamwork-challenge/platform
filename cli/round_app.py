@@ -1,8 +1,10 @@
 import typer
-from app_deps import api_client, json_output_option, console, ensure_logged_in
 from typing import Optional
 from rich.table import Table
-from formatter import print_as_json
+from datetime import datetime
+from api_models import RoundCreateRequest, RoundStatus, RoundUpdateRequest
+from cli.formatter import print_as_json
+from cli.app_deps import api_client, json_output_option, console, ensure_logged_in
 
 round_app = typer.Typer(help="Round management commands")
 
@@ -11,7 +13,7 @@ round_app = typer.Typer(help="Round management commands")
 def round_show(
     round_id: Optional[int] = typer.Option(None, "--round", "-r", help="Round ID"),
     json: bool = json_output_option
-):
+) -> None:
     """Show round information."""
     ensure_logged_in()
 
@@ -38,7 +40,7 @@ def round_show(
 @round_app.command("publish")
 def round_publish(
     round_id: int = typer.Argument(..., help="Round ID to publish")
-):
+) -> None:
     """Publishes a round so that players can see it."""
     ensure_logged_in()
 
@@ -63,15 +65,12 @@ def round_create(
     score_decay: str = typer.Option("no", "--score-decay", help="Score decay type"),
     status: str = typer.Option("draft", "--status", "-s", help="Round status (draft, published)"),
     json: bool = json_output_option
-):
+) -> None:
     """Create a new round."""
     ensure_logged_in()
 
     try:
-        # Create a RoundCreateRequest object
-        from api_models.models import RoundCreateRequest
-        from datetime import datetime
-        
+
         # Parse the datetime strings
         start_time_dt = datetime.fromisoformat(start_time)
         end_time_dt = datetime.fromisoformat(end_time)
@@ -84,7 +83,7 @@ def round_create(
             claim_by_type=claim_by_type,
             allow_resubmit=allow_resubmit,
             score_decay=score_decay,
-            status=status
+            status=RoundStatus(status)
         )
 
         round_info = api_client.create_round(round_data)
@@ -113,7 +112,7 @@ def round_create(
 def round_list(
     challenge_id: Optional[int] = typer.Option(None, "--challenge", "-c", help="Challenge ID"),
     json: bool = json_output_option
-):
+) -> None:
     """List all rounds for a challenge."""
     ensure_logged_in()
 
@@ -125,16 +124,18 @@ def round_list(
 
         table = Table(title="Rounds")
         table.add_column("ID", justify="right", style="cyan")
+        table.add_column("Index", justify="right", style="cyan")
         table.add_column("Status", style="green")
         table.add_column("Start Time")
         table.add_column("End Time")
 
         for round_info in rounds.rounds:
             table.add_row(
-                str(round_info.id),
+                "Round " + str(round_info.id),
+                str(round_info.index),
                 round_info.status,
-                round_info.start_time,
-                round_info.end_time
+                str(round_info.start_time),
+                str(round_info.end_time)
             )
 
         console.print(table)
@@ -150,33 +151,29 @@ def round_update(
     status: Optional[str] = typer.Option(None, "--status", "-s", help="Round status (draft, active, completed)"),
     start_time: Optional[str] = typer.Option(None, "--start-time", help="Start time (ISO format)"),
     end_time: Optional[str] = typer.Option(None, "--end-time", help="End time (ISO format)"),
-    claim_by_type: Optional[bool] = typer.Option(None, "--claim-by-type", help="Allow claiming tasks by type"),
-    allow_resubmit: Optional[bool] = typer.Option(None, "--allow-resubmit", help="Allow resubmitting answers"),
+    claim_by_type: Optional[str] = typer.Option(None, "--claim-by-type", help="Allow claiming tasks by type"),
+    allow_resubmit: Optional[str] = typer.Option(None, "--allow-resubmit", help="Allow resubmitting answers"),
     score_decay: Optional[str] = typer.Option(None, "--score-decay", help="Score decay type"),
     json: bool = json_output_option
-):
+) -> None:
     """Update round information."""
     ensure_logged_in()
 
     try:
         # Build update data dictionary with only provided fields
-        update_data = {}
+        update_data = RoundUpdateRequest()
         if status is not None:
-            update_data["status"] = status
+            update_data.status = RoundStatus(status)
         if start_time is not None:
-            update_data["start_time"] = start_time
+            update_data.start_time = datetime.fromisoformat(start_time)
         if end_time is not None:
-            update_data["end_time"] = end_time
+            update_data.end_time = datetime.fromisoformat(end_time)
         if claim_by_type is not None:
-            update_data["claim_by_type"] = claim_by_type
+            update_data.claim_by_type = claim_by_type.lower() in ["true", "1", "yes", "y"]
         if allow_resubmit is not None:
-            update_data["allow_resubmit"] = allow_resubmit
+            update_data.allow_resubmit = allow_resubmit.lower() in ["true", "1", "yes", "y"]
         if score_decay is not None:
-            update_data["score_decay"] = score_decay
-
-        if not update_data:
-            console.print("[red]Error: At least one field to update must be provided[/red]")
-            raise typer.Exit(1)
+            update_data.score_decay = score_decay
 
         round_info = api_client.update_round(round_id, update_data)
 
@@ -202,7 +199,7 @@ def round_delete(
     round_id: int = typer.Option(..., "--round", "-r", help="Round ID"),
     confirm: bool = typer.Option(False, "--yes", "-y", help="Skip confirmation prompt"),
     json: bool = json_output_option
-):
+) -> None:
     """Delete a round."""
     ensure_logged_in()
 

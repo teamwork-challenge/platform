@@ -1,9 +1,11 @@
-from dataclasses import dataclass
-
 from pydantic import BaseModel
-from typing import Dict, List, Optional, Any
+from typing import Dict, List, Optional
 from enum import Enum
 from datetime import datetime
+
+
+class DeleteResponse(BaseModel):
+    deleted_id: int
 
 
 class UserRole(str, Enum):
@@ -41,7 +43,6 @@ class Challenge(BaseModel):
     title: str
     description: str
     current_round_id: Optional[int] = None
-    deleted: bool = False
 
     class Config:
         from_attributes = True
@@ -91,12 +92,12 @@ class Task(BaseModel):
     type: str
     status: TaskStatus = TaskStatus.PENDING
     score: int
-    time_remaining: str
     statement: Optional[str] = None
     input: Optional[str] = None
+    claimed_at: Optional[datetime] = None
     submissions: List[Submission] = []
-    last_attempt_at: Optional[str] = None
-    solved_at: Optional[str] = None
+    last_attempt_at: Optional[datetime] = None
+    solved_at: Optional[datetime] = None
 
     class Config:
         from_attributes = True
@@ -165,6 +166,8 @@ class RoundTaskType(BaseModel):
     generator_url: str
     generator_settings: Optional[str] = None
     generator_secret: str
+    score: int = 100
+    time_to_solve: int
 
     class Config:
         from_attributes = True
@@ -200,6 +203,19 @@ class RoundCreateRequest(BaseModel):
         from_attributes = True
 
 
+class RoundUpdateRequest(BaseModel):
+    index: int | None = None
+    start_time: datetime | None = None
+    end_time: datetime | None = None
+    claim_by_type: bool | None = None
+    allow_resubmit: bool | None = None
+    score_decay: str | None = None
+    status: RoundStatus | None = None
+
+    class Config:
+        from_attributes = True
+
+
 class RoundList(BaseModel):
     rounds: List[Round]
 
@@ -214,6 +230,8 @@ class RoundTaskTypeCreateRequest(BaseModel):
     generator_settings: Optional[str] = None
     generator_secret: str
     max_tasks_per_team: Optional[int] = None
+    score: Optional[int] = 100
+    time_to_solve: int
 
     class Config:
         from_attributes = True

@@ -1,11 +1,12 @@
+import sqlalchemy
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 import uuid
 
 from api_models import ChallengeUpdateRequest
-from api_models.models import TeamCreateRequest, RoundCreateRequest, RoundTaskTypeCreateRequest
-from db_models import Challenge, Team, Round, RoundTaskType
-from typing import List
+from api_models import TeamCreateRequest, RoundCreateRequest, RoundTaskTypeCreateRequest
+from back.db_models import Challenge, Team, Round, RoundTaskType
+from typing import List, Sequence
 
 
 class AdminService:
@@ -16,17 +17,17 @@ class AdminService:
         stmt = select(Challenge).where(Challenge.id == challenge_id)
         return self.db.execute(stmt).scalar_one_or_none()
 
-    def get_all_challenges(self):
+    def get_all_challenges(self) -> Sequence[Challenge]:
         return self.db.execute(select(Challenge)).scalars().all()
 
-    def create_challenge(self, title: str, description: str):
+    def create_challenge(self, title: str, description: str) -> Challenge:
         challenge = Challenge(title=title, description=description)
         self.db.add(challenge)
         self.db.commit()
         self.db.refresh(challenge)
         return challenge
 
-    def update_challenge(self, challenge_id: int, update: ChallengeUpdateRequest):
+    def update_challenge(self, challenge_id: int, update: ChallengeUpdateRequest) -> Challenge | None:
         stmt = select(Challenge).where(Challenge.id == challenge_id)
         challenge = self.db.execute(stmt).scalar_one_or_none()
         if challenge:
@@ -43,7 +44,7 @@ class AdminService:
             return challenge
         return None
 
-    def delete_challenge(self, challenge_id: int):
+    def delete_challenge(self, challenge_id: int) -> Challenge | None:
         stmt = select(Challenge).where(Challenge.id == challenge_id)
         challenge = self.db.execute(stmt).scalar_one_or_none()
         if challenge:
@@ -52,7 +53,7 @@ class AdminService:
             return challenge
         return None
 
-    def create_teams(self, challenge: Challenge, teams: List[TeamCreateRequest]):
+    def create_teams(self, challenge: Challenge, teams: List[TeamCreateRequest]) -> list[Team]:
 
         created_teams = []
 
@@ -82,7 +83,7 @@ class AdminService:
         return created_teams
 
     def create_round(self, round_data: RoundCreateRequest) -> Round:
-        round = Round(
+        game_round = Round(
             challenge_id=round_data.challenge_id,
             index=round_data.index,
             start_time=round_data.start_time,
@@ -93,66 +94,50 @@ class AdminService:
             status=round_data.status
         )
 
-        self.db.add(round)
+        self.db.add(game_round)
         # Raises SQLAlchemyError: If the challenge_id does not exist (foreign key constraint)
         self.db.commit()
-        self.db.refresh(round)
+        self.db.refresh(game_round)
 
-        return round
+        return game_round
 
-    def get_rounds_by_challenge(self, challenge_id: int):
+    def get_rounds_by_challenge(self, challenge_id: int) -> Sequence[Round]:
         stmt = select(Round).where(Round.challenge_id == challenge_id)
         return self.db.execute(stmt).scalars().all()
 
-    def get_round(self, round_id: int):
+    def get_round(self, round_id: int) -> Round | None:
         stmt = select(Round).where(Round.id == round_id)
         return self.db.execute(stmt).scalar_one_or_none()
 
-    def update_round(self, round_id: int, round_data: RoundCreateRequest = None, status: str = None) -> Round | None:
+    def update_round(self, round_id: int, round_data: RoundCreateRequest) -> Round | None:
         stmt = select(Round).where(Round.id == round_id)
-        round = self.db.execute(stmt).scalar_one_or_none()
+        game_round = self.db.execute(stmt).scalar_one_or_none()
 
-        if round is None:
+        if game_round is None:
             return None
 
-        if round_data is not None:
-            if round_data.start_time is not None:
-                round.start_time = round_data.start_time
-            if round_data.end_time is not None:
-                round.end_time = round_data.end_time
-            if round_data.claim_by_type is not None:
-                round.claim_by_type = round_data.claim_by_type
-            if round_data.allow_resubmit is not None:
-                round.allow_resubmit = round_data.allow_resubmit
-            if round_data.score_decay is not None:
-                round.score_decay = round_data.score_decay
-            if round_data.status is not None:
-                round.status = round_data.status
-        elif status is not None:
-            round.status = status
+        if round_data.start_time is not None:
+            game_round.start_time = round_data.start_time
+        if round_data.end_time is not None:
+            game_round.end_time = round_data.end_time
+        if round_data.claim_by_type is not None:
+            game_round.claim_by_type = round_data.claim_by_type
+        if round_data.allow_resubmit is not None:
+            game_round.allow_resubmit = round_data.allow_resubmit
+        if round_data.score_decay is not None:
+            game_round.score_decay = round_data.score_decay
+        if round_data.status is not None:
+            game_round.status = round_data.status
 
         self.db.commit()
-        self.db.refresh(round)
+        self.db.refresh(game_round)
 
-        return round
+        return game_round
 
-    def delete_round(self, round_id: int):
-        stmt = select(Challenge).where(Challenge.current_round_id == round_id)
-        challenge = self.db.execute(stmt).scalar_one_or_none()
-        if challenge:
-            challenge.current_round_id = None
-            self.db.flush()
-
-        stmt = select(Round).where(Round.id == round_id)
-        round = self.db.execute(stmt).scalar_one_or_none()
-
-        if round is None:
-            return None
-
-        self.db.delete(round)
+    def delete_round(self, round_id: int) -> None:
+        round_stmt = sqlalchemy.delete(Round).where(Round.id == round_id)
+        self.db.execute(round_stmt)
         self.db.commit()
-
-        return round
 
     def create_round_task_type(self, task_type_data: RoundTaskTypeCreateRequest) -> RoundTaskType:
         round_task_type = RoundTaskType(
@@ -161,7 +146,8 @@ class AdminService:
             generator_url=task_type_data.generator_url,
             generator_settings=task_type_data.generator_settings,
             generator_secret=task_type_data.generator_secret,
-            max_tasks_per_team=task_type_data.max_tasks_per_team
+            max_tasks_per_team=task_type_data.max_tasks_per_team,
+            time_to_solve=task_type_data.time_to_solve
         )
 
         self.db.add(round_task_type)
@@ -170,11 +156,11 @@ class AdminService:
 
         return round_task_type
 
-    def get_round_task_type(self, round_task_type_id: int):
+    def get_round_task_type(self, round_task_type_id: int) -> RoundTaskType | None:
         stmt = select(RoundTaskType).where(RoundTaskType.id == round_task_type_id)
         return self.db.execute(stmt).scalar_one_or_none()
 
-    def get_round_task_types_by_round(self, round_id: int):
+    def get_round_task_types_by_round(self, round_id: int) -> Sequence[RoundTaskType]:
         stmt = select(RoundTaskType).where(RoundTaskType.round_id == round_id)
         return self.db.execute(stmt).scalars().all()
 
@@ -195,13 +181,15 @@ class AdminService:
             round_task_type.generator_secret = task_type_data.generator_secret
         if task_type_data.max_tasks_per_team is not None:
             round_task_type.max_tasks_per_team = task_type_data.max_tasks_per_team
+        if task_type_data.time_to_solve is not None:
+            round_task_type.time_to_solve = task_type_data.time_to_solve
 
         self.db.commit()
         self.db.refresh(round_task_type)
 
         return round_task_type
 
-    def delete_round_task_type(self, round_task_type_id: int):
+    def delete_round_task_type(self, round_task_type_id: int) -> RoundTaskType | None:
         stmt = select(RoundTaskType).where(RoundTaskType.id == round_task_type_id)
         round_task_type = self.db.execute(stmt).scalar_one_or_none()
 
@@ -213,10 +201,10 @@ class AdminService:
 
         return round_task_type
 
-    def get_teams_by_challenge(self, challenge_id: int):
+    def get_teams_by_challenge(self, challenge_id: int) -> Sequence[Team]:
         stmt = select(Team).where(Team.challenge_id == challenge_id)
         return self.db.execute(stmt).scalars().all()
 
-    def get_all_teams(self):
+    def get_all_teams(self) -> Sequence[Team]:
         stmt = select(Team)
         return self.db.execute(stmt).scalars().all()

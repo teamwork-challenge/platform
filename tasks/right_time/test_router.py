@@ -1,13 +1,13 @@
 import unittest
 from datetime import datetime, timedelta
-import pytz
+import pytz  # type: ignore[import-untyped]
 import re
-from router import generate_time_for_level
+from tasks.right_time.router import generate_time_for_level
 
 class TestGenerateTimeForLevel(unittest.TestCase):
     """Test cases for the generate_time_for_level function."""
 
-    def test_level_1(self):
+    def test_level_1(self) -> None:
         """Test level 1: Time is always 1 minute in the future with ISO 8601 format."""
         # Get the current time for comparison
         now = datetime.now(pytz.UTC)
@@ -27,7 +27,7 @@ class TestGenerateTimeForLevel(unittest.TestCase):
         parsed_time = datetime.fromisoformat(time_str)
         self.assertAlmostEqual(parsed_time.timestamp(), future_time.timestamp(), delta=1)
 
-    def test_level_2(self):
+    def test_level_2(self) -> None:
         """Test level 2: Time is in the range of 1-20 minutes in the future with ISO 8601 format."""
         # Get the current time for comparison
         now = datetime.now(pytz.UTC)
@@ -47,7 +47,7 @@ class TestGenerateTimeForLevel(unittest.TestCase):
         parsed_time = datetime.fromisoformat(time_str)
         self.assertAlmostEqual(parsed_time.timestamp(), future_time.timestamp(), delta=1)
 
-    def test_level_3(self):
+    def test_level_3(self) -> None:
         """Test level 3: Time with specified timezone."""
         # Get the current time for comparison
         now = datetime.now(pytz.UTC)
@@ -66,7 +66,7 @@ class TestGenerateTimeForLevel(unittest.TestCase):
         # Check that the time string contains a valid date and time
         self.assertTrue(re.search(r'\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}', time_str))
 
-    def test_level_4(self):
+    def test_level_4(self) -> None:
         """Test level 4: Time with strange timezones."""
         # Get the current time for comparison
         now = datetime.now(pytz.UTC)
@@ -86,7 +86,7 @@ class TestGenerateTimeForLevel(unittest.TestCase):
         strange_timezones = ["NST", "IRST", "AFT", "IST", "NPT", "MMT", "ACWST", "ACST", "LHST", "CHAST"]
         self.assertTrue(any(tz in time_str for tz in strange_timezones))
 
-    def test_level_5(self):
+    def test_level_5(self) -> None:
         """Test level 5: Different time formats."""
         # Get the current time for comparison
         now = datetime.now(pytz.UTC)
@@ -107,7 +107,7 @@ class TestGenerateTimeForLevel(unittest.TestCase):
         
         self.assertTrue(is_iso or is_rfc or is_unix or is_duration)
 
-    def test_level_6(self):
+    def test_level_6(self) -> None:
         """Test level 6: Summation of time and duration."""
         # Get the current time for comparison
         now = datetime.now(pytz.UTC)
@@ -126,7 +126,7 @@ class TestGenerateTimeForLevel(unittest.TestCase):
         # Check that the time string contains PT for duration
         self.assertIn("PT", time_str)
 
-    def test_level_7(self):
+    def test_level_7(self) -> None:
         """Test level 7: Expression with summation and subtraction."""
         # Get the current time for comparison
         now = datetime.now(pytz.UTC)
@@ -146,7 +146,7 @@ class TestGenerateTimeForLevel(unittest.TestCase):
         # Check that the time string contains PT for duration
         self.assertIn("PT", time_str)
 
-    def test_level_8(self):
+    def test_level_8(self) -> None:
         """Test level 8: Natural language."""
         # Get the current time for comparison
         now = datetime.now(pytz.UTC)

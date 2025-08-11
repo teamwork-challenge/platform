@@ -6,14 +6,13 @@ from botocore.exceptions import ClientError
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
 from typing import Generator
-from db_models import Base, AdminKeys, Team, Challenge, Task, Round, RoundTaskType
-from api_models.models import RoundStatus, TaskStatus
+from sqlalchemy.engine import Engine
+from back.db_models import Base, AdminKeys, Team, Challenge, Task, Round, RoundTaskType
+from api_models import RoundStatus, TaskStatus
 from datetime import datetime, timedelta, timezone
 
-from db_models import Base
 
-
-def get_connection_string():
+def get_connection_string() -> str:
     secret_name = "rds-db-credentials/cluster-H2HS3S7S4UFREZFDQIJEL4JBZY/postgres/1750785162158"
     region_name = "eu-north-1"
     # Create a Secrets Manager client
@@ -30,11 +29,14 @@ def get_connection_string():
         # https://docs.aws.amazon.com/secretsmanager/latest/apireference/API_GetSecretValue.html
         raise e
     secret = json.loads(response['SecretString'])
-    conn_string = f"postgresql://{secret['username']}:{secret['password']}@{secret['host']}:{secret['port']}/{secret['dbInstanceIdentifier']}"
+    conn_string = (
+        f"postgresql://{secret['username']}:{secret['password']}"
+        f"@{secret['host']}:{secret['port']}/{secret['dbInstanceIdentifier']}"
+    )
     return conn_string
 
 
-def get_db_engine():
+def get_db_engine() -> Engine:
     """
     Returns a database engine.
     - Uses in-memory SQLite
@@ -62,7 +64,8 @@ def get_db_engine():
             },
         )
 
-def get_test_db_engine():
+
+def get_test_db_engine() -> Engine:
     engine = create_engine(
         "sqlite:///:memory:",
         connect_args={"check_same_thread": False},
@@ -73,12 +76,13 @@ def get_test_db_engine():
     return engine
 
 
-def get_test_db_session(create_tables=True):
+def get_test_db_session(create_tables: bool = True) -> Session:
     engine = get_test_db_engine()
     Base.metadata.create_all(engine) if create_tables else None
     return Session(bind=engine, autocommit=False, autoflush=False)
 
-def create_test_data(engine = None):
+
+def create_test_data(engine: Engine | None = None) -> None:
     """
     Create test data in the tables: AdminKeys, Teams, Challenges, Rounds, RoundTaskTypes, Tasks
     Creates 2 objects per each table
@@ -135,7 +139,7 @@ def create_test_data(engine = None):
         round1 = Round(
             challenge_id=challenge1.id,
             index=1,
-            status=RoundStatus.DRAFT,
+            status=RoundStatus.PUBLISHED,
             start_time=now,
             end_time=now + timedelta(hours=2000),
             claim_by_type=False,
@@ -145,7 +149,7 @@ def create_test_data(engine = None):
         round2 = Round(
             challenge_id=challenge2.id,
             index=1,
-            status=RoundStatus.PUBLISHED,
+            status=RoundStatus.DRAFT,
             start_time=now - timedelta(hours=1),
             end_time=now + timedelta(hours=2000),
             claim_by_type=True,
@@ -162,10 +166,11 @@ def create_test_data(engine = None):
         round_task_type1 = RoundTaskType(
             round_id=round1.id,
             type="a_plus_b",
-            generator_url="http://localhost:8000/a_plus_b",
+            generator_url="http://127.0.0.1:8918/task_gen/a_plus_b",
             generator_settings=None,
             generator_secret="twc",
-            max_tasks_per_team=3
+            max_tasks_per_team=3,
+            time_to_solve=30
         )
         round_task_type2 = RoundTaskType(
             round_id=round2.id,
@@ -173,7 +178,8 @@ def create_test_data(engine = None):
             generator_url="http://localhost:8000/right_time",
             generator_settings="complication2:1,complication3:2,complication4:3",
             generator_secret="twc",
-            max_tasks_per_team=5
+            max_tasks_per_team=5,
+            time_to_solve=45
         )
         session.add_all([round_task_type1, round_task_type2])
         session.flush()
@@ -205,11 +211,16 @@ def create_test_data(engine = None):
         )
         session.add_all([task1, task2])
 
+        challenge1.current_round_id = round1.id
+        challenge2.current_round_id = round2.id
+
         session.commit()
 
         print("Test data created successfully!")
 
+
 SessionLocal = sessionmaker(bind=get_db_engine(), autoflush=False, autocommit=False)
+
 
 def get_db_session() -> Generator[Session, None, None]:
     db = SessionLocal()
@@ -217,4 +228,3 @@ def get_db_session() -> Generator[Session, None, None]:
         yield db
     finally:
         db.close()
-

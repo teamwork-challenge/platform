@@ -1,15 +1,20 @@
-import uvicorn
-from fastapi import FastAPI, APIRouter, HTTPException, Depends, Body
-from fastapi.security import APIKeyHeader
+from typing import Sequence
 
-from api_models import *
-from api_models.models import Round, RoundCreateRequest, TeamsImportResponse, TeamsImportRequest, RoundTaskType, RoundTaskTypeCreateRequest, ChallengeUpdateRequest, SubmitAnswerRequest, Submission
-from auth_service import AuthService
-from admin_service import AdminService
-from player_service import PlayerService
+import uvicorn
+from fastapi import FastAPI, APIRouter, HTTPException, Depends
+from fastapi.security import APIKeyHeader
 from mangum import Mangum
 from sqlalchemy.orm import Session
-from database import get_db_session
+
+from back.admin_service import AdminService
+from api_models import *
+from api_models import Challenge, Round, RoundStatus, RoundCreateRequest, TeamsImportResponse, TeamsImportRequest, \
+    RoundTaskType, RoundTaskTypeCreateRequest, ChallengeUpdateRequest, SubmitAnswerRequest, Submission
+from back.auth_service import AuthService
+from back.database import get_db_session
+from back.db_models import Challenge as DbChallenge, Round as DbRound, RoundTaskType as DbRoundTaskType, \
+    Task as DbTask, Team as DbTeam
+from back.player_service import PlayerService
 
 
 def get_admin_service(db: Session = Depends(get_db_session)) -> AdminService:
@@ -45,7 +50,7 @@ def authenticate_admin(auth_data: AuthData = Depends(authenticate_player)) -> Au
     return auth_data
 
 
-def ensure_challenge_is_not_deleted(challenge: Challenge):
+def ensure_challenge_is_not_deleted(challenge: DbChallenge) -> None:
     if challenge.deleted:
         raise HTTPException(status_code=404, detail="Challenge is deleted")
 
@@ -55,7 +60,7 @@ def get_challenge_or_404(
     admin_service: AdminService, 
     auth_data: AuthData, 
     req_method: str = "GET"
-) -> Challenge:
+) -> DbChallenge:
     challenge = admin_service.get_challenge(challenge_id)
     if challenge is None:
         raise HTTPException(status_code=404, detail="Challenge not found")
@@ -75,21 +80,21 @@ def get_round_or_404(
     admin_service: AdminService, 
     auth_data: AuthData, 
     req_method: str = "GET"
-) -> Round:
-    round = admin_service.get_round(round_id)
-    if round is None:
+) -> DbRound:
+    game_round = admin_service.get_round(round_id)
+    if game_round is None:
         raise HTTPException(status_code=404, detail="Round not found")
 
-    challenge = get_challenge_or_404(round.challenge_id, admin_service, auth_data, req_method)
+    challenge = get_challenge_or_404(game_round.challenge_id, admin_service, auth_data, req_method)
 
-    if round.challenge_id != challenge.id:
+    if game_round.challenge_id != challenge.id:
         raise HTTPException(status_code=404, detail="Round not found for this challenge")
 
     if auth_data.role == UserRole.PLAYER:
-        if round.challenge_id != auth_data.challenge_id or round.status.lower() != "published":
+        if game_round.challenge_id != auth_data.challenge_id or game_round.status != RoundStatus.PUBLISHED:
             raise HTTPException(status_code=404, detail="Round not found")
 
-    return round
+    return game_round
 
 
 def get_round_task_type_or_404(
@@ -98,7 +103,7 @@ def get_round_task_type_or_404(
     admin_service: AdminService, 
     auth_data: AuthData, 
     req_method: str = "GET"
-) -> RoundTaskType:
+) -> DbRoundTaskType:
     get_round_or_404(round_id, admin_service, auth_data, req_method)
 
     round_task_type = admin_service.get_round_task_type(task_type_id)
@@ -112,7 +117,7 @@ def get_task_or_404(
     task_id: int, 
     player_service: PlayerService, 
     auth_data: AuthData
-) -> Task:
+) -> DbTask:
     task = player_service.get_task(task_id)
     if task is None:
         raise HTTPException(status_code=404, detail="Task not found")
@@ -132,7 +137,7 @@ admin = APIRouter(
 
 # admin endpoints
 @admin.get("/challenges", response_model=list[Challenge])
-def get_challenges(admin_service: AdminService = Depends(get_admin_service)):
+def get_challenges(admin_service: AdminService = Depends(get_admin_service)) -> Sequence[DbChallenge]:
     return admin_service.get_all_challenges()
 
 
@@ -140,22 +145,22 @@ def get_challenges(admin_service: AdminService = Depends(get_admin_service)):
 def create_challenge(
     new_challenge: ChallengeCreateRequest, 
     admin_service: AdminService = Depends(get_admin_service)
-):
+) -> DbChallenge:
     return admin_service.create_challenge(new_challenge.title, new_challenge.description)
 
 
-@admin.delete("/challenges")
+@admin.delete("/challenges", response_model=Challenge)
 def delete_challenge(
     challenge_id: int, 
     admin_service: AdminService = Depends(get_admin_service), 
     auth_data: AuthData = Depends(authenticate_admin)
-):
+) -> DbChallenge:
     get_challenge_or_404(challenge_id, admin_service, auth_data, "DELETE")
 
     deleted = admin_service.delete_challenge(challenge_id)
     if deleted is None:
         raise HTTPException(status_code=404, detail="No challenges to delete")
-    return {"message": "Challenge deleted", "challenge_id": challenge_id}
+    return deleted
 
 
 @admin.put("/challenges/{challenge_id}", response_model=Challenge)
@@ -164,7 +169,7 @@ def update_challenge(
     updated_challenge: ChallengeUpdateRequest, 
     admin_service: AdminService = Depends(get_admin_service), 
     auth_data: AuthData = Depends(authenticate_admin)
-):
+) -> DbChallenge:
     get_challenge_or_404(challenge_id, admin_service, auth_data, "GET")
 
     updated = admin_service.update_challenge(challenge_id, updated_challenge)
@@ -179,27 +184,26 @@ def update_round(
     round_data: RoundCreateRequest, 
     admin_service: AdminService = Depends(get_admin_service), 
     auth_data: AuthData = Depends(authenticate_admin)
-):
+) -> DbRound:
     get_round_or_404(round_id, admin_service, auth_data, "PUT")
 
-    updated_round = admin_service.update_round(round_id, round_data)
-    if updated_round is None:
+    updated_game_round = admin_service.update_round(round_id, round_data)
+    if updated_game_round is None:
         raise HTTPException(status_code=404, detail="Round not found")
 
-    updated_round.task_types = admin_service.get_round_task_types_by_round(round_id)
-    return updated_round
+    updated_game_round.task_types = admin_service.get_round_task_types_by_round(round_id)
+    return updated_game_round
 
 
-@admin.delete("/rounds/{round_id}")
+@admin.delete("/rounds/{round_id}", response_model=DeleteResponse)
 def delete_round(
     round_id: int, 
     admin_service: AdminService = Depends(get_admin_service), 
     auth_data: AuthData = Depends(authenticate_admin)
-):
+) -> DeleteResponse:
     get_round_or_404(round_id, admin_service, auth_data, "DELETE")
-
     admin_service.delete_round(round_id)
-    return {"message": "Round deleted", "id": round_id}
+    return DeleteResponse(deleted_id=round_id)
 
 
 @admin.post("/rounds", response_model=Round)
@@ -207,12 +211,12 @@ def create_round(
     round_data: RoundCreateRequest, 
     admin_service: AdminService = Depends(get_admin_service), 
     auth_data: AuthData = Depends(authenticate_admin)
-):
+) -> DbRound:
     get_challenge_or_404(round_data.challenge_id, admin_service, auth_data, "POST")
 
-    round = admin_service.create_round(round_data=round_data)
+    game_round = admin_service.create_round(round_data=round_data)
 
-    return round
+    return game_round
 
 
 @admin.put("/task-types/{task_type_id}", response_model=RoundTaskType)
@@ -221,33 +225,35 @@ def update_round_task_type(
     task_type_data: RoundTaskTypeCreateRequest, 
     admin_service: AdminService = Depends(get_admin_service), 
     auth_data: AuthData = Depends(authenticate_admin)
-):
+) -> DbRoundTaskType:
     task_type = admin_service.get_round_task_type(task_type_id)
     if task_type is None:
         raise HTTPException(status_code=404, detail="Task type not found")
 
-    round = get_round_or_404(task_type.round_id, admin_service, auth_data, "PUT")
-    get_challenge_or_404(round.challenge_id, admin_service, auth_data, "PUT")
+    game_round = get_round_or_404(task_type.round_id, admin_service, auth_data, "PUT")
+    get_challenge_or_404(game_round.challenge_id, admin_service, auth_data, "PUT")
     updated_round_task_type = admin_service.update_round_task_type(task_type_id, task_type_data)
     if updated_round_task_type is None:
         raise HTTPException(status_code=404, detail="Task type not found")
     return updated_round_task_type
 
 
-@admin.delete("/task-types/{task_type_id}")
+@admin.delete("/task-types/{task_type_id}", response_model=RoundTaskType)
 def delete_round_task_type(
     task_type_id: int, 
     admin_service: AdminService = Depends(get_admin_service), 
     auth_data: AuthData = Depends(authenticate_admin)
-):
+) -> DbRoundTaskType:
     task_type = admin_service.get_round_task_type(task_type_id)
     if task_type is None:
         raise HTTPException(status_code=404, detail="Task type not found")
 
-    round = get_round_or_404(task_type.round_id, admin_service, auth_data, "DELETE")
-    ensure_challenge_is_not_deleted(get_challenge_or_404(round.challenge_id, admin_service, auth_data, "DELETE"))
+    game_round = get_round_or_404(task_type.round_id, admin_service, auth_data, "DELETE")
+    ensure_challenge_is_not_deleted(get_challenge_or_404(game_round.challenge_id, admin_service, auth_data, "DELETE"))
     deleted_round_task_type = admin_service.delete_round_task_type(task_type_id)
-    return {"message": "Task type deleted", "task_type": deleted_round_task_type}
+    if deleted_round_task_type is None:
+        raise HTTPException(status_code=404, detail="Task type not found")
+    return deleted_round_task_type
 
 
 @admin.post("/task-types", response_model=RoundTaskType)
@@ -255,19 +261,19 @@ def create_round_task_type(
     task_type_data: RoundTaskTypeCreateRequest, 
     admin_service: AdminService = Depends(get_admin_service), 
     auth_data: AuthData = Depends(authenticate_admin)
-):
-    round = get_round_or_404(task_type_data.round_id, admin_service, auth_data, "POST")
-    ensure_challenge_is_not_deleted(get_challenge_or_404(round.challenge_id, admin_service, auth_data, "POST"))
+) -> DbRoundTaskType:
+    game_round = get_round_or_404(task_type_data.round_id, admin_service, auth_data, "POST")
+    ensure_challenge_is_not_deleted(get_challenge_or_404(game_round.challenge_id, admin_service, auth_data, "POST"))
     round_task_type = admin_service.create_round_task_type(task_type_data)
     return round_task_type
 
 
 @admin.get("/teams", response_model=list[Team])
 def get_teams(
-    challenge_id: int = None, 
+    challenge_id: int | None = None,
     admin_service: AdminService = Depends(get_admin_service), 
     auth_data: AuthData = Depends(authenticate_admin)
-):
+) -> Sequence[DbTeam]:
     if challenge_id is not None:
         # Check if the challenge exists
         get_challenge_or_404(challenge_id, admin_service, auth_data, "GET")
@@ -283,7 +289,7 @@ def create_teams(
     request: TeamsImportRequest, 
     admin_service: AdminService = Depends(get_admin_service), 
     auth_data: AuthData = Depends(authenticate_admin)
-):
+) -> TeamsImportResponse:
     challenge = get_challenge_or_404(request.challenge_id, admin_service, auth_data, "POST")
     teams_data = admin_service.create_teams(challenge, request.teams)
     teams = [Team.model_validate(team) for team in teams_data]
@@ -300,7 +306,7 @@ player = APIRouter(
 # player endpoints
 
 @player.get("/auth", response_model=UserRole)
-def auth(auth_data: AuthData = Depends(authenticate_player)):
+def auth(auth_data: AuthData = Depends(authenticate_player)) -> UserRole:
     return auth_data.role
 
 
@@ -308,7 +314,9 @@ def auth(auth_data: AuthData = Depends(authenticate_player)):
 def get_team(
     auth_data: AuthData = Depends(authenticate_player), 
     player_service: PlayerService = Depends(get_player_service)
-):
+) -> DbTeam:
+    if auth_data.team_id is None:
+        raise HTTPException(status_code=404, detail="Team not found")
     team = player_service.get_team(auth_data.team_id)
     if team is None:
         raise HTTPException(status_code=404, detail="Team not found")
@@ -320,11 +328,14 @@ def get_challenge(
     challenge_id: int | str, 
     admin_service: AdminService = Depends(get_admin_service), 
     auth_data: AuthData = Depends(authenticate_player)
-):
-    if str(challenge_id).lower() == "current":
+) -> DbChallenge:
+    if isinstance(challenge_id, str) and challenge_id.lower() == "current":
         if auth_data.challenge_id is None:
             raise HTTPException(status_code=404, detail="Current challenge not found")
         challenge_id = auth_data.challenge_id
+
+    if not isinstance(challenge_id, int):
+        challenge_id = int(challenge_id)
 
     return get_challenge_or_404(challenge_id, admin_service, auth_data, "GET")
 
@@ -334,13 +345,13 @@ def get_rounds(
     challenge_id: int, 
     admin_service: AdminService = Depends(get_admin_service), 
     auth_data: AuthData = Depends(authenticate_player)
-):
+) -> Sequence[DbRound]:
     get_challenge_or_404(challenge_id, admin_service, auth_data, "GET")
 
     rounds = admin_service.get_rounds_by_challenge(challenge_id)
 
     if auth_data.role != UserRole.ADMIN:
-        rounds = [r for r in rounds if r.status.lower() == "published"]
+        rounds = [r for r in rounds if r.status == RoundStatus.PUBLISHED]
 
     for r in rounds:
         r.task_types = admin_service.get_round_task_types_by_round(r.id)
@@ -353,11 +364,14 @@ def get_round(
     round_id: int | str, 
     admin_service: AdminService = Depends(get_admin_service), 
     auth_data: AuthData = Depends(authenticate_player)
-):
-    if str(round_id).lower() == "current":
+) -> DbRound:
+    if isinstance(round_id, str) and round_id.lower() == "current":
         if auth_data.round_id is None:
             raise HTTPException(status_code=404, detail="Current round not found")
         round_id = auth_data.round_id
+
+    if not isinstance(round_id, int):
+        round_id = int(round_id)
 
     r = get_round_or_404(round_id, admin_service, auth_data, "GET")
     r.task_types = admin_service.get_round_task_types_by_round(round_id)
@@ -369,7 +383,7 @@ def get_round_task_types(
     round_id: int, 
     admin_service: AdminService = Depends(get_admin_service), 
     auth_data: AuthData = Depends(authenticate_player)
-):
+) -> Sequence[DbRoundTaskType]:
     get_round_or_404(round_id, admin_service, auth_data, "GET")
 
     return admin_service.get_round_task_types_by_round(round_id)
@@ -380,7 +394,7 @@ def get_round_task_type(
     task_type_id: int, 
     admin_service: AdminService = Depends(get_admin_service), 
     auth_data: AuthData = Depends(authenticate_player)
-):
+) -> DbRoundTaskType:
     # Get the task type to check if it exists and to get the round_id
     task_type = admin_service.get_round_task_type(task_type_id)
     if task_type is None:
@@ -396,7 +410,7 @@ def get_task(
     task_id: int, 
     auth_data: AuthData = Depends(authenticate_player), 
     player_service: PlayerService = Depends(get_player_service)
-):
+) -> DbTask:
     return get_task_or_404(task_id, player_service, auth_data)
 
 
@@ -406,10 +420,12 @@ def submit_task_answer(
     answer_data: SubmitAnswerRequest,
     auth_data: AuthData = Depends(authenticate_player), 
     player_service: PlayerService = Depends(get_player_service)
-):
+) -> Submission:
     answer = answer_data.answer
         
     try:
+        if auth_data.team_id is None:
+            raise HTTPException(status_code=400, detail="Team not found")
         submission = player_service.submit_task_answer(task_id, auth_data.team_id, answer)
         return submission
     except ValueError as e:
@@ -418,11 +434,22 @@ def submit_task_answer(
 
 @player.post("/tasks", response_model=Task)
 def create_task(
-    task_type: Optional[str], 
+    task_type: str | None = None,
     auth_data: AuthData = Depends(authenticate_player), 
-    player_service: PlayerService = Depends(get_player_service)
-):
+    player_service: PlayerService = Depends(get_player_service),
+    admin_service: AdminService = Depends(get_admin_service)
+
+) -> DbTask:
+    if auth_data.round_id is None:
+        raise HTTPException(status_code=400, detail="No current round available")
+    game_round = get_round_or_404(auth_data.round_id, admin_service, auth_data)
     try:
+        if auth_data.challenge_id is None or auth_data.team_id is None:
+            raise HTTPException(status_code=400, detail="Invalid team or challenge context")
+        if task_type is None:
+            task_type = player_service.get_random_task_type(game_round, auth_data.team_id).type
+        elif not game_round.claim_by_type:
+            raise HTTPException(status_code=400, detail="Round does not allow task creation by type")
         return player_service.create_task(auth_data.challenge_id, auth_data.team_id, task_type)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -430,9 +457,49 @@ def create_task(
 
 app = FastAPI(title="Teamwork Challenge API",
               description="API for managing teamwork challenges and tasks",
-              version="1.0.0")
+              version="1.0.0",
+              debug=True)
 app.include_router(admin)
 app.include_router(player)
+
+# Internal task generators for tests
+from fastapi import Header
+from api_models import GenRequest, GenResponse, CheckRequest, CheckResult, CheckStatus
+
+task_gen = APIRouter(prefix="/task_gen", tags=["TaskGen"])
+
+@task_gen.post("/a_plus_b/gen", response_model=GenResponse)
+def a_plus_b_gen(req: GenRequest) -> GenResponse:
+    a, b = 1, 2
+    statement = "Given two integers a and b, output a + b."
+    input_text = f"{a} {b}"
+    checker_hint = str(a + b)
+    return GenResponse(
+        statement_version="1.0",
+        statement=statement,
+        input=input_text,
+        checker_hint=checker_hint
+    )
+
+
+@task_gen.post("/a_plus_b/check", response_model=list[CheckResult])
+def a_plus_b_check(req: CheckRequest) -> list[CheckResult]:
+    parts = (req.input or "").strip().split()
+    if len(parts) != 2:
+        return [CheckResult(status=CheckStatus.WRONG_ANSWER, error="Invalid input format")]
+    a, b = int(parts[0]), int(parts[1])
+    correct = str(a + b)
+    if (req.answer or "").strip() == correct:
+        return [CheckResult(status=CheckStatus.ACCEPTED, score=1.0)]
+    else:
+        return [CheckResult(status=CheckStatus.WRONG_ANSWER, error="Wrong answer", score=0.0)]
+
+app.include_router(task_gen)
+
+
+@app.get("/", response_model=str)
+def home() -> str:
+    return "hello"
 
 
 handler = Mangum(app, lifespan="off")
@@ -440,8 +507,8 @@ handler = Mangum(app, lifespan="off")
 
 if __name__ == "__main__":
     uvicorn.run(
-        "main:app",
+        "back.main:app",
         reload=True,
         reload_dirs=[".", "../api_models"],
-        port=8088,
+        port=8089,
     )

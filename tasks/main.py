@@ -2,15 +2,15 @@ import importlib
 import os
 from fastapi import FastAPI, Depends, Security
 from mangum import Mangum
-from auth import validate_api_key
+from tasks.auth import validate_api_key
 
 generators = ['right_time', 'a_plus_b']
 
 app = FastAPI(title="Teamwork Challenge Task Generators", dependencies=[Depends(validate_api_key)])
 
-def register_generators():
+def register_generators() -> None:
     for generator in generators:
-        module = importlib.import_module(f"{generator}.router")
+        module = importlib.import_module(f"tasks.{generator}.router")
         if hasattr(module, "router"):
             app.include_router(module.router, prefix=f"/{generator}", tags=[generator])
 
@@ -25,7 +25,7 @@ if __name__ == "__main__":
 
     import uvicorn
     uvicorn.run(
-        'main:app',
+        'tasks.main:app',
         reload=True,
         reload_dirs=[".", "../api_models"],
         port=8000,

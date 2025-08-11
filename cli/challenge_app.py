@@ -4,30 +4,29 @@ from typing import Optional
 import typer
 from rich.markdown import Markdown
 
-from app_deps import api_client, console, ensure_logged_in, json_output_option
-from formatter import print_as_json
-from api_models.models import ChallengeUpdateRequest
+from cli.app_deps import api_client, console, ensure_logged_in, json_output_option
+from cli.formatter import print_as_json
+from api_models import ChallengeUpdateRequest, Challenge
 
 app = typer.Typer(help="Teamwork Challenge CLI", pretty_exceptions_short=True, pretty_exceptions_show_locals=False)
 
 # Authentication commands
 @app.command()
-def login(api_key: str):
+def login(api_key: str) -> None:
     """Store API key into config file after successful login."""
     api_client.save_api_key(api_key)
     role = api_client.auth()
     console.print(f"[green]Successfully logged in with role {role} using API key: {api_key}[/green]")
-    return None
 
 @app.command()
-def logout():
+def logout() -> None:
     """Remove API key from config file."""
     api_client.remove_api_key()
     console.print("[green]Successfully logged out[/green]")
 
 
 @app.command("show")
-def show(challenge_id: Optional[int] = typer.Option(None, "--challenge-id", "-c", help="Challenge ID"), as_json: bool = json_output_option):
+def show(challenge_id: Optional[int] = typer.Option(None, "--challenge-id", "-c", help="Challenge ID"), as_json: bool = json_output_option) -> None:
     """Show challenge information."""
     ensure_logged_in()
 
@@ -50,7 +49,7 @@ def update(
     do_delete: Optional[bool] = typer.Option(None, "--delete", help="delete challenge"),
     undo_delete: Optional[bool] = typer.Option(None, "--undelete", help="undelete challenge"),
     as_json: bool = json_output_option
-):
+) -> None:
     """Update challenge information."""
     ensure_logged_in()
 
@@ -81,7 +80,7 @@ def delete(
     challenge_id: int = typer.Option(..., "--challenge-id", "-c", help="Challenge ID"),
     confirm: bool = typer.Option(False, "--yes", "-y", help="Skip confirmation prompt"),
     as_json: bool = json_output_option
-):
+) -> None:
     """Mark a challenge as deleted."""
     ensure_logged_in()
 
@@ -104,11 +103,9 @@ def delete(
     console.print(f"[bold green]Challenge {challenge_id} marked as deleted successfully![/bold green]")
 
 
-def print_challenge(challenge):
+def print_challenge(challenge: Challenge) -> None:
     console.print(f"[bold blue]Challenge {challenge.id}[/bold blue]")
     console.print(f"Name: {challenge.title}")
     console.print(f"Current Round: {challenge.current_round_id}")
-    if challenge.deleted:
-        console.print("[bold red]This challenge is marked as deleted.[/bold red]")
     console.print()
     console.print(Markdown(challenge.description))

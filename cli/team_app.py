@@ -1,12 +1,12 @@
 import typer
-from app_deps import api_client, json_output_option, console, ensure_logged_in
-from formatter import print_as_json
+from cli.app_deps import api_client, json_output_option, console, ensure_logged_in
+from cli.formatter import print_as_json
 
 team_app = typer.Typer(help="Team management commands")
 
 # Team commands
 @team_app.command("show")
-def team_show(as_json: bool = json_output_option):
+def team_show(as_json: bool = json_output_option) -> None:
     """Show team information."""
     ensure_logged_in()
 
@@ -30,7 +30,7 @@ def team_show(as_json: bool = json_output_option):
 
 
 # @team_app.command("rename") # Backend is not ready yet
-def team_rename(new_name: str, as_json: bool = json_output_option):
+def team_rename(new_name: str, as_json: bool = json_output_option) -> None:
     """Rename team (allowed until first submission)."""
     ensure_logged_in()
 

@@ -1,8 +1,8 @@
 import typer
-from app_deps import api_client, json_output_option, console
+from cli.app_deps import api_client, json_output_option, console
 from typing import Optional
 from rich.table import Table
-from formatter import print_as_json
+from cli.formatter import print_as_json
 
 board_app = typer.Typer(help="Leaderboards and dashboards")
 
@@ -12,9 +12,9 @@ def board_dashboard(
     round_id: Optional[int] = typer.Option(None, "--round", "-r", help="Round ID"),
     watch: bool = typer.Option(False, "--watch", help="Watch for updates"),
     json: bool = json_output_option
-):
+) -> None:
     """Show dashboard with task statistics."""
-    if not api_client.api_key:
+    if not api_client.logged_in():
         console.print("[red]Not logged in. Use 'challenge login <API_KEY>' to log in.[/red]")
         raise typer.Exit(1)
 
@@ -73,9 +73,9 @@ def board_leaderboard(
     round_id: Optional[int] = typer.Option(None, "--round", "-r", help="Round ID"),
     watch: bool = typer.Option(False, "--watch", help="Watch for updates"),
     json: bool = json_output_option
-):
+) -> None:
     """Show leaderboard with team scores."""
-    if not api_client.api_key:
+    if not api_client.logged_in():
         console.print("[red]Not logged in. Use 'challenge login <API_KEY>' to log in.[/red]")
         raise typer.Exit(1)
 
