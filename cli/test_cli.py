@@ -143,7 +143,7 @@ def test_task_claim():
     result = run_ok("task", "claim")
 
 
-
+# TODO: show full task info with statement and input on claim and show
 def test_task_show():
     login_team1()
     task_id = get_task_id()
@@ -155,31 +155,29 @@ def test_task_show_input():
     task_id = get_task_id()
 
     result = run_ok("task", "show-input", task_id)
-    print(f"Output: {result.output}")
+    assert "1 2" in result.output
 
-    assert result.exit_code == 0 or "404 Client Error: Not Found" in result.output
-
-def test_task_submit():
+# TODO: add test: submit correct answer
+# TODO: add test: submit without --file
+def test_task_submit_file():
     login_team1()
     task_id = get_task_id()
 
     with tempfile.NamedTemporaryFile(mode='w', delete=False) as f:
-        f.write("test answer")
+        f.write("some wrong answer")
         temp_file = f.name
 
     try:
         result = run_ok("task", "submit", task_id, "--file", temp_file)
-        print(f"Output: {result.output}")
-
-        assert result.exit_code == 0 or "404 Client Error: Not Found" in result.output
+        assert "Successfully submitted answer for task 1" in result.output
+        # TODO: human friendly status: Wrong Answer
+        assert "Status: SubmissionStatus.WA"
     finally:
         os.unlink(temp_file)
 
 def test_task_list():
     login_team1()
     result = run_ok("task", "list")
-    print(f"Output: {result.output}")
-    assert result.exit_code == 0 or "405 Client Error: Method Not Allowed" in result.output
 
 # Task Type App Tests
 def test_task_type_create():
