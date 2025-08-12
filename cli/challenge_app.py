@@ -14,8 +14,15 @@ app = typer.Typer(help="Teamwork Challenge CLI", pretty_exceptions_short=True, p
 @app.command()
 def login(api_key: str) -> None:
     """Store API key into config file after successful login."""
+    # Save the API key and verify it's valid by calling /auth.
+    # If verification fails, remove the key and re-raise the error so tests can catch it.
     api_client.save_api_key(api_key)
-    role = api_client.auth()
+    try:
+        role = api_client.auth()
+    except Exception:
+        # Revert saved invalid key
+        api_client.remove_api_key()
+        raise
     console.print(f"[green]Successfully logged in with role {role} using API key: {api_key}[/green]")
 
 @app.command()

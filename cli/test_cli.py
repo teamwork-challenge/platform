@@ -157,7 +157,12 @@ def test_task_show():
     login_team1()
     task_id = get_task_id()
 
-    run_ok("task", "show", task_id)
+    result = run_ok("task", "show", task_id)
+    # Expect short statement and input to be shown inline
+    assert "Statement:" in result.output
+    assert "Given two integers a and b" in result.output
+    assert "Input:" in result.output
+    assert "1 2" in result.output
 
 
 def test_task_show_input():
@@ -182,9 +187,27 @@ def test_task_submit_file():
         result = run_ok("task", "submit", task_id, "--file", temp_file)
         assert "Successfully submitted answer for task 1" in result.output
         # TODO: human friendly status: Wrong Answer
-        assert "Status: SubmissionStatus.WA"
+        assert "Status: SubmissionStatus.WA" in result.output
     finally:
         os.unlink(temp_file)
+
+
+def test_task_submit_correct_answer():
+    login_team1()
+    task_id = get_task_id()
+    # For the built-in a_plus_b task, input is "1 2", correct answer is "3"
+    result = run_ok("task", "submit", task_id, "3")
+    assert "Successfully submitted answer for task 1" in result.output
+    assert "Status: SubmissionStatus.AC" in result.output
+
+
+def test_task_submit_without_file_or_answer():
+    login_team1()
+    task_id = get_task_id()
+    # Invoke directly to check non-zero exit on missing both answer and --file
+    result = runner.invoke(app, ["task", "submit", task_id], catch_exceptions=False)
+    assert result.exit_code != 0
+    assert "Either answer or --file must be provided" in result.output
 
 
 def test_task_list():
