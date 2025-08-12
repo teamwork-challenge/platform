@@ -33,7 +33,11 @@ def claim(
 
 @task_app.command("show")
 def task_show(task_id: str, json: bool = json_output_option) -> None:
-    """Show task and its submissions."""
+    """Show task and its submissions.
+
+    If the task statement is short (< 200 characters), also show its statement and input here.
+    For longer statements, keep output compact and suggest using `task show-input`.
+    """
     ensure_logged_in()
 
     try:
@@ -47,6 +51,28 @@ def task_show(task_id: str, json: bool = json_output_option) -> None:
         console.print(f"Status: {task.status}")
         console.print(f"Score: {task.score}")
         console.print(f"Claimed At: {task.claimed_at}")
+
+        # Show statement and input inline only when the statement is short
+        statement = getattr(task, "statement", None)
+        input_payload = getattr(task, "input", None)
+        if statement is not None:
+            if len(str(statement)) < 200:
+                console.print("\n[bold]Statement:[/bold]")
+                console.print(str(statement))
+                if input_payload is not None:
+                    console.print("\n[bold]Input:[/bold]")
+                    console.print(str(input_payload))
+            else:
+                console.print("\n[bold]Statement:[/bold] (too long to display inline)")
+                console.print(f"Use `task show-input {task_id}` to see the full input.")
+        elif input_payload is not None:
+            # If there is no statement but there is input and it's short, show it
+            if len(str(input_payload)) < 200:
+                console.print("\n[bold]Input:[/bold]")
+                console.print(str(input_payload))
+            else:
+                console.print("\n[bold]Input:[/bold] (too long to display inline)")
+                console.print(f"Use `task show-input {task_id}` to see the full input.")
 
         console.print("\n[bold]Submissions:[/bold]")
         if not task.submissions:
@@ -86,7 +112,7 @@ def task_show_input(task_id: str, json: bool = json_output_option) -> None:
 @task_app.command("submit")
 def task_submit(
     task_id: str,
-    answer: Optional[str] = None,
+    answer: Optional[str] = typer.Argument(None, help="Answer to submit"),
     file_path: Optional[Path] = typer.Option(None, "--file", help="Path to file with answer"),
     json: bool = json_output_option
 ) -> None:
@@ -111,9 +137,19 @@ def task_submit(
         if json:
             return print_as_json(submission)
 
+        # Format status as "SubmissionStatus.AC/WA" to match tests regardless of enum/string
+        status_obj = getattr(submission, "status", None)
+        try:
+            if hasattr(status_obj, "name") and hasattr(status_obj, "__class__"):
+                status_str = f"{status_obj.__class__.__name__}.{status_obj.name}"
+            else:
+                status_str = f"SubmissionStatus.{str(status_obj)}"
+        except Exception:
+            status_str = f"SubmissionStatus.{str(status_obj)}"
+
         console.print(f"[green]Successfully submitted answer for task {task_id}[/green]")
         console.print(f"Submission ID: {submission.id}")
-        console.print(f"Status: {submission.status}")
+        console.print(f"Status: {status_str}")
 
         return None
     except Exception as e:
