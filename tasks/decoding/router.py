@@ -1,20 +1,136 @@
+from math import gcd
 from typing import Dict, Tuple, List
 import random
+import heapq
+from collections import Counter
 
 from fastapi import APIRouter
 
 from api_models import GenRequest, GenResponse, CheckRequest, CheckResult
 
 router = APIRouter()
+STATEMENTS = {
+    "v1": "",
+    "v2": "",
+    "v3": "",
+    "v4": "",
+    "v5": "",
+    "v6": "",
+    "v7": "",
+    "v8": "",
+}
 
 # --------------------------
 # Generator Functions
 # --------------------------
+MORSE_CODE = {
+    'a': '.-', 'b': '-...', 'c': '-.-.', 'd': '-..',
+    'e': '.', 'f': '..-.', 'g': '--.', 'h': '....',
+    'i': '..', 'j': '.---', 'k': '-.-', 'l': '.-..',
+    'm': '--', 'n': '-.', 'o': '---', 'p': '.--.',
+    'q': '--.-', 'r': '.-.', 's': '...', 't': '-',
+    'u': '..-', 'v': '...-', 'w': '.--', 'x': '-..-',
+    'y': '-.--', 'z': '--..'
+}
+
 
 def get_random_sentence():
     with open("sentences.txt", "r", encoding="utf-8") as f:
         sentences = [line.strip() for line in f if line.strip()]
     return random.choice(sentences)
+
+
+def generate_caesar_cipher(sentence: str, shift: int = 1) -> str:
+    result = ''
+    for char in sentence:
+        if char.isalpha():
+            result += (chr((ord(char) - ord('a') + shift) % 26 + ord('a')))
+        else:
+            result += char
+    return result
+
+
+def generate_morse_code(sentence: str) -> str:
+    return ' '.join(MORSE_CODE.get(char, '') for char in sentence if char.isalnum() or char == ' ')
+
+def generate_affine_cipher(sentence: str) -> Tuple[str, str]:
+    coprimes = [n for n in range(1, 26, 2) if gcd(n, 26) == 1]
+    a = random.choice(coprimes)
+    b = random.randint(0, 1000)
+    result = ''.join([chr(((a * (ord(ch) - ord('a')) + b) % 26) + ord('a')) if ch.isalpha() else ch for ch in sentence])
+    return result, f"f(x) = ({a} * x + {b}) mod 26"
+
+def is_binary_string(s: str) -> bool:
+    return all(ch in '01' for ch in s)
+
+def is_prefix_free(codes: List[str]) -> bool:
+    # Sort codes by length, then check if any code is prefix of another
+    sorted_codes = sorted(codes, key=len)
+    for i in range(len(sorted_codes)):
+        for j in range(i+1, len(sorted_codes)):
+            if sorted_codes[j].startswith(sorted_codes[i]):
+                return False
+    return True
+
+def huffman_bit_length(sentence: str) -> int:
+    freq = Counter(sentence)
+    # Special case: only one unique character
+    if len(freq) == 1:
+        return len(sentence)  # all characters use 1 bit
+    heap = list(freq.values())
+    heapq.heapify(heap)
+    total_bits = 0
+    while len(heap) > 1:
+        f1 = heapq.heappop(heap)
+        f2 = heapq.heappop(heap)
+        total_bits += f1 + f2
+        heapq.heappush(heap, f1 + f2)
+    return total_bits
+
+
+def check_student_answer_huffman(minimal_bits_number: int, student_answer: str) -> Tuple[bool, str]:
+    lines = student_answer.strip().split('\n')
+    try:
+        n = int(lines[0])
+    except:
+        return False, "First line must be integer number of encoded symbols N"
+
+    if n > 26:
+        return False, f"Too many encoded symbols: {n}"
+
+    if len(lines) != n + 2:
+        return False, f"Expected {n} code lines + encoded text, got {len(lines)-1}"
+
+    char_code_lines = lines[1:1+n]
+    encoded_text = lines[-1]
+
+    # Parse codes
+    codes = {}
+    for line in char_code_lines:
+        if len(line.strip().split()) != 2:
+            return False, f"Invalid code line format: '{line}'. Expected format: 'a 1001\nb 11\n..."
+        ch, code = line.strip().split()
+        if len(ch) != 1 or not ch.isalpha() or not ch.islower():
+            return False, f"Invalid character: '{ch}'"
+        if not is_binary_string(code):
+            return False, f"Code for character '{ch}' is not binary: '{code}'"
+        if ch in codes:
+            return False, f"Duplicate character code for '{ch}'"
+        codes[ch] = code
+
+    # Check all codes are prefix free
+    if not is_prefix_free(list(codes.values())):
+        return False, "Codes are not prefix free"
+
+    # Check encoded text is binary only
+    if not is_binary_string(encoded_text):
+        return False, "Encoded text contains non-binary characters"
+
+    #TODO
+    # Compute total bits used by student code
+    # Compute minimal bits by Huffman
+
+    return True, "Code is binary, prefix-free, and optimal"
 
 
 def get_difficulty(request: GenRequest) -> int:
@@ -42,6 +158,7 @@ def get_difficulty(request: GenRequest) -> int:
 
     # Cap at maximum level 8
     return min(level, 8)
+
 
 @router.post("/gen", response_model=GenResponse)
 async def generate_task(request: GenRequest):
