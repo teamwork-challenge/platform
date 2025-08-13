@@ -158,7 +158,7 @@ def test_task_show():
     task_id = get_task_id()
 
     result = run_ok("task", "show", task_id)
-    # Expect short statement and input to be shown inline
+    # Expect a short statement and input to be shown inline
     assert "Statement:" in result.output
     assert "Given two integers a and b" in result.output
     assert "Input:" in result.output
@@ -195,7 +195,7 @@ def test_task_submit_file():
 def test_task_submit_correct_answer():
     login_team1()
     task_id = get_task_id()
-    # For the built-in a_plus_b task, input is "1 2", correct answer is "3"
+    # For the built-in a_plus_b task, input is "1 2", the correct answer is "3"
     result = run_ok("task", "submit", task_id, "3")
     assert "Successfully submitted answer for task 1" in result.output
     assert "Status: SubmissionStatus.AC" in result.output

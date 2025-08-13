@@ -6,6 +6,7 @@ from cli.formatter import print_as_json
 
 board_app = typer.Typer(help="Leaderboards and dashboards")
 
+
 # Board commands
 @board_app.command("dashboard")
 def board_dashboard(
@@ -13,7 +14,7 @@ def board_dashboard(
     watch: bool = typer.Option(False, "--watch", help="Watch for updates"),
     json: bool = json_output_option
 ) -> None:
-    """Show dashboard with task statistics."""
+    """Show a dashboard with task statistics."""
     if not api_client.logged_in():
         console.print("[red]Not logged in. Use 'challenge login <API_KEY>' to log in.[/red]")
         raise typer.Exit(1)
@@ -21,7 +22,7 @@ def board_dashboard(
     try:
         dashboard = api_client.get_dashboard(round_id)
 
-        # If json flag is set, the decorator will handle the output
+        # If a JSON flag is set, the decorator will handle the output
         if json:
             return print_as_json(dashboard)
 
@@ -45,7 +46,7 @@ def board_dashboard(
                     str(type_stats.remaining)
                 )
 
-        # Add total row if available
+        # Add a total row if available
         if 'total' in dashboard.stats:
             total_stats = dashboard.stats['total']
             table.add_row(
@@ -74,7 +75,7 @@ def board_leaderboard(
     watch: bool = typer.Option(False, "--watch", help="Watch for updates"),
     json: bool = json_output_option
 ) -> None:
-    """Show leaderboard with team scores."""
+    """Show a leaderboard with team scores."""
     if not api_client.logged_in():
         console.print("[red]Not logged in. Use 'challenge login <API_KEY>' to log in.[/red]")
         raise typer.Exit(1)

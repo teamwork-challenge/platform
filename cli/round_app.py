@@ -8,6 +8,16 @@ from cli.app_deps import api_client, json_output_option, console, ensure_logged_
 
 round_app = typer.Typer(help="Round management commands")
 
+
+def display_round_details(round_info) -> None:
+    console.print(f"Status: {round_info.status}")
+    console.print(f"Start Time: {round_info.start_time}")
+    console.print(f"End Time: {round_info.end_time}")
+    console.print(f"Claim by Type: {round_info.claim_by_type}")
+    console.print(f"Allow Resubmit: {round_info.allow_resubmit}")
+    console.print(f"Score Decay: {round_info.score_decay}")
+
+
 # Round commands
 @round_app.command("show")
 def round_show(
@@ -24,12 +34,7 @@ def round_show(
             return print_as_json(round_info)
 
         console.print(f"[bold]Round {round_info.id} Information:[/bold]")
-        console.print(f"Status: {round_info.status}")
-        console.print(f"Start Time: {round_info.start_time}")
-        console.print(f"End Time: {round_info.end_time}")
-        console.print(f"Claim by Type: {round_info.claim_by_type}")
-        console.print(f"Allow Resubmit: {round_info.allow_resubmit}")
-        console.print(f"Score Decay: {round_info.score_decay}")
+        display_round_details(round_info)
 
         return None
     except Exception as e:
@@ -47,7 +52,10 @@ def round_publish(
     try:
         round_info = api_client.publish_round(round_id)
 
-        console.print(f"[green]Round published: Round {round_info.index} (Challenge {round_info.challenge_id}), ID: {round_id}[/green]")
+        console.print(
+            f"[green]Round published: Round {round_info.index} "
+            f"(Challenge {round_info.challenge_id}), ID: {round_id}[/green]"
+        )
         return None
     except Exception as e:
         console.print(f"[red]Error: {str(e)}[/red]")
@@ -95,12 +103,7 @@ def round_create(
         console.print(f"Round ID: {round_info.id}")
         console.print(f"Challenge ID: {round_info.challenge_id}")
         console.print(f"Index: {round_info.index}")
-        console.print(f"Status: {round_info.status}")
-        console.print(f"Start Time: {round_info.start_time}")
-        console.print(f"End Time: {round_info.end_time}")
-        console.print(f"Claim by Type: {round_info.claim_by_type}")
-        console.print(f"Allow Resubmit: {round_info.allow_resubmit}")
-        console.print(f"Score Decay: {round_info.score_decay}")
+        display_round_details(round_info)
         
         return None
     except Exception as e:
@@ -181,12 +184,7 @@ def round_update(
             return print_as_json(round_info)
 
         console.print(f"[bold green]Round {round_info.id} updated successfully![/bold green]")
-        console.print(f"Status: {round_info.status}")
-        console.print(f"Start Time: {round_info.start_time}")
-        console.print(f"End Time: {round_info.end_time}")
-        console.print(f"Claim by Type: {round_info.claim_by_type}")
-        console.print(f"Allow Resubmit: {round_info.allow_resubmit}")
-        console.print(f"Score Decay: {round_info.score_decay}")
+        display_round_details(round_info)
 
         return None
     except Exception as e:

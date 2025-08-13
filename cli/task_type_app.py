@@ -7,6 +7,24 @@ from api_models import RoundTaskTypeCreateRequest
 
 task_type_app = typer.Typer(help="Task type management")
 
+
+def display_task_type_details(task_type, success_message: str, json: bool) -> None:
+    if json:
+        return print_as_json(task_type)
+
+    console.print(success_message)
+    console.print(f"[bold]Type:[/bold] {task_type.type}")
+    console.print(f"[bold]Round ID:[/bold] {task_type.round_id}")
+    console.print(
+        f"[bold]Max Tasks Per Team:[/bold] "
+        f"{task_type.max_tasks_per_team if task_type.max_tasks_per_team is not None else 'N/A'}"
+    )
+    console.print(f"[bold]Time to Solve:[/bold] {task_type.time_to_solve} minutes")
+    console.print(f"[bold]Generator URL:[/bold] {task_type.generator_url}")
+
+    return None
+
+
 @task_type_app.command("list")
 def task_type_list(
     round_id: int = typer.Option(..., "--round", "-r", help="Round ID"),
@@ -63,10 +81,16 @@ def task_type_show(
         console.print(f"[bold]Task Type ID:[/bold] {task_type.id}")
         console.print(f"[bold]Round ID:[/bold] {task_type.round_id}")
         console.print(f"[bold]Type:[/bold] {task_type.type}")
-        console.print(f"[bold]Max Tasks Per Team:[/bold] {task_type.max_tasks_per_team if task_type.max_tasks_per_team is not None else 'N/A'}")
+        console.print(
+            f"[bold]Max Tasks Per Team:[/bold] "
+            f"{task_type.max_tasks_per_team if task_type.max_tasks_per_team is not None else 'N/A'}"
+        )
         console.print(f"[bold]Time to Solve:[/bold] {task_type.time_to_solve} minutes")
         console.print(f"[bold]Generator URL:[/bold] {task_type.generator_url}")
-        console.print(f"[bold]Generator Settings:[/bold] {task_type.generator_settings if task_type.generator_settings else 'N/A'}")
+        console.print(
+            f"[bold]Generator Settings:[/bold] "
+            f"{task_type.generator_settings if task_type.generator_settings else 'N/A'}"
+        )
         console.print(f"[bold]Generator Secret:[/bold] {'*' * 8} (hidden)")
 
         return None
@@ -80,10 +104,10 @@ def task_type_create(
     round_id: int = typer.Option(..., "--round", "-r", help="Round ID"),
     type_name: str = typer.Option(..., "--type", "-t", help="Task type name"),
     generator_url: str = typer.Option(..., "--generator-url", "-g", help="Generator URL"),
-    generator_settings: Optional[str] = typer.Option(None, "--generator-settings", "-s", help="Generator settings (JSON)"),
+    generator_settings: Optional[str] = typer.Option(None, "--generator-settings", "-s", help="Gen settings (JSON)"),
     generator_secret: str = typer.Option(..., "--generator-secret", help="Generator secret"),
     max_tasks_per_team: Optional[int] = typer.Option(None, "--max-tasks", "-m", help="Maximum tasks per team"),
-    time_to_solve: int = typer.Option(60, "--time-to-solve", help="Time limit to solve the task in minutes (default: 60)"),
+    time_to_solve: int = typer.Option(60, "--time-to-solve", help="Time limit to solve the task in min (def: 60)"),
     json: bool = json_output_option
 ) -> None:
     """Create a new task type."""
@@ -102,15 +126,11 @@ def task_type_create(
 
         task_type = api_client.create_round_task_type(task_type_data)
 
-        if json:
-            return print_as_json(task_type)
-
-        console.print(f"[green]Task type created successfully with ID: {task_type.id}[/green]")
-        console.print(f"[bold]Type:[/bold] {task_type.type}")
-        console.print(f"[bold]Round ID:[/bold] {task_type.round_id}")
-        console.print(f"[bold]Max Tasks Per Team:[/bold] {task_type.max_tasks_per_team if task_type.max_tasks_per_team is not None else 'N/A'}")
-        console.print(f"[bold]Time to Solve:[/bold] {task_type.time_to_solve} minutes")
-        console.print(f"[bold]Generator URL:[/bold] {task_type.generator_url}")
+        display_task_type_details(
+            task_type,
+            f"[green]Task type created successfully with ID: {task_type.id}[/green]",
+            json,
+        )
 
         return None
     except Exception as e:
@@ -123,10 +143,10 @@ def task_type_update(
     task_type_id: int = typer.Option(..., "--id", help="Task Type ID"),
     type_name: Optional[str] = typer.Option(None, "--type", "-t", help="Task type name"),
     generator_url: Optional[str] = typer.Option(None, "--generator-url", "-g", help="Generator URL"),
-    generator_settings: Optional[str] = typer.Option(None, "--generator-settings", "-s", help="Generator settings (JSON)"),
+    generator_settings: Optional[str] = typer.Option(None, "--generator-settings", "-s", help="Gen settings (JSON)"),
     generator_secret: Optional[str] = typer.Option(None, "--generator-secret", help="Generator secret"),
     max_tasks_per_team: Optional[int] = typer.Option(None, "--max-tasks", "-m", help="Maximum tasks per team"),
-    time_to_solve: Optional[int] = typer.Option(None, "--time-to-solve", help="Time limit to solve the task in minutes"),
+    time_to_solve: Optional[int] = typer.Option(None, "--time-to-solve", help="Time limit to solve the task in min"),
     json: bool = json_output_option
 ) -> None:
     """Update an existing task type."""
@@ -147,15 +167,11 @@ def task_type_update(
 
         task_type = api_client.update_round_task_type(task_type_id, task_type_data)
 
-        if json:
-            return print_as_json(task_type)
-
-        console.print(f"[green]Task type updated successfully with ID: {task_type.id}[/green]")
-        console.print(f"[bold]Type:[/bold] {task_type.type}")
-        console.print(f"[bold]Round ID:[/bold] {task_type.round_id}")
-        console.print(f"[bold]Max Tasks Per Team:[/bold] {task_type.max_tasks_per_team if task_type.max_tasks_per_team is not None else 'N/A'}")
-        console.print(f"[bold]Time to Solve:[/bold] {task_type.time_to_solve} minutes")
-        console.print(f"[bold]Generator URL:[/bold] {task_type.generator_url}")
+        display_task_type_details(
+            task_type,
+            f"[green]Task type updated successfully with ID: {task_type.id}[/green]",
+            json,
+        )
 
         return None
     except Exception as e:

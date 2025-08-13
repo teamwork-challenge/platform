@@ -7,6 +7,7 @@ from rich.table import Table
 
 task_app = typer.Typer(help="Task management commands")
 
+
 @task_app.command("claim")
 def claim(
     task_type: Optional[str] = typer.Option(None, "--type", "-t", help="Task type"),
@@ -33,10 +34,10 @@ def claim(
 
 @task_app.command("show")
 def task_show(task_id: str, json: bool = json_output_option) -> None:
-    """Show task and its submissions.
+    """Show a task and its submissions.
 
     If the task statement is short (< 200 characters), also show its statement and input here.
-    For longer statements, keep output compact and suggest using `task show-input`.
+    For longer statements, keep an output compact and suggest using `task show-input`.
     """
     ensure_logged_in()
 
@@ -66,7 +67,7 @@ def task_show(task_id: str, json: bool = json_output_option) -> None:
                 console.print("\n[bold]Statement:[/bold] (too long to display inline)")
                 console.print(f"Use `task show-input {task_id}` to see the full input.")
         elif input_payload is not None:
-            # If there is no statement but there is input and it's short, show it
+            # If there is no statement but there is input, and it's short, show it
             if len(str(input_payload)) < 200:
                 console.print("\n[bold]Input:[/bold]")
                 console.print(str(input_payload))
@@ -116,7 +117,7 @@ def task_submit(
     file_path: Optional[Path] = typer.Option(None, "--file", help="Path to file with answer"),
     json: bool = json_output_option
 ) -> None:
-    """Submit an answer for a task."""
+    """Submit an answer for the task."""
     ensure_logged_in()
 
     if answer is None and file_path is None:
@@ -221,4 +222,3 @@ def task_list(
     except Exception as e:
         console.print(f"[red]Error: {str(e)}[/red]")
         raise typer.Exit(1)
-
