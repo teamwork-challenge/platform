@@ -338,20 +338,6 @@ def extract_task_id(output: str) -> str:
 DEFAULT_CHALLENGE_ID = "2"
 
 
-# useless test
-def get_challenge_id() -> str:
-    return DEFAULT_CHALLENGE_ID
-
-
-# useless test
-def get_round_id(challenge_id: str = DEFAULT_CHALLENGE_ID) -> str:
-    return "1"
-
-
-# useless test
-def get_task_type_id(round_id: str = None) -> str:
-    return "1"
-
 
 def create_task_type(round_id: str, type_name_prefix: str = "test_type") -> tuple[str, str]:
     type_name = f"{type_name_prefix}_{int(time.time())}"
