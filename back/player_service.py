@@ -106,8 +106,8 @@ class PlayerService:
             status=ApiTaskStatus.PENDING,
             challenge_id=challenge_id,
             team_id=team_id,
-            type=task_type,
-            round_id=game_round.id
+            round_id=game_round.id,
+            round_task_type_id=round_task_type.id
         )
 
         self.db.add(task)
@@ -184,7 +184,7 @@ class PlayerService:
     def get_existing_tasks(self, team_id: int, round_id: int, task_type: str | None = None) -> list[Task]:
         condition = (Task.team_id == team_id) & (Task.round_id == round_id)
         if task_type is not None:
-            condition &= (Task.type == task_type)
+            condition &= Task.round_task_type.has(RoundTaskType.type == task_type)
         stmt = select(Task).where(condition)
         return list(self.db.execute(stmt).scalars().all())
 
@@ -280,8 +280,8 @@ class PlayerService:
 
     def submit_task_answer(self, task_id: int, team_id: int, answer: str) -> ApiSubmission:
         task = self.ensure_valid_task(task_id, team_id)
-        game_round = self.ensure_valid_round(task.challenge_id)
-        round_task_type = self.ensure_valid_task_type(game_round.id, task.type)
+        ensure_valid_round(task.challenge_id)
+        round_task_type = task.round_task_type
 
         # Check if the submission is within the time limit (handle naive vs aware datetimes)
         created_at = task.created_at
