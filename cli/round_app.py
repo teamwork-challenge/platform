@@ -2,14 +2,14 @@ import typer
 from typing import Optional
 from rich.table import Table
 from datetime import datetime
-from api_models import RoundCreateRequest, RoundStatus, RoundUpdateRequest
+from api_models import Round, RoundCreateRequest, RoundStatus, RoundUpdateRequest
 from cli.formatter import print_as_json
 from cli.app_deps import api_client, json_output_option, console, ensure_logged_in
 
 round_app = typer.Typer(help="Round management commands")
 
 
-def display_round_details(round_info) -> None:
+def display_round_details(round_info: Round) -> None:
     console.print(f"Status: {round_info.status}")
     console.print(f"Start Time: {round_info.start_time}")
     console.print(f"End Time: {round_info.end_time}")

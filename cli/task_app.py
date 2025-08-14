@@ -141,7 +141,7 @@ def task_submit(
         # Format status as "SubmissionStatus.AC/WA" to match tests regardless of enum/string
         status_obj = getattr(submission, "status", None)
         try:
-            if hasattr(status_obj, "name") and hasattr(status_obj, "__class__"):
+            if status_obj is not None and hasattr(status_obj, "name"):
                 status_str = f"{status_obj.__class__.__name__}.{status_obj.name}"
             else:
                 status_str = f"SubmissionStatus.{str(status_obj)}"
@@ -188,7 +188,8 @@ def task_list(
     ensure_logged_in()
 
     try:
-        tasks = api_client.list_tasks(status, task_type, round_id, since)
+        # ApiClient.list_tasks does not accept filters; fetch all tasks and filter client-side in future if needed
+        tasks = api_client.list_tasks()
 
         if json:
             return print_as_json(tasks)

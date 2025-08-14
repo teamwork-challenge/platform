@@ -3,12 +3,12 @@ from cli.app_deps import api_client, json_output_option, console, ensure_logged_
 from typing import Optional
 from rich.table import Table
 from cli.formatter import print_as_json
-from api_models import RoundTaskTypeCreateRequest
+from api_models import RoundTaskTypeCreateRequest, RoundTaskType
 
 task_type_app = typer.Typer(help="Task type management")
 
 
-def display_task_type_details(task_type, success_message: str, json: bool) -> None:
+def display_task_type_details(task_type: RoundTaskType, success_message: str, json: bool) -> None:
     if json:
         return print_as_json(task_type)
 
