@@ -17,7 +17,7 @@ STATEMENTS = {
     "v5": "decode this text",
     "v6": "decode this text",
     "v7": "decode this text",
-    "v8": "encode this text ",
+    "v8": "encode this text in binary (0/1 only), optimally (minimal bits), with prefix-free codes. "
 }
 
 # --------------------------
@@ -55,7 +55,7 @@ def generate_morse_code(sentence: str) -> str:
 
 
 def generate_reversed_swapped_sentence(sentence: str) -> str:
-    swapped_chars = sentence
+    swapped_chars = ''
     for i in range(0, len(sentence), 2):
         if i + 1 < len(sentence):
             swapped_chars += sentence[i + 1]
@@ -111,11 +111,14 @@ def add_hint_sentence(sentence: str) -> str:
     while i < len(sentence_words) and i < len(hint_words):
         result.append(hint_words[i])
         result.append(sentence_words[i])
+        i += 1
     while i < len(sentence_words):
         result.append(sentence_words[i])
+        i += 1
     while i < len(hint_words):
         result.append(hint_words[i])
-    return ''.join(result)
+        i += 1
+    return ' '.join(result)
 
 
 def check_student_answer_huffman(minimal_bits_number: int, student_answer: str) -> Tuple[bool, str]:
@@ -197,15 +200,18 @@ def generate_input(level: int, sentence: str):
     elif level == 3:
         return '\n'.join(generate_affine_cipher(sentence)), sentence
     elif level == 4:
-        return generate_morse_code(add_hint_sentence(sentence)), sentence
+        sentence = add_hint_sentence(sentence)
+        return generate_morse_code(sentence), sentence
     elif level == 5:
-        return generate_reversed_swapped_sentence(''.join(sentence.split())), sentence
+        sentence = ''.join(sentence.split())
+        return generate_reversed_swapped_sentence(sentence), sentence
     elif level == 6:
         return generate_affine_cipher(sentence)[0], sentence
     elif level == 7:
         return generate_morse_code(generate_affine_cipher(sentence)[0]), sentence
     elif level == 8:
-        return ''.join(sentence.split()), huffman_bit_length(''.join(sentence.split()))
+        sentence = ''.join(sentence.split())
+        return sentence, huffman_bit_length(sentence)
 
 
 @router.post("/gen", response_model=GenResponse)
