@@ -152,7 +152,6 @@ def test_task_claim():
     run_ok("task", "claim")
 
 
-# TODO: show full task info with statement and input on claim and show
 def test_task_show():
     login_team1()
     task_id = get_task_id()
@@ -173,8 +172,6 @@ def test_task_show_input():
     assert "1 2" in result.output
 
 
-# TODO: add test: submit correct answer
-# TODO: add test: submit without --file
 def test_task_submit_file():
     login_team1()
     task_id = get_task_id()
@@ -186,7 +183,6 @@ def test_task_submit_file():
     try:
         result = run_ok("task", "submit", task_id, "--file", temp_file)
         assert "Successfully submitted answer for task 1" in result.output
-        # TODO: human friendly status: Wrong Answer
         assert "Status: SubmissionStatus.WA" in result.output
     finally:
         os.unlink(temp_file)

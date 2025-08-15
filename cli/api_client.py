@@ -221,12 +221,9 @@ class ApiClient:
         return Submission.model_validate(data)
 
     def list_tasks(self) -> TaskList:
-        """List tasks. If an endpoint is unavailable, return an empty list to keep CLI stable in tests."""
+        """List tasks."""
         data = self._make_request("GET", "/tasks")
-        # Allow both list and object with a task's key
-        if isinstance(data, list):
-            return TaskList.model_validate({"tasks": data})
-        return TaskList.model_validate(data)
+        return TaskList.model_validate({"tasks": data})
 
     # Board-related methods
     def get_dashboard(self, round_id: Optional[int] = None) -> Dashboard:

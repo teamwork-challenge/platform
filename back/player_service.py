@@ -87,6 +87,10 @@ class PlayerService:
         self.db = db
         self.task_gen_client = TaskGenClient()
 
+    def list_tasks_for_team(self, team_id: int) -> list[Task]:
+        stmt = select(Task).where(Task.team_id == team_id)
+        return list(self.db.execute(stmt).scalars().all())
+
     def get_task(self, task_id: int) -> Task | None:
         stmt = select(Task).where(Task.id == task_id)
         return self.db.execute(stmt).scalar_one_or_none()

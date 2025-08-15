@@ -455,6 +455,16 @@ def create_task(
         raise HTTPException(status_code=400, detail=str(e))
 
 
+@player.get("/tasks", response_model=list[Task])
+def list_tasks(
+    auth_data: AuthData = Depends(authenticate_player),
+    player_service: PlayerService = Depends(get_player_service)
+) -> Sequence[DbTask]:
+    if auth_data.team_id is None:
+        raise HTTPException(status_code=400, detail="Team not found")
+    return player_service.list_tasks_for_team(auth_data.team_id)
+
+
 app = FastAPI(title="Teamwork Challenge API",
               description="API for managing teamwork challenges and tasks",
               version="1.0.0",
