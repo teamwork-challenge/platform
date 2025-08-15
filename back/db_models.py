@@ -23,13 +23,18 @@ class Team(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     api_key: Mapped[str] = mapped_column(unique=True, index=True)
-    challenge_id: Mapped[int] = mapped_column(ForeignKey("challenges.id", ondelete="CASCADE"), index=True)
     name: Mapped[str] = mapped_column(nullable=False)
     members: Mapped[str] = mapped_column(nullable=False)
     captain_contact: Mapped[str] = mapped_column(nullable=False)
     total_score: Mapped[int] = mapped_column(default=0, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
+    # Foreign key references
+    challenge_id: Mapped[int] = mapped_column(
+        ForeignKey("challenges.id", ondelete="CASCADE"),
+        index=True
+    )
+    # Relationships
     challenge = relationship("Challenge", back_populates="teams")
 
 
@@ -37,11 +42,6 @@ class Round(Base):
     __tablename__ = "rounds"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    challenge_id: Mapped[int] = mapped_column(
-        ForeignKey("challenges.id", ondelete="CASCADE", name='fk_rounds_challenge_id'),
-        nullable=False,
-        index=True
-    )
     index: Mapped[int] = mapped_column(nullable=False)
     status: Mapped[RoundStatus] = mapped_column(Enum(RoundStatus), default=RoundStatus.DRAFT, nullable=False)
     start_time: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
@@ -50,11 +50,21 @@ class Round(Base):
     allow_resubmit: Mapped[bool] = mapped_column(default=False, nullable=False)
     score_decay: Mapped[str] = mapped_column(default="no", nullable=False)
 
-    # Tell SQLAlchemy which foreign key to use (Challenge <-> Round reference each other)
-    challenge = relationship("Challenge", back_populates="rounds", foreign_keys="[Round.challenge_id]")
+    # Foreign key references
+    challenge_id: Mapped[int] = mapped_column(
+        ForeignKey("challenges.id", ondelete="CASCADE", name='fk_rounds_challenge_id'),
+        nullable=False,
+        index=True
+    )
+    # Relationships
+    challenge = relationship(
+        "Challenge",
+        back_populates="rounds",
+        foreign_keys="[Round.challenge_id]"
+    )
     task_types = relationship(
         "RoundTaskType",
-        back_populates="game_round",
+        back_populates="round",
         cascade="all, delete-orphan",
         passive_deletes=True
     )
@@ -66,14 +76,20 @@ class Challenge(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     title: Mapped[str] = mapped_column(nullable=False)
     description: Mapped[str] = mapped_column(nullable=False)
+    deleted: Mapped[bool] = mapped_column(default=False, nullable=False)
+
+    # Foreign key references
     current_round_id: Mapped[int | None] = mapped_column(
         ForeignKey("rounds.id", ondelete="SET NULL", name='fk_challenges_current_round_id'),
         nullable=True
     )
-    deleted: Mapped[bool] = mapped_column(default=False, nullable=False)
-
-    teams = relationship("Team", back_populates="challenge", cascade="all, delete-orphan", passive_deletes=True)
-    # Tell SQLAlchemy which foreign key to use (Challenge <-> Round reference each other)
+    # Relationships
+    teams = relationship(
+        "Team",
+        back_populates="challenge",
+        cascade="all, delete-orphan",
+        passive_deletes=True
+    )
     rounds = relationship(
         "Round",
         back_populates="challenge",
@@ -87,7 +103,6 @@ class RoundTaskType(Base):
     __tablename__ = "round_task_types"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    round_id: Mapped[int] = mapped_column(ForeignKey("rounds.id", ondelete="CASCADE"), nullable=False, index=True)
     type: Mapped[str] = mapped_column(nullable=False)
     max_tasks_per_team: Mapped[int] = mapped_column(nullable=True)
     generator_url: Mapped[str] = mapped_column(nullable=False)
@@ -96,7 +111,21 @@ class RoundTaskType(Base):
     score: Mapped[int] = mapped_column(default=100, nullable=False)
     time_to_solve: Mapped[int] = mapped_column(nullable=False)
 
-    game_round = relationship("Round", back_populates="task_types")
+    # Foreign key references
+    round_id: Mapped[int] = mapped_column(
+        ForeignKey("rounds.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True
+    )
+    # Relationships
+    round = relationship(
+        "Round",
+        back_populates="task_types"
+    )
+    tasks = relationship(
+        "Task",
+        back_populates="round_task_type"
+    )
 
 
 class Task(Base):
@@ -105,25 +134,52 @@ class Task(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     title: Mapped[str] = mapped_column(nullable=False)
     status: Mapped[TaskStatus] = mapped_column(Enum(TaskStatus), nullable=False, default=TaskStatus.PENDING)
-    challenge_id: Mapped[int] = mapped_column(
-        ForeignKey("challenges.id", ondelete="CASCADE"),
-        nullable=False,
-        index=True
-    )
-    team_id: Mapped[int] = mapped_column(ForeignKey("teams.id", ondelete="CASCADE"), nullable=False, index=True)
-    round_id: Mapped[int] = mapped_column(ForeignKey("rounds.id", ondelete="CASCADE"), nullable=False, index=True)
-    type: Mapped[str] = mapped_column(nullable=False)
     statement_version: Mapped[str] = mapped_column(nullable=True)
     score: Mapped[int] = mapped_column(nullable=True)
     input: Mapped[str] = mapped_column(nullable=True)
     checker_hint: Mapped[str] = mapped_column(nullable=True)
     statement: Mapped[str] = mapped_column(nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
-    
+
+    # Foreign key references
+    challenge_id: Mapped[int] = mapped_column(
+        ForeignKey("challenges.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True
+    )
+    team_id: Mapped[int] = mapped_column(
+        ForeignKey("teams.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True
+    )
+    round_id: Mapped[int] = mapped_column(
+        ForeignKey("rounds.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True
+    )
+    round_task_type_id: Mapped[int | None] = mapped_column(
+        ForeignKey("round_task_types.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True
+    )
+
+    # Relationships
     challenge = relationship("Challenge")
     team = relationship("Team")
-    game_round = relationship("Round")
-    submissions = relationship("Submission", back_populates="task", cascade="all, delete-orphan", passive_deletes=True)
+    round = relationship("Round")
+    round_task_type = relationship("RoundTaskType", back_populates="tasks")
+    submissions = relationship(
+        "Submission",
+        back_populates="task",
+        cascade="all, delete-orphan",
+        passive_deletes=True
+    )
+
+    # Computed property for backward compatibility
+    @property
+    def type(self) -> str:
+        # Safely return the type from the related RoundTaskType
+        return self.round_task_type.type if self.round_task_type is not None else ""
 
 
 class Submission(Base):
@@ -131,10 +187,16 @@ class Submission(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     status: Mapped[SubmissionStatus] = mapped_column(Enum(SubmissionStatus), nullable=False)
-    submitted_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
-    task_id: Mapped[int] = mapped_column(ForeignKey("tasks.id", ondelete="CASCADE"), nullable=False, index=True)
+    submitted_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     answer: Mapped[str] = mapped_column(nullable=True)
     explanation: Mapped[str] = mapped_column(nullable=True)
     score: Mapped[int] = mapped_column(nullable=True)
-    
+
+    # Foreign key references
+    task_id: Mapped[int] = mapped_column(
+        ForeignKey("tasks.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True
+    )
+    # Relationships
     task = relationship("Task", back_populates="submissions")

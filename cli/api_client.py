@@ -20,13 +20,13 @@ class ApiClient:
     def save_api_key(self, api_key: str) -> None:
         """Save API key to config file."""
         self.config_manager.save_api_key(api_key)
-        # Update headers with new API key
+        # Update headers with a new API key
         self._headers = self._build_headers()
 
     def remove_api_key(self) -> None:
-        """Remove API key from config file."""
+        """Remove an API key from the config file."""
         self.config_manager.remove_api_key()
-        # Update headers without API key
+        # Update headers without an API key
         self._headers = self._build_headers()
         
     def _build_headers(self) -> Dict[str, str]:
@@ -58,38 +58,31 @@ class ApiClient:
         response.raise_for_status()
         return response.json()
 
-
     # Team-related methods
     def auth(self) -> str:
-        """Get team information."""
         data = self._make_request("GET", "/auth")
         return str(data)
 
     # Team-related methods
     def get_team_info(self) -> Team:
-        """Get team information."""
         data = self._make_request("GET", "/team")
         return Team.model_validate(data)
 
     def rename_team(self, new_name: str) -> Team:
-        """Rename team."""
         data = self._make_request("PUT", "/team", {"name": new_name})
         return Team.model_validate(data)
 
     # Challenge-related methods
     def get_challenges(self) -> list[Challenge]:
-        """Get challenge information."""
         data = self._make_request("GET", "/challenges")
         return [Challenge.model_validate(d) for d in data]
 
     # Challenge-related methods
     def get_challenge_info(self, challenge_id: Optional[int]) -> Challenge:
-        """Get challenge information."""
         data = self._make_request("GET", f"/challenges/{challenge_id if challenge_id is not None else 'current'}")
         return Challenge.model_validate(data)
 
     def update_challenge(self, challenge_id: int, update_data: Any) -> Challenge:
-        """Update a challenge."""
         data = self._make_request("PUT", f"/challenges/{challenge_id}", update_data.model_dump(exclude_unset=True))
         return Challenge.model_validate(data)
 
@@ -101,7 +94,6 @@ class ApiClient:
 
     # Round-related methods
     def get_round_info(self, round_id: Optional[int] = None) -> Round:
-        """Get round information."""
         endpoint = f"/rounds/{round_id}" if round_id else "/rounds/current"
         data = self._make_request("GET", endpoint)
         return Round.model_validate(data)
@@ -120,10 +112,9 @@ class ApiClient:
         return RoundList.model_validate({"rounds": data})
 
     def publish_round(self, round_id: int) -> Round:
-        """Publish a round."""
-        # First get the round info to get the challenge_id and other required fields
+        # First, get the round info to get the challenge_id and other required fields
         round_info = self.get_round_info(round_id)
-        # Create update request with all required fields
+        # Create an update request with all required fields
         update_data = RoundUpdateRequest(
             status=RoundStatus.PUBLISHED,
             index=round_info.index,
@@ -136,8 +127,7 @@ class ApiClient:
         return self.update_round(round_id, update_data)
 
     def update_round(self, round_id: int, update_data: RoundUpdateRequest) -> Round:
-        """Update a round."""
-        # First get the round info to get the challenge_id and other required fields
+        # First, get the round info to get the challenge_id and other required fields
         round_info = self.get_round_info(round_id)
         
         # Create a dictionary with all the required fields from the existing round
@@ -145,8 +135,16 @@ class ApiClient:
         data_dict = {
             "challenge_id": round_info.challenge_id,
             "index": round_info.index,
-            "start_time": round_info.start_time.isoformat() if hasattr(round_info.start_time, 'isoformat') else round_info.start_time,
-            "end_time": round_info.end_time.isoformat() if hasattr(round_info.end_time, 'isoformat') else round_info.end_time,
+            "start_time": (
+                round_info.start_time.isoformat()
+                if hasattr(round_info.start_time, "isoformat")
+                else round_info.start_time
+            ),
+            "end_time": (
+                round_info.end_time.isoformat()
+                if hasattr(round_info.end_time, "isoformat")
+                else round_info.end_time
+            ),
             "claim_by_type": round_info.claim_by_type,
             "allow_resubmit": round_info.allow_resubmit,
             "score_decay": round_info.score_decay,
@@ -162,17 +160,14 @@ class ApiClient:
         return Round.model_validate(data)
 
     def create_round(self, round_data: RoundCreateRequest) -> Round:
-        """Create a new round."""
         data = self._make_request("POST", "/rounds", round_data.model_dump(mode="json"))
         return Round.model_validate(data)
         
     def delete_round(self, round_id: int) -> DeleteResponse:
-        """Delete a round."""
         return DeleteResponse.model_validate(self._make_request("DELETE", f"/rounds/{round_id}"))
 
     # Task Type-related methods
     def get_round_task_types(self, round_id: int) -> list[RoundTaskType]:
-        """Get all task types for a round."""
         data = self._make_request("GET", f"/task-types?round_id={round_id}")
         return [RoundTaskType.model_validate(d) for d in data]
     
@@ -182,7 +177,6 @@ class ApiClient:
         return RoundTaskType.model_validate(data)
     
     def create_round_task_type(self, task_type_data: RoundTaskTypeCreateRequest) -> RoundTaskType:
-        """Create a new task type."""
         data = self._make_request(
             "POST", 
             "/task-types", 
@@ -190,9 +184,8 @@ class ApiClient:
         )
         return RoundTaskType.model_validate(data)
     
-    def update_round_task_type(self, task_type_id: int, 
-                              task_type_data: RoundTaskTypeCreateRequest) -> RoundTaskType:
-        """Update a task type."""
+    def update_round_task_type(self, task_type_id: int,
+                               task_type_data: RoundTaskTypeCreateRequest) -> RoundTaskType:
         data = self._make_request(
             "PUT", 
             f"/task-types/{task_type_id}", 
@@ -201,53 +194,43 @@ class ApiClient:
         return RoundTaskType.model_validate(data)
     
     def delete_round_task_type(self, task_type_id: int) -> RoundTaskType:
-        """Delete a task type."""
         return RoundTaskType.model_validate(self._make_request("DELETE", f"/task-types/{task_type_id}"))
 
     # Task-related methods
     def claim_task(self, task_type: Optional[str] = None) -> Task:
-        """Claim a new task."""
         query = "" if task_type is None else f"?task_type={task_type}"
         response = self._make_request("POST", f"/tasks{query}")
         return Task.model_validate(response)
 
     def get_task_info(self, task_id: str) -> Task:
-        """Get task information."""
         data = self._make_request("GET", f"/tasks/{task_id}")
         return Task.model_validate(data)
 
     def get_task_input(self, task_id: str) -> str:
-        """Get task input. Fetches task and returns its input field."""
+        """Get task input. Fetches a task and returns its input field."""
         data = self._make_request("GET", f"/tasks/{task_id}")
         # The response is a Task-like dict; extract 'input' if present
         return str(data.get("input", ""))
 
     def submit_task_answer(self, task_id: str, answer: str) -> Submission:
-        """Submit an answer for a task."""
         data = self._make_request("POST", f"/tasks/{task_id}/submission", {"answer": answer})
         return Submission.model_validate(data)
 
     def get_submission_info(self, submit_id: str) -> Submission:
-        """Get submission information."""
         data = self._make_request("GET", f"/submissions/{submit_id}")
         return Submission.model_validate(data)
 
-    def list_tasks(self, status: Optional[str] = None, task_type: Optional[str] = None,
-                 round_id: Optional[int] = None, since: Optional[str] = None) -> TaskList:
-        """List tasks. If endpoint is unavailable, return an empty list to keep CLI stable in tests."""
-        try:
-            data = self._make_request("GET", "/tasks")
-            # Allow both list and object with tasks key
-            if isinstance(data, list):
-                return TaskList.model_validate({"tasks": data})
-            return TaskList.model_validate(data)
-        except Exception:
-            # Fallback: empty task list
-            return TaskList.model_validate({"tasks": []})
+    def list_tasks(self) -> TaskList:
+        """List tasks. If an endpoint is unavailable, return an empty list to keep CLI stable in tests."""
+        data = self._make_request("GET", "/tasks")
+        # Allow both list and object with a task's key
+        if isinstance(data, list):
+            return TaskList.model_validate({"tasks": data})
+        return TaskList.model_validate(data)
 
     # Board-related methods
     def get_dashboard(self, round_id: Optional[int] = None) -> Dashboard:
-        """Get dashboard with task statistics."""
+        """Get a dashboard with task statistics."""
         endpoint = "/dashboard"
         if round_id:
             endpoint += f"?round_id={round_id}"
@@ -255,7 +238,7 @@ class ApiClient:
         return Dashboard.model_validate(data)
 
     def get_leaderboard(self, round_id: Optional[int] = None) -> Leaderboard:
-        """Get leaderboard with team scores."""
+        """Get a leaderboard with team scores."""
         endpoint = "/leaderboard"
         if round_id:
             endpoint += f"?round_id={round_id}"

@@ -1,7 +1,7 @@
 import json
 import os
 from pathlib import Path
-from typing import Optional, Dict, Any
+from typing import Any
 
 
 class ConfigManager:
@@ -13,7 +13,7 @@ class ConfigManager:
         self._config = self._load_config()
 
     def _load_config(self) -> Any:
-        """Load configuration from file."""
+        """Load configuration from the file."""
         if not self.config_path.exists():
             return {}
 
@@ -45,20 +45,20 @@ class ConfigManager:
             self.save_config()
 
     def get_api_key(self) -> str | None:
-        """Get API key from config."""
+        """Get an API key from config."""
         res = self.get("api_key")
         return str(res) if res else None
 
     def save_api_key(self, api_key: str) -> None:
-        """Save API key to config."""
+        """Save an API key to config."""
         self.set("api_key", api_key)
 
     def remove_api_key(self) -> None:
-        """Remove API key from config."""
+        """Remove an API key from config."""
         self.remove("api_key")
 
     def get_base_url(self) -> str:
-        """Get base URL from config or environment variable."""
+        """Get base URL from a config or environment variable."""
         return os.environ.get("CHALLENGE_API_URL", "http://127.0.0.1:8088") or self.get("base_url")
 
     def save_base_url(self, base_url: str) -> None:

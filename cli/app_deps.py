@@ -10,6 +10,7 @@ CONFIG_PATH = Path.home() / ".challenge" / "config.json"
 config_manager = ConfigManager(CONFIG_PATH)
 api_client = ApiClient(config_manager)
 
+
 def ensure_logged_in() -> None:
     if config_manager.get_api_key() is None:
         console.print("[red]Not logged in. Use 'challenge login <API_KEY>' to log in.[/red]")

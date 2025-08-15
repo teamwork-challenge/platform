@@ -10,23 +10,35 @@ from api_models import ChallengeUpdateRequest, Challenge
 
 app = typer.Typer(help="Teamwork Challenge CLI", pretty_exceptions_short=True, pretty_exceptions_show_locals=False)
 
+
 # Authentication commands
 @app.command()
 def login(api_key: str) -> None:
-    """Store API key into config file after successful login."""
+    """Store an API key into the config file after successful login."""
+    # Save the API key and verify it's valid by calling /auth.
+    # If verification fails, remove the key and re-raise the error so tests can catch it.
     api_client.save_api_key(api_key)
-    role = api_client.auth()
+    try:
+        role = api_client.auth()
+    except Exception:
+        # Revert saved invalid key
+        api_client.remove_api_key()
+        raise
     console.print(f"[green]Successfully logged in with role {role} using API key: {api_key}[/green]")
+
 
 @app.command()
 def logout() -> None:
-    """Remove API key from config file."""
+    """Remove an API key from the config file."""
     api_client.remove_api_key()
     console.print("[green]Successfully logged out[/green]")
 
 
 @app.command("show")
-def show(challenge_id: Optional[int] = typer.Option(None, "--challenge-id", "-c", help="Challenge ID"), as_json: bool = json_output_option) -> None:
+def show(
+    challenge_id: Optional[int] = typer.Option(None, "--challenge-id", "-c", help="Challenge ID"),
+    as_json: bool = json_output_option
+) -> None:
     """Show challenge information."""
     ensure_logged_in()
 
@@ -74,6 +86,8 @@ def update(
     console.print("[bold green]Challenge updated successfully![/bold green]")
     print_challenge(challenge)
 
+    return None
+
 
 @app.command("delete")
 def delete(
@@ -101,6 +115,8 @@ def delete(
         return print_as_json(result)
 
     console.print(f"[bold green]Challenge {challenge_id} marked as deleted successfully![/bold green]")
+
+    return None
 
 
 def print_challenge(challenge: Challenge) -> None:

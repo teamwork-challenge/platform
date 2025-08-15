@@ -15,7 +15,7 @@ def print_as_json(obj: Any) -> None:
 
 
 def as_table(obj: Any) -> Table:
-    table = Table(title = type(obj).__name__)
+    table = Table(title=type(obj).__name__)
     table.add_column("Field", justify="left", style="cyan", no_wrap=True)
     table.add_column("Value", justify="left", style="magenta")
     if isinstance(obj, BaseModel):
@@ -29,7 +29,7 @@ def as_table(obj: Any) -> Table:
     return table
 
 
-def pretty_print(obj: Any, as_json:bool=False) -> None:
+def pretty_print(obj: Any, as_json: bool = False) -> None:
     if as_json:
         print_as_json(obj)
     else:

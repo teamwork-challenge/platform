@@ -4,6 +4,7 @@ from cli.formatter import print_as_json
 
 team_app = typer.Typer(help="Team management commands")
 
+
 # Team commands
 @team_app.command("show")
 def team_show(as_json: bool = json_output_option) -> None:
@@ -21,7 +22,6 @@ def team_show(as_json: bool = json_output_option) -> None:
         console.print(f"Team Name: {team.name}")
         console.print(f"Members: {team.members}")
         console.print(f"Challenge ID: {team.challenge_id}")
-
 
         return None
     except Exception as e:
@@ -46,5 +46,3 @@ def team_rename(new_name: str, as_json: bool = json_output_option) -> None:
     except Exception as e:
         console.print(f"[red]Error: {str(e)}[/red]")
         raise typer.Exit(1)
-
-
