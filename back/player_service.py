@@ -280,7 +280,7 @@ class PlayerService:
 
     def submit_task_answer(self, task_id: int, team_id: int, answer: str) -> ApiSubmission:
         task = self.ensure_valid_task(task_id, team_id)
-        ensure_valid_round(task.challenge_id)
+        self.ensure_valid_round(task.challenge_id)
         round_task_type = task.round_task_type
 
         # Check if the submission is within the time limit (handle naive vs aware datetimes)

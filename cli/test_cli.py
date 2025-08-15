@@ -322,6 +322,7 @@ def login_team2() -> Result:
 def run_ok(*args: str) -> Result:
     result = runner.invoke(app, list(args), catch_exceptions=False)
     if result.exit_code != 0:
+        print(f"Output:\n{result.output}")
         # Don't try to access stderr if it's not captured
         assert False, f"Command failed with exit code {result.exit_code}"
     return result
