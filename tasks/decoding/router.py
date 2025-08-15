@@ -10,14 +10,14 @@ from api_models import GenRequest, GenResponse, CheckRequest, CheckResult
 
 router = APIRouter()
 STATEMENTS = {
-    "v1": "",
-    "v2": "",
-    "v3": "",
-    "v4": "",
-    "v5": "",
-    "v6": "",
-    "v7": "",
-    "v8": "",
+    "v1": "decode this text",
+    "v2": "decode this text",
+    "v3": "decode this text",
+    "v4": "decode this text",
+    "v5": "decode this text",
+    "v6": "decode this text",
+    "v7": "decode this text",
+    "v8": "encode this text ",
 }
 
 # --------------------------
@@ -53,6 +53,19 @@ def generate_caesar_cipher(sentence: str, shift: int = 1) -> str:
 def generate_morse_code(sentence: str) -> str:
     return ' '.join(MORSE_CODE.get(char, '') for char in sentence if char.isalnum() or char == ' ')
 
+
+def generate_reversed_swapped_sentence(sentence: str) -> str:
+    swapped_chars = sentence
+    for i in range(0, len(sentence), 2):
+        if i + 1 < len(sentence):
+            swapped_chars += sentence[i + 1]
+            swapped_chars += sentence[i]
+        else:
+            swapped_chars += sentence[i]
+    reversed_sentence = swapped_chars[::-1]
+    return ''.join(reversed_sentence)
+
+
 def generate_affine_cipher(sentence: str) -> Tuple[str, str]:
     coprimes = [n for n in range(1, 26, 2) if gcd(n, 26) == 1]
     a = random.choice(coprimes)
@@ -60,23 +73,25 @@ def generate_affine_cipher(sentence: str) -> Tuple[str, str]:
     result = ''.join([chr(((a * (ord(ch) - ord('a')) + b) % 26) + ord('a')) if ch.isalpha() else ch for ch in sentence])
     return result, f"f(x) = ({a} * x + {b}) mod 26"
 
+
 def is_binary_string(s: str) -> bool:
     return all(ch in '01' for ch in s)
+
 
 def is_prefix_free(codes: List[str]) -> bool:
     # Sort codes by length, then check if any code is prefix of another
     sorted_codes = sorted(codes, key=len)
     for i in range(len(sorted_codes)):
-        for j in range(i+1, len(sorted_codes)):
+        for j in range(i + 1, len(sorted_codes)):
             if sorted_codes[j].startswith(sorted_codes[i]):
                 return False
     return True
 
+
 def huffman_bit_length(sentence: str) -> int:
     freq = Counter(sentence)
-    # Special case: only one unique character
     if len(freq) == 1:
-        return len(sentence)  # all characters use 1 bit
+        return len(sentence)
     heap = list(freq.values())
     heapq.heapify(heap)
     total_bits = 0
@@ -86,6 +101,21 @@ def huffman_bit_length(sentence: str) -> int:
         total_bits += f1 + f2
         heapq.heappush(heap, f1 + f2)
     return total_bits
+
+
+def add_hint_sentence(sentence: str) -> str:
+    hint_words = ['reverse', 'and', 'swap', 'adjacent', 'characters']
+    sentence_words = sentence.split()
+    result = []
+    i = 0
+    while i < len(sentence_words) and i < len(hint_words):
+        result.append(hint_words[i])
+        result.append(sentence_words[i])
+    while i < len(sentence_words):
+        result.append(sentence_words[i])
+    while i < len(hint_words):
+        result.append(hint_words[i])
+    return ''.join(result)
 
 
 def check_student_answer_huffman(minimal_bits_number: int, student_answer: str) -> Tuple[bool, str]:
@@ -99,9 +129,9 @@ def check_student_answer_huffman(minimal_bits_number: int, student_answer: str) 
         return False, f"Too many encoded symbols: {n}"
 
     if len(lines) != n + 2:
-        return False, f"Expected {n} code lines + encoded text, got {len(lines)-1}"
+        return False, f"Expected {n} code lines + encoded text, got {len(lines) - 1}"
 
-    char_code_lines = lines[1:1+n]
+    char_code_lines = lines[1:1 + n]
     encoded_text = lines[-1]
 
     # Parse codes
@@ -126,9 +156,8 @@ def check_student_answer_huffman(minimal_bits_number: int, student_answer: str) 
     if not is_binary_string(encoded_text):
         return False, "Encoded text contains non-binary characters"
 
-    #TODO
-    # Compute total bits used by student code
-    # Compute minimal bits by Huffman
+    if len(encoded_text) != minimal_bits_number:
+        return False, "Encoding is not optimal, use less bits"
 
     return True, "Code is binary, prefix-free, and optimal"
 
@@ -160,27 +189,43 @@ def get_difficulty(request: GenRequest) -> int:
     return min(level, 8)
 
 
+def generate_input(level: int, sentence: str):
+    if level == 1:
+        return generate_caesar_cipher(sentence, 1), sentence
+    elif level == 2:
+        return generate_caesar_cipher(sentence, random.randint(0, 26)), sentence
+    elif level == 3:
+        return '\n'.join(generate_affine_cipher(sentence)), sentence
+    elif level == 4:
+        return generate_morse_code(add_hint_sentence(sentence)), sentence
+    elif level == 5:
+        return generate_reversed_swapped_sentence(''.join(sentence.split())), sentence
+    elif level == 6:
+        return generate_affine_cipher(sentence)[0], sentence
+    elif level == 7:
+        return generate_morse_code(generate_affine_cipher(sentence)[0]), sentence
+    elif level == 8:
+        return ''.join(sentence.split()), huffman_bit_length(''.join(sentence.split()))
+
+
 @router.post("/gen", response_model=GenResponse)
 async def generate_task(request: GenRequest):
-    """Generate a new a_plus_b task"""
+    """Generate a new task"""
     level = get_difficulty(request)
-    type_a = random.randint(1, level)  # Cap at available types
-    type_b = random.randint(1, level)
+    if level != 4:
+        level = random.randint(1, level)
 
-    # Generate inputs (handles matrix size automatically)
-    a, b = generate_mixed_types(type_a, type_b)
-
-    # Create input string representation
-    input_data = f"{a}\n{b}"
+    input_data, hint_data = generate_input(level, get_random_sentence())
 
     # Get statement based on highest complexity type
     statement_key = f"v{level}"
+
     return GenResponse(
         statement_version=statement_key,
         statement=STATEMENTS[statement_key],
         score="100",
         input=input_data,
-        checker_hint=get_answer(a, b, type_a, type_b)
+        checker_hint=hint_data
     )
 
 
@@ -192,20 +237,30 @@ async def get_statements():
 
 @router.post("/check", response_model=CheckResult)
 async def check_answer(request: CheckRequest) -> CheckResult:
-    """Check the answer for an a_plus_b task"""
+    """Check the answer for a task"""
     try:
         # Get the expected answer from the checker hint
         expected_answer = request.checker_hint.strip()
-
         # Check if the answer is correct
-        if request.answer.strip() == expected_answer:
-            return CheckResult(status="AC", score=1.0)
+        if expected_answer.isnumeric():
+            answer_data, error_data = check_student_answer_huffman(int(expected_answer), request.answer.strip())
+            if answer_data:
+                return CheckResult(status="AC", score=1.0)
+            else:
+                return CheckResult(
+                    status="WA",
+                    score=0.0,
+                    error=error_data
+                )
         else:
-            return CheckResult(
-                status="WA",
-                score=0.0,
-                error=f"Expected {expected_answer}, got {request.answer.strip()}"
-            )
+            if request.answer.strip() == expected_answer:
+                return CheckResult(status="AC", score=1.0)
+            else:
+                return CheckResult(
+                    status="WA",
+                    score=0.0,
+                    error=f"Expected {expected_answer}, got {request.answer.strip()}"
+                )
     except Exception as e:
         return CheckResult(
             status="WA",
