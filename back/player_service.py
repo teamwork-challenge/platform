@@ -262,7 +262,7 @@ class PlayerService:
         api_submission = ApiSubmission(
             id=db_submission.id,
             status=db_submission.status,
-            submitted_at=db_submission.submitted_at.isoformat(),
+            submitted_at=db_submission.submitted_at,
             task_id=db_submission.task_id,
             answer=db_submission.answer,
             explanation=db_submission.explanation,

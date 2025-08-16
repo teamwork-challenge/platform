@@ -1,15 +1,15 @@
+import logging
 import random
 import re
 from datetime import datetime, timedelta, timezone
 from typing import Dict, Tuple, cast
 from zoneinfo import ZoneInfo
-import logging
 
 from dateutil import parser  # type: ignore[import-untyped]
 from dateutil.relativedelta import relativedelta  # type: ignore[import-untyped]
 from fastapi import APIRouter
 
-from api_models import GenRequest, GenResponse, CheckRequest, CheckResult, CheckResponse, CheckStatus
+from api_models import GenRequest, GenResponse, CheckRequest, CheckResult, CheckStatus
 
 router = APIRouter()
 
@@ -484,7 +484,6 @@ async def generate_task(request: GenRequest) -> GenResponse:
     return GenResponse(
         statement_version=statement_key,
         statement=STATEMENTS[statement_key],
-        score=100,
         input=input_data,
         checker_hint=checker_hint
     )
@@ -492,34 +491,19 @@ async def generate_task(request: GenRequest) -> GenResponse:
 
 @router.post("/check", response_model=list[CheckResult])
 async def check_answer(request: CheckRequest) -> list[CheckResult]:
-    try:
-        # Get the target time from the checker hint
-        target_time = parser.parse(request.checker_hint.strip())
+    target_time = parser.parse(request.checker_hint.strip())
+    now = datetime.now(timezone.utc)
+    time_diff = abs((now - target_time).total_seconds())
 
-        # Get the current time
-        now = datetime.now(timezone.utc)
-
-        # Calculate the time difference in seconds
-        time_diff = abs((now - target_time).total_seconds())
-
-        # Check if the submission is within the allowed time window (±2 seconds)
-        if time_diff <= 2:
-            return [
-                CheckResult(status=CheckStatus.ACCEPTED, score=1.0)
-            ]
-        else:
-            return [
-                CheckResult(
-                    status=CheckStatus.WRONG_ANSWER,
-                    score=0.0,
-                    error=f"Expected submission at {target_time.isoformat()}, but received at {now.isoformat()}. Time difference: {time_diff:.2f} seconds."
-                )
-            ]
-    except Exception as e:
+    if time_diff <= 2:
+        return [
+            CheckResult(status=CheckStatus.ACCEPTED, score=1.0)
+        ]
+    else:
         return [
             CheckResult(
                 status=CheckStatus.WRONG_ANSWER,
                 score=0.0,
-                error=f"Error processing answer: {str(e)}"
+                error=f"Expected submission at {target_time.isoformat()}, but received at {now.isoformat()}. Time difference: {time_diff:.2f} seconds."
             )
         ]

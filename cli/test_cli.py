@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
-from typer.testing import CliRunner, Result
+from typing import Iterator
+
+from typer.testing import CliRunner
+from click.testing import Result
 import tempfile
 import os.path
 import os
@@ -16,7 +19,7 @@ backend_port = 8918
 
 
 @pytest.fixture(scope="session", autouse=True)
-def start_server():
+def start_server() -> Iterator[None]:
     server_url = "http://127.0.0.1:" + str(backend_port)
     os.environ["CHALLENGE_API_URL"] = server_url  # make CLI use the same port
 
@@ -28,7 +31,7 @@ def start_server():
     proc.wait()
 
 
-def wait_endpoint_up(server_url, max_wait_time):
+def wait_endpoint_up(server_url: str, max_wait_time: float) -> None:
     start_time = time.time()
     while time.time() - start_time < max_wait_time:
         try:
@@ -43,36 +46,36 @@ runner = CliRunner()
 
 
 # Challenge App Tests
-def test_login_ok():
+def test_login_ok() -> None:
     result = login_team1()
     assert "Successfully logged in" in result.output
 
 
-def test_login_fail():
+def test_login_fail() -> None:
     result = runner.invoke(app, ["login", "team1123123"])
     assert result.exit_code != 0
-    assert "Invalid API key" in result.exception.args[0]
+    assert "Invalid API key" in str(result.exception)
 
 
-def test_logout():
+def test_logout() -> None:
     login_team1()
     result = run_ok("logout")
     assert "Successfully logged out" in result.output
 
 
-def test_challenge_show_ok():
+def test_challenge_show_ok() -> None:
     login_team1()
     result = run_ok("show", "-c", "1")
     assert "Challenge" in result.output
 
 
-def test_challenge_update():
+def test_challenge_update() -> None:
     login_admin()
     result = run_ok("update", "-c", "1", "-t", "Updated Challenge Title")
     assert "Challenge updated successfully" in result.output
 
 
-def test_challenge_delete():
+def test_challenge_delete() -> None:
     login_admin()
     result = run_ok("delete", "-c", "1", "--yes")
     assert "marked as deleted" in result.output
@@ -81,14 +84,14 @@ def test_challenge_delete():
 
 
 # Team App Tests
-def test_team_show_ok():
+def test_team_show_ok() -> None:
     login_team1()
     result = run_ok("team", "show")
     assert "Team ID: 1" in result.output
 
 
 # Round App Tests
-def test_round_show():
+def test_round_show() -> None:
     login_admin()
     round_id, round_index = create_round()
 
@@ -96,19 +99,19 @@ def test_round_show():
     assert f"Round {round_id}" in result.output
 
 
-def test_round_list():
+def test_round_list() -> None:
     login_team1()
     result = run_ok("round", "list")
     assert "Rounds" in result.output
     assert "Round 1" in result.output
 
 
-def test_round_create():
+def test_round_create() -> None:
     login_admin()
     create_round()
 
 
-def test_round_publish():
+def test_round_publish() -> None:
     login_admin()
 
     round_id, round_index = create_round()
@@ -120,7 +123,7 @@ def test_round_publish():
     assert f"Round {round_index}" in result.output
 
 
-def test_round_update():
+def test_round_update() -> None:
     login_admin()
     round_id, round_index = create_round()
 
@@ -133,7 +136,7 @@ def test_round_update():
     assert f"Score Decay: linear" in result.output
 
 
-def test_round_delete():
+def test_round_delete() -> None:
     login_admin()
 
     challenge_id = "2"
@@ -147,12 +150,12 @@ def test_round_delete():
 
 
 # Task App Tests
-def test_task_claim():
+def test_task_claim() -> None:
     login_team1()
     run_ok("task", "claim")
 
 
-def test_task_show():
+def test_task_show() -> None:
     login_team1()
     task_id = get_task_id()
 
@@ -164,7 +167,7 @@ def test_task_show():
     assert "1 2" in result.output
 
 
-def test_task_show_input():
+def test_task_show_input() -> None:
     login_team1()
     task_id = get_task_id()
 
@@ -172,7 +175,7 @@ def test_task_show_input():
     assert "1 2" in result.output
 
 
-def test_task_submit_file():
+def test_task_submit_file() -> None:
     login_team1()
     task_id = get_task_id()
 
@@ -188,7 +191,7 @@ def test_task_submit_file():
         os.unlink(temp_file)
 
 
-def test_task_submit_correct_answer():
+def test_task_submit_correct_answer() -> None:
     login_team1()
     task_id = get_task_id()
     # For the built-in a_plus_b task, input is "1 2", the correct answer is "3"
@@ -197,7 +200,7 @@ def test_task_submit_correct_answer():
     assert "Status: SubmissionStatus.AC" in result.output
 
 
-def test_task_submit_without_file_or_answer():
+def test_task_submit_without_file_or_answer() -> None:
     login_team1()
     task_id = get_task_id()
     # Invoke directly to check non-zero exit on missing both answer and --file
@@ -206,13 +209,13 @@ def test_task_submit_without_file_or_answer():
     assert "Either answer or --file must be provided" in result.output
 
 
-def test_task_list():
+def test_task_list() -> None:
     login_team1()
     run_ok("task", "list")
 
 
 # Task Type App Tests
-def test_task_type_create():
+def test_task_type_create() -> None:
     login_admin()
 
     # Create a round first to ensure we have a valid round ID
@@ -225,7 +228,7 @@ def test_task_type_create():
     assert type_name is not None
 
 
-def test_task_type_list():
+def test_task_type_list() -> None:
     login_admin()
 
     # Create a round first to ensure we have a valid round ID
@@ -240,7 +243,7 @@ def test_task_type_list():
     assert "test_list_type…" in result.output
 
 
-def test_task_type_show():
+def test_task_type_show() -> None:
     login_admin()
 
     # Create a round first to ensure we have a valid round ID
@@ -255,7 +258,7 @@ def test_task_type_show():
     assert "Generator URL:" in result.output
 
 
-def test_task_type_update():
+def test_task_type_update() -> None:
     login_admin()
 
     # Create a round first
@@ -276,7 +279,7 @@ def test_task_type_update():
     assert "Max Tasks Per Team: 100500" in result.output
 
 
-def test_task_type_delete():
+def test_task_type_delete() -> None:
     login_admin()
     
     # Create a round first
@@ -291,13 +294,13 @@ def test_task_type_delete():
 
 
 # Board App Tests
-def test_board_dashboard():
+def test_board_dashboard() -> None:
     login_team1()
     result = run_ok("board", "dashboard")
     assert "Dashboard for Round" in result.output
 
 
-def test_board_leaderboard():
+def test_board_leaderboard() -> None:
     login_team1()
     result = run_ok("board", "leaderboard")
     assert "Leaderboard for Round" in result.output
@@ -365,7 +368,7 @@ def get_task_id() -> str:
     return "1"
 
 
-def create_round(challenge_id=DEFAULT_CHALLENGE_ID):
+def create_round(challenge_id:str = DEFAULT_CHALLENGE_ID) -> tuple[str, int]:
     # Create a round first
     now = datetime.now()
     start_time = now.isoformat()
