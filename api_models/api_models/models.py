@@ -76,7 +76,7 @@ class SubmitAnswerRequest(BaseModel):
 class Submission(BaseModel):
     id: int
     status: SubmissionStatus
-    submitted_at: str
+    submitted_at: datetime
     task_id: Optional[int] = None
     answer: Optional[str] = None
     explanation: Optional[str] = None

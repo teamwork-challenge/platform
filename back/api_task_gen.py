@@ -1,0 +1,33 @@
+from fastapi import APIRouter
+
+from api_models import GenRequest, GenResponse, CheckRequest, CheckResult, CheckStatus
+
+# Internal task generators for tests
+router = APIRouter(prefix="/task_gen", tags=["TaskGen"])  # hidden from OpenAPI via include_in_schema in main
+
+
+@router.post("/a_plus_b/gen", response_model=GenResponse)
+def a_plus_b_gen(req: GenRequest) -> GenResponse:
+    a, b = 1, 2
+    statement = "Given two integers a and b, output a + b."
+    input_text = f"{a} {b}"
+    checker_hint = str(a + b)
+    return GenResponse(
+        statement_version="1.0",
+        statement=statement,
+        input=input_text,
+        checker_hint=checker_hint
+    )
+
+
+@router.post("/a_plus_b/check", response_model=list[CheckResult])
+def a_plus_b_check(req: CheckRequest) -> list[CheckResult]:
+    parts = (req.input or "").strip().split()
+    if len(parts) != 2:
+        return [CheckResult(status=CheckStatus.WRONG_ANSWER, error="Invalid input format")]
+    a, b = int(parts[0]), int(parts[1])
+    correct = str(a + b)
+    if (req.answer or "").strip() == correct:
+        return [CheckResult(status=CheckStatus.ACCEPTED, score=1.0)]
+    else:
+        return [CheckResult(status=CheckStatus.WRONG_ANSWER, error="Wrong answer", score=0.0)]
