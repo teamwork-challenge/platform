@@ -104,6 +104,7 @@ def huffman_bit_length(sentence: str) -> int:
 
 
 def add_hint_sentence(sentence: str) -> str:
+    #TODO Maybe make hint less subtle?
     hint_words = ['reverse', 'and', 'swap', 'adjacent', 'characters']
     sentence_words = sentence.split()
     result = []
@@ -191,7 +192,7 @@ def get_difficulty(request: GenRequest) -> int:
     # Cap at maximum level 8
     return min(level, 8)
 
-
+#TODO: Huffman looks strange in this task. It is not deciphering, but encoding.
 def generate_input(level: int, sentence: str):
     if level == 1:
         return generate_caesar_cipher(sentence, 1), sentence
@@ -229,7 +230,6 @@ async def generate_task(request: GenRequest):
     return GenResponse(
         statement_version=statement_key,
         statement=STATEMENTS[statement_key],
-        score="100",
         input=input_data,
         checker_hint=hint_data
     )
@@ -251,7 +251,7 @@ async def check_answer(request: CheckRequest) -> CheckResult:
         if expected_answer.isnumeric():
             answer_data, error_data = check_student_answer_huffman(int(expected_answer), request.answer.strip())
             if answer_data:
-                return CheckResult(status="AC", score=1.0)
+                return CheckResult(status="AC", score=1.0) # TODO: Use Enums for status
             else:
                 return CheckResult(
                     status="WA",
