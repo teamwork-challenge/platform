@@ -125,7 +125,7 @@ def check_student_answer_huffman(minimal_bits_number: int, student_answer: str) 
     lines = student_answer.strip().split('\n')
     try:
         n = int(lines[0])
-    except:
+    except (ValueError, IndexError):
         return False, "First line must be integer number of encoded symbols N"
 
     if n > 26:

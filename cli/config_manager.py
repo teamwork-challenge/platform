@@ -2,6 +2,7 @@ import json
 import os
 from pathlib import Path
 from typing import Any
+import warnings
 
 
 class ConfigManager:
@@ -20,7 +21,11 @@ class ConfigManager:
         try:
             with open(self.config_path) as f:
                 return json.load(f)
-        except (json.JSONDecodeError, FileNotFoundError):
+        except json.JSONDecodeError as e:
+            warnings.warn(f"Config file '{self.config_path}' is corrupted or not valid JSON: {e}. Using defaults.")
+            return {}
+        except FileNotFoundError:
+            # Race condition: file disappeared after exists() check
             return {}
 
     def save_config(self) -> None:

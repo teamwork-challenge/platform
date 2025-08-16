@@ -7,6 +7,7 @@ from api_models import GenRequest, GenResponse, TaskProgress, CheckRequest, Chec
 from api_models import Submission as ApiSubmission, SubmissionStatus, TaskStatus as ApiTaskStatus
 from back.db_models import Team, Task, Round, RoundTaskType, Submission
 import random
+import logging
 from pydantic import TypeAdapter
 
 class TaskGenClient:
@@ -325,7 +326,7 @@ class PlayerService:
                                 self.db.commit()
                     except (ValueError, TypeError) as e:
                         # Log error but continue processing
-                        print(f"Error processing collaborative score: {e}")
+                        logging.warning("Error processing collaborative score: %s", e)
 
         # Return the first submission for backward compatibility
         return submissions[0]

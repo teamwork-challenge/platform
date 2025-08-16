@@ -3,6 +3,7 @@ import re
 from datetime import datetime, timedelta, timezone
 from typing import Dict, Tuple, cast
 from zoneinfo import ZoneInfo
+import logging
 
 from dateutil import parser  # type: ignore[import-untyped]
 from dateutil.relativedelta import relativedelta  # type: ignore[import-untyped]
@@ -396,9 +397,9 @@ def parse_time_expression(time_expr: str) -> datetime:
                         else:
                             delta = time_part - now
                             result_time -= delta
-                    except:
-                        # If we can't parse it, just ignore it
-                        pass
+                    except Exception as e:
+                        # If we can't parse it, log at debug level and ignore
+                        logging.debug("Failed to parse time part '%s': %s", part, e)
 
             i += 1
 
