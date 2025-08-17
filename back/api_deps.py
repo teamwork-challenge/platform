@@ -36,11 +36,11 @@ ADMIN_API_KEY_HEADER = APIKeyHeader(name="X-API-Key", auto_error=False, scheme_n
 
 def authenticate_player(
     api_key: str = Depends(PLAYER_API_KEY_HEADER),
-    auth_service: AuthService = Depends(get_auth_service)
+    team_service: TeamService = Depends(get_team_service)
 ) -> AuthData:
     if api_key is None:
         raise HTTPException(status_code=401, detail="API key is missing")
-    auth_data = auth_service.get_auth_data(api_key)
+    auth_data = team_service.get_auth_data(api_key)
     if auth_data is None:
         raise HTTPException(status_code=401, detail="Invalid API key")
     return auth_data
@@ -48,9 +48,9 @@ def authenticate_player(
 
 def authenticate_admin(
     api_key: str = Depends(ADMIN_API_KEY_HEADER),
-    auth_service: AuthService = Depends(get_auth_service)
+    team_service: TeamService = Depends(get_team_service)
 ) -> AuthData:
-    auth_data = authenticate_player(api_key, auth_service)
+    auth_data = authenticate_player(api_key, team_service)
     if auth_data.role != UserRole.ADMIN:
         raise HTTPException(status_code=403, detail="Admin access required")
     return auth_data

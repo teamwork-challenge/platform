@@ -4,8 +4,8 @@ import uuid
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from api_models import TeamCreateRequest
-from back.db_models import Team, Challenge
+from api_models import TeamCreateRequest, AuthData, UserRole
+from back.db_models import Team, Challenge, AdminKeys
 
 
 class TeamService:
@@ -50,3 +50,28 @@ class TeamService:
     def get_all_teams(self) -> Sequence[Team]:
         stmt = select(Team)
         return self.db.execute(stmt).scalars().all()
+
+    def get_auth_data(self, api_key: str) -> AuthData | None:
+        keys_query = select(AdminKeys).where(AdminKeys.api_key == api_key)
+        key = self.db.execute(keys_query).scalar_one_or_none()
+        if key is not None:
+            return AuthData(
+                key=key.api_key,
+                role=UserRole.ADMIN,
+            )
+        team_query = select(Team).where(Team.api_key == api_key)
+        team = self.db.execute(team_query).scalar_one_or_none()
+        if team is not None:
+            # Get the challenge to retrieve current_round_id
+            stmt = select(Challenge).where(Challenge.id == team.challenge_id)
+            challenge = self.db.execute(stmt).scalar_one_or_none()
+            current_round_id = challenge.current_round_id if challenge else None
+
+            return AuthData(
+                key=team.api_key,
+                role=UserRole.PLAYER,
+                team_id=team.id,
+                challenge_id=team.challenge_id,
+                round_id=current_round_id,
+            )
+        return None
