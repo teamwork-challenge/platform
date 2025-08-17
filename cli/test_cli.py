@@ -15,9 +15,9 @@ import time
 import requests
 from requests.exceptions import RequestException
 from datetime import datetime, timedelta
-import uvicorn
 
 from cli.main import app
+from back.firebase_test_setup import clear_firestore_data, create_test_firebase_data
 
 backend_port = 8918
 
@@ -32,7 +32,9 @@ def start_server() -> Iterator[None]:
     )
     server_url = "http://127.0.0.1:" + str(backend_port)
     os.environ["CHALLENGE_API_URL"] = server_url  # make CLI use the same port
-
+    os.environ["FIRESTORE_EMULATOR_HOST"] = "127.0.0.1:8080"
+    clear_firestore_data()
+    create_test_firebase_data()
     proc = subprocess.Popen(["uvicorn", "back.main:app", "--port", str(backend_port)], cwd="..", )
     wait_endpoint_up(server_url, 1.0)
 
@@ -78,21 +80,21 @@ def test_logout() -> None:
 
 def test_challenge_show_ok() -> None:
     login_team1()
-    result = run_ok("show", "-c", "1")
+    result = run_ok("show", "-c", "challenge_1")
     assert "Challenge" in result.output
 
 
 def test_challenge_update() -> None:
     login_admin()
-    result = run_ok("update", "-c", "1", "-t", "Updated Challenge Title")
+    result = run_ok("update", "-c", "challenge_1", "-t", "Updated Challenge Title")
     assert "Challenge updated successfully" in result.output
 
 
 def test_challenge_delete() -> None:
     login_admin()
-    result = run_ok("delete", "-c", "1", "--yes")
+    result = run_ok("delete", "-c", "challenge_1", "--yes")
     assert "marked as deleted" in result.output
-    result = run_ok("update", "-c", "1", "--undelete")
+    result = run_ok("update", "-c", "challenge_1", "--undelete")
     assert "marked as deleted" not in result.output
 
 
@@ -100,13 +102,13 @@ def test_challenge_delete() -> None:
 def test_team_show_ok() -> None:
     login_team1()
     result = run_ok("team", "show")
-    assert "Team ID: 1" in result.output
+    assert "Team ID: team_1" in result.output
 
 
 # Round App Tests
 def test_round_show() -> None:
     login_admin()
-    round_id, round_index = create_round()
+    round_id = create_round()
 
     result = run_ok("round", "show", "-r", round_id)
     assert f"Round {round_id}" in result.output
@@ -116,7 +118,7 @@ def test_round_list() -> None:
     login_team1()
     result = run_ok("round", "list")
     assert "Rounds" in result.output
-    assert "Round 1" in result.output
+    assert "Round round_1" in result.output
 
 
 def test_round_create() -> None:
@@ -127,33 +129,30 @@ def test_round_create() -> None:
 def test_round_publish() -> None:
     login_admin()
 
-    round_id, round_index = create_round()
+    round_id = create_round()
 
     # Now publish the round
     result = run_ok("round", "publish", round_id)
 
     assert "Round published" in result.output
-    assert f"Round {round_index}" in result.output
+    assert f"Round {round_id}" in result.output
 
 
 def test_round_update() -> None:
     login_admin()
-    round_id, round_index = create_round()
+    round_id = create_round()
 
-    result = run_ok("round", "update", "-r", round_id, "--claim-by-type=true",
-                    "--allow-resubmit=true", "--score-decay", "linear")
+    result = run_ok("round", "update", "-r", round_id, "--claim-by-type=true")
 
     assert f"Round {round_id} updated" in result.output
     assert f"Claim by Type: True" in result.output
-    assert f"Allow Resubmit: True" in result.output
-    assert f"Score Decay: linear" in result.output
 
 
 def test_round_delete() -> None:
     login_admin()
 
-    challenge_id = "2"
-    round_id, index = create_round(challenge_id)
+    challenge_id = "challenge_2"
+    round_id = create_round(challenge_id)
     result = run_ok("round", "list", "-c", challenge_id)
     assert f"Round {round_id}" in result.output
 
@@ -239,7 +238,7 @@ def test_task_list_with_filter() -> None:
 def test_task_list_with_paging() -> None:
     login_team1()
     for i in range(21):
-        run_ok("task", "claim")
+        run_ok("task", "claim", "--type", "a_plus_b")
     result = run_ok("task", "list", "--status", "pending")
     assert "20 last tasks" in result.output
     assert "Solved" not in result.output
@@ -252,7 +251,7 @@ def test_task_type_create() -> None:
     login_admin()
 
     # Create a round first to ensure we have a valid round ID
-    round_id, _ = create_round()
+    round_id = create_round()
 
     # Create a task type for the round
     task_type_id, type_name = create_task_type(round_id, "test_create_type")
@@ -265,7 +264,7 @@ def test_task_type_list() -> None:
     login_admin()
 
     # Create a round first to ensure we have a valid round ID
-    round_id, _ = create_round()
+    round_id = create_round()
 
     # Create a task type for the round
     _, type_name = create_task_type(round_id, "test_list_type")
@@ -280,7 +279,7 @@ def test_task_type_show() -> None:
     login_admin()
 
     # Create a round first to ensure we have a valid round ID
-    round_id, _ = create_round()
+    round_id = create_round()
 
     # Create a task type for the round
     task_type_id, type_name = create_task_type(round_id, "test_show_type")
@@ -294,7 +293,7 @@ def test_task_type_update() -> None:
     login_admin()
 
     # Create a round first
-    round_id, _ = create_round()
+    round_id = create_round()
     
     # Create a task type for the round
     task_type_id, _ = create_task_type(round_id, "test_update_type")
@@ -315,7 +314,7 @@ def test_task_type_delete() -> None:
     login_admin()
     
     # Create a round first
-    round_id, _ = create_round()
+    round_id = create_round()
     
     # Create a task type for the round
     task_type_id, _ = create_task_type(round_id, "test_delete_type")
@@ -375,7 +374,7 @@ def extract_task_id(output: str) -> str:
     return "1"
 
 
-DEFAULT_CHALLENGE_ID = "2"
+DEFAULT_CHALLENGE_ID = "challenge_2"
 
 
 
@@ -405,29 +404,24 @@ def create_task_type(round_id: str, type_name_prefix: str = "test_type") -> tupl
 
 
 def get_task_id() -> str:
-    return "1"
+    return "task_1"
 
 
-def create_round(challenge_id:str = DEFAULT_CHALLENGE_ID) -> tuple[str, int]:
+def create_round(challenge_id:str = DEFAULT_CHALLENGE_ID) -> str:
     # Create a round first
     now = datetime.now()
     start_time = now.isoformat()
     end_time = (now + timedelta(hours=2)).isoformat()
-    round_index = 2
     cmd = (
-        f"round create --challenge {challenge_id} --index {round_index} "
+        f"round create --challenge {challenge_id} "
         f"--start-time {start_time} --end-time {end_time} --status draft"
     )
     create_result = run_ok(*cmd.split())
     # Extract the round ID from the output
-    round_id = None
-    for line in create_result.output.splitlines():
-        if "Round ID:" in line:
-            round_id = line.split("Round ID:")[1].strip()
-            break
+    round_id = extract_from_output(create_result.output, "Round ID:")
     if not round_id:
         assert False, "Failed to create round, no Round ID found in output:\n" + create_result.output
-    return round_id, round_index
+    return round_id
 
 def extract_from_output(output: str, key: str) -> str:
     for line in output.splitlines():

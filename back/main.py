@@ -1,19 +1,18 @@
-from urllib.request import Request
+import os
+import sys
 
 import uvicorn
 from fastapi import FastAPI
-from fastapi.exceptions import RequestValidationError
 from fastapi.responses import RedirectResponse
 from mangum import Mangum
-from starlette.responses import PlainTextResponse
 
+from back.api_boards import router as boards_router
+from back.api_challenges import router as challenges_router
+from back.api_task_gen import router as task_gen_router
+from back.api_tasks import router as tasks_router
 # Routers split by domain
 from back.api_teams import router as team_router
-from back.api_challenges import router as challenges_router
-from back.api_tasks import router as tasks_router
-from back.api_boards import router as boards_router
-from back.api_task_gen import router as task_gen_router
-
+from back.firebase_test_setup import setup_firebase_emulator, create_test_firebase_data
 
 app = FastAPI(title="Teamwork Challenge API",
               description="API for managing teamwork challenges and tasks",
@@ -40,9 +39,19 @@ handler = Mangum(app, lifespan="off")
 
 
 if __name__ == "__main__":
-    uvicorn.run(
-        "back.main:app",
-        reload=True,
-        reload_dirs=[".", "../api_models"],
-        port=8089,
-    )
+    if len(sys.argv) > 1 and sys.argv[1] == "dev":
+        print("Starting in dev mode")
+        setup_firebase_emulator()
+        create_test_firebase_data()
+        uvicorn.run(
+            "back.main:app",
+            reload=True,
+            reload_dirs=[".", "../api_models"],
+            port=8089,
+        )
+    else:
+        uvicorn.run(
+            "back.main:app",
+            host="0.0.0.0",
+        )
+

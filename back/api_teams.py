@@ -4,9 +4,8 @@ from fastapi import APIRouter, Depends, HTTPException
 
 from api_models import Team, TeamsImportRequest, TeamsImportResponse, UserRole, AuthData
 from back.api_deps import authenticate_player, authenticate_admin, get_team_service, get_challenge_service, get_challenge_or_404
-from back.team_service import TeamService
-from back.challenge_service import ChallengeService
-from back.db_models import Team as DbTeam
+from back.firebase_team_service import TeamService
+from back.firebase_challenge_service import ChallengeService
 
 router = APIRouter(prefix="", tags=["Team"]) 
 
@@ -24,7 +23,9 @@ def get_team(
 ) -> Team:
     if auth_data.team_id is None:
         raise HTTPException(status_code=404, detail="Team not found")
-    team = team_service.get_team(auth_data.team_id)
+    if auth_data.challenge_id is None:
+        raise HTTPException(status_code=404, detail="Challenge not found")
+    team = team_service.get_team(auth_data.team_id, auth_data.challenge_id)
     if team is None:
         raise HTTPException(status_code=404, detail="Team not found")
     return Team.model_validate(team, from_attributes=True)
@@ -33,7 +34,7 @@ def get_team(
 # Admin: teams management
 @router.get("/teams")
 def get_teams(
-    challenge_id: int | None = None,
+    challenge_id: str | None = None,
     challenge_service: ChallengeService = Depends(get_challenge_service),
     team_service: TeamService = Depends(get_team_service),
     auth_data: AuthData = Depends(authenticate_admin)
@@ -58,6 +59,6 @@ def create_teams(
     auth_data: AuthData = Depends(authenticate_admin)
 ) -> TeamsImportResponse:
     challenge = get_challenge_or_404(request.challenge_id, challenge_service, auth_data, "POST")
-    teams_data = team_service.create_teams(challenge, request.teams)
+    teams_data = team_service.create_teams(challenge.id, request.teams)
     teams = [Team.model_validate(team, from_attributes=True) for team in teams_data]
     return TeamsImportResponse(challenge_id=challenge.id, teams=teams)

@@ -1,0 +1,24 @@
+{
+  "name": "platform",
+  "version": "1.0.0",
+  "description": "A comprehensive platform for hosting programming teamwork challenges designed to help freshman CS and SE students learn teamwork by doing.",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/teamwork-challenge/platform.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/teamwork-challenge/platform/issues"
+  },
+  "homepage": "https://github.com/teamwork-challenge/platform#readme"
+}

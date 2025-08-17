@@ -1,27 +1,27 @@
-import typer
-from typing import Optional
-from rich.table import Table
 from datetime import datetime
-from api_models import Round, RoundCreateRequest, RoundStatus, RoundUpdateRequest
-from cli.formatter import print_as_json
+from typing import Optional
+
+import typer
+from rich.table import Table
+
+from api_models import Round, RoundCreateRequest, RoundUpdateRequest
 from cli.app_deps import api_client, json_output_option, console, ensure_logged_in
+from cli.formatter import print_as_json
 
 round_app = typer.Typer(help="Round management commands")
 
 
 def display_round_details(round_info: Round) -> None:
-    console.print(f"Status: {round_info.status}")
+    console.print(f"Published: {round_info.published}")
     console.print(f"Start Time: {round_info.start_time}")
     console.print(f"End Time: {round_info.end_time}")
     console.print(f"Claim by Type: {round_info.claim_by_type}")
-    console.print(f"Allow Resubmit: {round_info.allow_resubmit}")
-    console.print(f"Score Decay: {round_info.score_decay}")
 
 
 # Round commands
 @round_app.command("show")
 def round_show(
-    round_id: Optional[int] = typer.Option(None, "--round", "-r", help="Round ID"),
+    round_id: Optional[str] = typer.Option(None, "--round", "-r", help="Round ID"),
     json: bool = json_output_option
 ) -> None:
     """Show round information."""
@@ -40,7 +40,7 @@ def round_show(
 
 @round_app.command("publish")
 def round_publish(
-    round_id: int = typer.Argument(..., help="Round ID to publish")
+    round_id: str = typer.Argument(..., help="Round ID to publish")
 ) -> None:
     """Publishes a round so that players can see it."""
     ensure_logged_in()
@@ -48,21 +48,18 @@ def round_publish(
     round_info = api_client.publish_round(round_id)
 
     console.print(
-        f"[green]Round published: Round {round_info.index} "
-        f"(Challenge {round_info.challenge_id}), ID: {round_id}[/green]"
+        f"[green]Round published: Round {round_id} "
+        f"(Challenge {round_info.challenge_id})[/green]"
     )
     return None
 
 
 @round_app.command("create")
 def round_create(
-    challenge_id: int = typer.Option(..., "--challenge", "-c", help="Challenge ID"),
-    index: int = typer.Option(..., "--index", "-i", help="Round index within the challenge"),
+    challenge_id: str = typer.Option(..., "--challenge", "-c", help="Challenge ID"),
     start_time: str = typer.Option(..., "--start-time", help="Start time (ISO format)"),
     end_time: str = typer.Option(..., "--end-time", help="End time (ISO format)"),
     claim_by_type: bool = typer.Option(False, "--claim-by-type", help="Allow claiming tasks by type"),
-    allow_resubmit: bool = typer.Option(False, "--allow-resubmit", help="Allow resubmitting answers"),
-    score_decay: str = typer.Option("no", "--score-decay", help="Score decay type"),
     status: str = typer.Option("draft", "--status", "-s", help="Round status (draft, published)"),
     json: bool = json_output_option
 ) -> None:
@@ -75,13 +72,9 @@ def round_create(
     
     round_data = RoundCreateRequest(
         challenge_id=challenge_id,
-        index=index,
         start_time=start_time_dt,
         end_time=end_time_dt,
-        claim_by_type=claim_by_type,
-        allow_resubmit=allow_resubmit,
-        score_decay=score_decay,
-        status=RoundStatus(status)
+        claim_by_type=claim_by_type
     )
 
     round_info = api_client.create_round(round_data)
@@ -92,7 +85,6 @@ def round_create(
     console.print(f"[bold green]Round created successfully![/bold green]")
     console.print(f"Round ID: {round_info.id}")
     console.print(f"Challenge ID: {round_info.challenge_id}")
-    console.print(f"Index: {round_info.index}")
     display_round_details(round_info)
     
     return None
@@ -100,7 +92,7 @@ def round_create(
 
 @round_app.command("list")
 def round_list(
-    challenge_id: Optional[int] = typer.Option(None, "--challenge", "-c", help="Challenge ID"),
+    challenge_id: Optional[str] = typer.Option(None, "--challenge", "-c", help="Challenge ID"),
     json: bool = json_output_option
 ) -> None:
     """List all rounds for a challenge."""
@@ -113,16 +105,14 @@ def round_list(
 
     table = Table(title="Rounds")
     table.add_column("ID", justify="right", style="cyan")
-    table.add_column("Index", justify="right", style="cyan")
-    table.add_column("Status", style="green")
+    table.add_column("Published", style="green")
     table.add_column("Start Time")
     table.add_column("End Time")
 
     for round_info in rounds.rounds:
         table.add_row(
             "Round " + str(round_info.id),
-            str(round_info.index),
-            round_info.status,
+            str(round_info.published),
             str(round_info.start_time),
             str(round_info.end_time)
         )
@@ -133,13 +123,11 @@ def round_list(
 
 @round_app.command("update")
 def round_update(
-    round_id: int = typer.Option(..., "--round", "-r", help="Round ID"),
-    status: Optional[str] = typer.Option(None, "--status", "-s", help="Round status (draft, active, completed)"),
+    round_id: str = typer.Option(..., "--round", "-r", help="Round ID"),
+    published: Optional[bool] = typer.Option(None, "--published", "-p", help="Is round published", is_flag=False),
     start_time: Optional[str] = typer.Option(None, "--start-time", help="Start time (ISO format)"),
     end_time: Optional[str] = typer.Option(None, "--end-time", help="End time (ISO format)"),
     claim_by_type: Optional[str] = typer.Option(None, "--claim-by-type", help="Allow claiming tasks by type"),
-    allow_resubmit: Optional[str] = typer.Option(None, "--allow-resubmit", help="Allow resubmitting answers"),
-    score_decay: Optional[str] = typer.Option(None, "--score-decay", help="Score decay type"),
     json: bool = json_output_option
 ) -> None:
     """Update round information."""
@@ -147,18 +135,14 @@ def round_update(
 
     # Build update data dictionary with only provided fields
     update_data = RoundUpdateRequest()
-    if status is not None:
-        update_data.status = RoundStatus(status)
+    if published is not None:
+        update_data.published = published
     if start_time is not None:
         update_data.start_time = datetime.fromisoformat(start_time)
     if end_time is not None:
         update_data.end_time = datetime.fromisoformat(end_time)
     if claim_by_type is not None:
         update_data.claim_by_type = claim_by_type.lower() in ["true", "1", "yes", "y"]
-    if allow_resubmit is not None:
-        update_data.allow_resubmit = allow_resubmit.lower() in ["true", "1", "yes", "y"]
-    if score_decay is not None:
-        update_data.score_decay = score_decay
 
     round_info = api_client.update_round(round_id, update_data)
 
@@ -173,7 +157,7 @@ def round_update(
 
 @round_app.command("delete")
 def round_delete(
-    round_id: int = typer.Option(..., "--round", "-r", help="Round ID"),
+    round_id: str = typer.Option(..., "--round", "-r", help="Round ID"),
     confirm: bool = typer.Option(False, "--yes", "-y", help="Skip confirmation prompt"),
     json: bool = json_output_option
 ) -> None:
@@ -184,7 +168,7 @@ def round_delete(
 
     if not confirm:
         console.print(f"[bold yellow]Warning: You are about to delete Round {round_id}[/bold yellow]")
-        console.print(f"Status: {round_info.status}")
+        console.print(f"Published: {round_info.published}")
         console.print(f"Start Time: {round_info.start_time}")
         console.print(f"End Time: {round_info.end_time}")
 

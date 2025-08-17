@@ -1,33 +1,25 @@
 from fastapi import Depends, HTTPException
 from fastapi.security import APIKeyHeader
-from sqlalchemy.orm import Session
 
 from api_models import *
-from api_models import RoundStatus
-from back.challenge_service import ChallengeService
-from back.auth_service import AuthService
-from back.database import get_db_session
-from back.db_models import Challenge as DbChallenge, Round as DbRound, RoundTaskType as DbRoundTaskType, \
-    Task as DbTask
-from back.task_service import TaskService
-from back.team_service import TeamService
+from back.firebase_challenge_service import ChallengeService
+from back.firebase_models import RoundDocument, TaskDocument
+from back.firebase_task_service import TaskService
+from back.firebase_team_service import TeamService
+
 
 # Services providers
 
-def get_challenge_service(db: Session = Depends(get_db_session)) -> ChallengeService:
-    return ChallengeService(db)
+def get_challenge_service() -> ChallengeService:
+    return ChallengeService()
 
 
-def get_task_service(db: Session = Depends(get_db_session)) -> TaskService:
-    return TaskService(db)
+def get_task_service() -> TaskService:
+    return TaskService()
 
 
-def get_team_service(db: Session = Depends(get_db_session)) -> TeamService:
-    return TeamService(db)
-
-
-def get_auth_service(db: Session = Depends(get_db_session)) -> AuthService:
-    return AuthService(db)
+def get_team_service() -> TeamService:
+    return TeamService()
 
 
 # Auth
@@ -35,7 +27,7 @@ PLAYER_API_KEY_HEADER = APIKeyHeader(name="X-API-Key", auto_error=False, scheme_
 ADMIN_API_KEY_HEADER = APIKeyHeader(name="X-API-Key", auto_error=False, scheme_name="Admin")
 
 def authenticate_player(
-    api_key: str = Depends(PLAYER_API_KEY_HEADER),
+    api_key: str | None = Depends(PLAYER_API_KEY_HEADER),
     team_service: TeamService = Depends(get_team_service)
 ) -> AuthData:
     if api_key is None:
@@ -47,7 +39,7 @@ def authenticate_player(
 
 
 def authenticate_admin(
-    api_key: str = Depends(ADMIN_API_KEY_HEADER),
+    api_key: str | None = Depends(ADMIN_API_KEY_HEADER),
     team_service: TeamService = Depends(get_team_service)
 ) -> AuthData:
     auth_data = authenticate_player(api_key, team_service)
@@ -58,17 +50,17 @@ def authenticate_admin(
 
 # Helpers
 
-def ensure_challenge_is_not_deleted(challenge: DbChallenge) -> None:
+def ensure_challenge_is_not_deleted(challenge: Challenge) -> None:
     if challenge.deleted:
         raise HTTPException(status_code=404, detail="Challenge is deleted")
 
 
 def get_challenge_or_404(
-    challenge_id: int,
+    challenge_id: str,
     challenge_service: ChallengeService,
     auth_data: AuthData,
     req_method: str = "GET"
-) -> DbChallenge:
+) -> Challenge:
     challenge = challenge_service.get_challenge(challenge_id)
     if challenge is None:
         raise HTTPException(status_code=404, detail="Challenge not found")
@@ -84,49 +76,55 @@ def get_challenge_or_404(
 
 
 def get_round_or_404(
-    round_id: int,
+    round_id: str,
+    challenge_id: str,
     challenge_service: ChallengeService,
     auth_data: AuthData,
     req_method: str = "GET"
-) -> DbRound:
-    game_round = challenge_service.get_round(round_id)
+) -> RoundDocument:
+    game_round = challenge_service.get_round(round_id, challenge_id)
     if game_round is None:
         raise HTTPException(status_code=404, detail="Round not found")
 
-    challenge = get_challenge_or_404(game_round.challenge_id, challenge_service, auth_data, req_method)
+    challenge = get_challenge_or_404(challenge_id, challenge_service, auth_data, req_method)
 
     if game_round.challenge_id != challenge.id:
         raise HTTPException(status_code=404, detail="Round not found for this challenge")
 
     if auth_data.role == UserRole.PLAYER:
-        if game_round.challenge_id != auth_data.challenge_id or game_round.status != RoundStatus.PUBLISHED:
+        if game_round.challenge_id != auth_data.challenge_id or not game_round.published:
             raise HTTPException(status_code=404, detail="Round not found")
 
     return game_round
 
 
 def get_round_task_type_or_404(
-    round_id: int,
-    task_type_id: int,
+    round_id: str,
+    challenge_id: str,
+    task_type_id: str,
     challenge_service: ChallengeService,
     auth_data: AuthData,
     req_method: str = "GET"
-) -> DbRoundTaskType:
-    get_round_or_404(round_id, challenge_service, auth_data, req_method)
+) -> RoundTaskType:
+    get_round_or_404(round_id, challenge_id, challenge_service, auth_data, req_method)
 
-    round_task_type = challenge_service.get_round_task_type(task_type_id)
-    if round_task_type is None or round_task_type.round_id != round_id:
+    round_task_type = challenge_service.get_round_task_type(task_type_id, challenge_id, round_id)
+    if round_task_type is None:
         raise HTTPException(status_code=404, detail="Task type not found for this round")
 
     return round_task_type
 
 
 def get_task_or_404(
-    task_id: int,
+    task_id: str,
     task_service: TaskService,
     auth_data: AuthData
-) -> DbTask:
-    task = task_service.get_task(task_id)
+) -> TaskDocument:
+    if auth_data.challenge_id is None or auth_data.team_id is None:
+        raise HTTPException(status_code=400, detail="Invalid team or challenge context")
+    if auth_data.round_id is None:
+        raise HTTPException(status_code=400, detail="Round not found")
+    task = task_service.get_task(task_id, auth_data.challenge_id, auth_data.round_id)
     if task is None:
         raise HTTPException(status_code=404, detail="Task not found")
 

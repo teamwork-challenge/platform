@@ -160,9 +160,9 @@ back/
 
 ### Implementation steps
 
-1. [ ] Set up a Firebase emulator, create a test-database and test it in unit tests.
-2. [ ] Migrate team_service.py to use Firebase, change the necessary models. Check with unit tests with emulators.
-3. [ ] Migrate challenge_service.py to use Firebase, change the necessary models. Check service with unit tests.
-4. [ ] Migrate task_service.py to use Firebase, change the necessary models. Check service with unit tests. 
-5. [ ] Add scripts for backend deployment to Firebase Cloud as a container.
+1. [x] Set up a Firebase emulator, create a test-database and test it in unit tests.
+2. [x] Migrate team_service.py to use Firebase, change the necessary models. Check with unit tests with emulators.
+3. [x] Migrate challenge_service.py to use Firebase, change the necessary models. Check service with unit tests.
+4. [x] Migrate task_service.py to use Firebase, change the necessary models. Check service with unit tests. 
+5. [x] Add scripts for backend deployment to Firebase Cloud as a container.
  

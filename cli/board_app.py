@@ -10,7 +10,7 @@ board_app = typer.Typer(help="Leaderboards and dashboards")
 # Board commands
 @board_app.command("dashboard")
 def board_dashboard(
-    round_id: Optional[int] = typer.Option(None, "--round", "-r", help="Round ID"),
+    round_id: Optional[str] = typer.Option(None, "--round", "-r", help="Round ID"),
     watch: bool = typer.Option(False, "--watch", help="Watch for updates"),
     json: bool = json_output_option
 ) -> None:
@@ -67,7 +67,7 @@ def board_dashboard(
 
 @board_app.command("leaderboard")
 def board_leaderboard(
-    round_id: Optional[int] = typer.Option(None, "--round", "-r", help="Round ID"),
+    round_id: Optional[str] = typer.Option(None, "--round", "-r", help="Round ID"),
     watch: bool = typer.Option(False, "--watch", help="Watch for updates"),
     json: bool = json_output_option
 ) -> None:

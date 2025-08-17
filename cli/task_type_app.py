@@ -27,7 +27,7 @@ def display_task_type_details(task_type: RoundTaskType, success_message: str, js
 
 @task_type_app.command("list")
 def task_type_list(
-    round_id: int = typer.Option(..., "--round", "-r", help="Round ID"),
+    round_id: str = typer.Option(..., "--round", "-r", help="Round ID"),
     json: bool = json_output_option
 ) -> None:
     """List all task types for a round."""
@@ -60,7 +60,7 @@ def task_type_list(
 
 @task_type_app.command("show")
 def task_type_show(
-    task_type_id: int = typer.Option(..., "--id", help="Task Type ID"),
+    task_type_id: str = typer.Option(..., "--id", help="Task Type ID"),
     json: bool = json_output_option
 ) -> None:
     """Show details of a specific task type."""
@@ -84,7 +84,7 @@ def task_type_show(
 
 @task_type_app.command("create")
 def task_type_create(
-    round_id: int = typer.Option(..., "--round", "-r", help="Round ID"),
+    round_id: str = typer.Option(..., "--round", "-r", help="Round ID"),
     type_name: str = typer.Option(..., "--type", "-t", help="Task type name"),
     generator_url: str = typer.Option(..., "--generator-url", "-g", help="Generator URL"),
     generator_settings: Optional[str] = typer.Option(None, "--generator-settings", "-s", help="Gen settings (JSON)"),
@@ -119,7 +119,7 @@ def task_type_create(
 
 @task_type_app.command("update")
 def task_type_update(
-    task_type_id: int = typer.Option(..., "--id", help="Task Type ID"),
+    task_type_id: str = typer.Option(..., "--id", help="Task Type ID"),
     type_name: Optional[str] = typer.Option(None, "--type", "-t", help="Task type name"),
     generator_url: Optional[str] = typer.Option(None, "--generator-url", "-g", help="Generator URL"),
     generator_settings: Optional[str] = typer.Option(None, "--generator-settings", "-s", help="Gen settings (JSON)"),
@@ -156,7 +156,7 @@ def task_type_update(
 
 @task_type_app.command("delete")
 def task_type_delete(
-    task_type_id: int = typer.Option(..., "--id", help="Task Type ID"),
+    task_type_id: str = typer.Option(..., "--id", help="Task Type ID"),
     confirm: bool = typer.Option(False, "--yes", "-y", help="Skip confirmation prompt"),
     json: bool = json_output_option
 ) -> None:

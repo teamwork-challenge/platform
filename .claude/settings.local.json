@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm init:*)",
+      "Bash(npm install:*)",
+      "Bash(firebase emulators:start:*)",
+      "Bash(firebase init:*)",
+      "Bash(python:*)"
+    ],
+    "deny": []
+  }
+}

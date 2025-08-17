@@ -1,14 +1,10 @@
-from sqlalchemy import select
-from sqlalchemy.orm import Session
-from datetime import datetime, timezone, timedelta
-import requests
 import json
-from api_models import GenRequest, GenResponse, TaskProgress, CheckRequest, CheckResult, CheckStatus, CheckResponse
-from api_models import Submission as ApiSubmission, SubmissionStatus, TaskStatus as ApiTaskStatus
-from back.db_models import Team, Task, Round, RoundTaskType, Submission
-import random
-import logging
+
+import requests
 from pydantic import TypeAdapter
+
+from api_models import GenRequest, GenResponse, CheckRequest, CheckResult, CheckResponse
+
 
 class TaskGenClient:
     """Client for interacting with task generator service."""

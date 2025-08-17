@@ -1,11 +1,11 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import Dict, List, Optional
 from enum import StrEnum
 from datetime import datetime
 
 
 class DeleteResponse(BaseModel):
-    deleted_id: int
+    deleted_id: str
 
 
 class UserRole(StrEnum):
@@ -32,16 +32,17 @@ class SubmissionStatus(StrEnum):
 class AuthData(BaseModel):
     key: str
     role: UserRole
-    team_id: Optional[int] = None
-    challenge_id: Optional[int] = None
-    round_id: Optional[int] = None
+    team_id: Optional[str] = None
+    challenge_id: Optional[str] = None
+    round_id: Optional[str] = None
 
 
 class Challenge(BaseModel):
-    id: int
+    id: str
     title: str
     description: str
-    current_round_id: Optional[int] = None
+    deleted: bool
+    current_round_id: Optional[str] = None
 
 
 class ChallengeCreateRequest(BaseModel):
@@ -53,7 +54,7 @@ class ChallengeUpdateRequest(BaseModel):
     title: Optional[str] = None
     description: Optional[str] = None
     deleted: Optional[bool] = None
-    current_round_id: Optional[int] = None
+    current_round_id: Optional[str] = None
 
 
 class SubmitAnswerRequest(BaseModel):
@@ -61,17 +62,17 @@ class SubmitAnswerRequest(BaseModel):
 
 
 class Submission(BaseModel):
-    id: int
+    id: str
     status: SubmissionStatus
     submitted_at: datetime
-    task_id: Optional[int] = None
+    task_id: Optional[str] = None
     answer: Optional[str] = None
     explanation: Optional[str] = None
     score: Optional[int] = None
 
 
 class Task(BaseModel):
-    id: int
+    id: str
     title: str
     type: str
     status: TaskStatus = TaskStatus.PENDING
@@ -79,7 +80,7 @@ class Task(BaseModel):
     statement: Optional[str] = None
     input: Optional[str] = None
     claimed_at: Optional[datetime] = None
-    submissions: List[Submission] = []
+    submissions: List[Submission] = Field(default_factory=list)
     last_attempt_at: Optional[datetime] = None
     solved_at: Optional[datetime] = None
 
@@ -89,17 +90,16 @@ class TaskList(BaseModel):
 
 
 class Team(BaseModel):
-    id: int
-    challenge_id: int
+    id: str
+    challenge_id: str
     name: str
     members: str
     captain_contact: str
-    api_key: str
-    total_score: int
+    api_key: str = ""
 
 
 class TeamsImportResponse(BaseModel):
-    challenge_id: int
+    challenge_id: str
     teams: List[Team]
 
 
@@ -110,7 +110,7 @@ class TeamCreateRequest(BaseModel):
 
 
 class TeamsImportRequest(BaseModel):
-    challenge_id: int
+    challenge_id: str
     teams: List[TeamCreateRequest]
 
 
@@ -122,8 +122,8 @@ class TeamScore(BaseModel):
 
 
 class RoundTaskType(BaseModel):
-    id: int
-    round_id: int
+    id: str
+    round_id: str
     type: str
     max_tasks_per_team: int
     generator_url: str
@@ -134,37 +134,28 @@ class RoundTaskType(BaseModel):
 
 
 class Round(BaseModel):
-    id: int
-    challenge_id: int
-    index: int
-    status: RoundStatus = RoundStatus.DRAFT
+    id: str
+    challenge_id: str
+    published: bool = False
+    deleted: bool = False
     start_time: datetime
     end_time: datetime
     claim_by_type: bool = False
-    allow_resubmit: bool = False
-    score_decay: str = "no"
     task_types: Optional[List[RoundTaskType]] = None
 
 
 class RoundCreateRequest(BaseModel):
-    challenge_id: int
-    index: int
+    challenge_id: str
     start_time: datetime
     end_time: datetime
     claim_by_type: bool = False
-    allow_resubmit: bool = False
-    score_decay: str = "no"
-    status: RoundStatus = RoundStatus.DRAFT
 
 
 class RoundUpdateRequest(BaseModel):
-    index: int | None = None
     start_time: datetime | None = None
     end_time: datetime | None = None
     claim_by_type: bool | None = None
-    allow_resubmit: bool | None = None
-    score_decay: str | None = None
-    status: RoundStatus | None = None
+    published: bool | None = None
 
 
 class RoundList(BaseModel):
@@ -172,7 +163,7 @@ class RoundList(BaseModel):
 
 
 class RoundTaskTypeCreateRequest(BaseModel):
-    round_id: int
+    round_id: str
     type: str
     generator_url: str
     generator_settings: Optional[str] = None
@@ -182,7 +173,7 @@ class RoundTaskTypeCreateRequest(BaseModel):
     time_to_solve: int
 
 class RoundTaskTypeUpdateRequest(BaseModel):
-    round_id: int
+    round_id: str
     type: str
     generator_url: str
     generator_settings: Optional[str] = None
@@ -203,11 +194,11 @@ class TypeStats(BaseModel):
 
 class Dashboard(BaseModel):
     """Dashboard with task statistics."""
-    round_id: int
+    round_id: str
     stats: Dict[str, TypeStats]
 
 
 class Leaderboard(BaseModel):
     """Leaderboard with team scores."""
-    round_id: int
+    round_id: str
     teams: List[TeamScore]

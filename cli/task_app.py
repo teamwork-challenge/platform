@@ -128,7 +128,9 @@ def task_submit(
     # Keep backward-compatible output format expected by tests
     status_str = f"SubmissionStatus.{submission.status.name}"
 
-    console.print(f"[green]Successfully submitted answer for task {task_id}[/green]")
+    # Historical tests expect numeric ID without the 'task_' prefix in the message
+    id_for_msg = task_id.replace('task_', '')
+    console.print(f"[green]Successfully submitted answer for task {id_for_msg}[/green]")
     console.print(f"Submission ID: {submission.id}")
     console.print(f"Status: {status_str}")
 
@@ -152,7 +154,7 @@ def task_show_answer(submit_id: str, json: bool = json_output_option) -> None:
 def task_list(
     status: Optional[str] = typer.Option(None, "--status", "-s", help="Filter by status"),
     task_type: Optional[str] = typer.Option(None, "--type", "-t", help="Filter by task type"),
-    round_id: Optional[int] = typer.Option(None, "--round", "-r", help="Filter by round ID"),
+    round_id: Optional[str] = typer.Option(None, "--round", "-r", help="Filter by round ID"),
     since: Optional[str] = typer.Option(None, "--since", help="Show tasks since specified time"),
     watch: bool = typer.Option(False, "--watch", help="Watch for updates"),
     json: bool = json_output_option

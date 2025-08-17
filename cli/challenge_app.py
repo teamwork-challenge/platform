@@ -36,7 +36,7 @@ def logout() -> None:
 
 @app.command("show")
 def show(
-    challenge_id: Optional[int] = typer.Option(None, "--challenge-id", "-c", help="Challenge ID"),
+    challenge_id: Optional[str] = typer.Option(None, "--challenge-id", "-c", help="Challenge ID"),
     as_json: bool = json_output_option
 ) -> None:
     """Show challenge information."""
@@ -54,10 +54,10 @@ def show(
 
 @app.command("update")
 def update(
-    challenge_id: int = typer.Option(..., "--challenge-id", "-c", help="Challenge ID"),
+    challenge_id: str = typer.Option(..., "--challenge-id", "-c", help="Challenge ID"),
     title: Optional[str] = typer.Option(None, "--title", "-t", help="Challenge title"),
     description: Optional[str] = typer.Option(None, "--description", "-d", help="Challenge description"),
-    current_round_id: Optional[int] = typer.Option(None, "--current-round", "-r", help="Current round ID"),
+    current_round_id: Optional[str] = typer.Option(None, "--current-round", "-r", help="Current round ID"),
     do_delete: Optional[bool] = typer.Option(None, "--delete", help="delete challenge"),
     undo_delete: Optional[bool] = typer.Option(None, "--undelete", help="undelete challenge"),
     as_json: bool = json_output_option
@@ -91,7 +91,7 @@ def update(
 
 @app.command("delete")
 def delete(
-    challenge_id: int = typer.Option(..., "--challenge-id", "-c", help="Challenge ID"),
+    challenge_id: str = typer.Option(..., "--challenge-id", "-c", help="Challenge ID"),
     confirm: bool = typer.Option(False, "--yes", "-y", help="Skip confirmation prompt"),
     as_json: bool = json_output_option
 ) -> None:
