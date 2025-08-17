@@ -181,6 +181,16 @@ class RoundTaskTypeCreateRequest(BaseModel):
     score: Optional[int] = 100
     time_to_solve: int
 
+class RoundTaskTypeUpdateRequest(BaseModel):
+    round_id: int
+    type: str
+    generator_url: str
+    generator_settings: Optional[str] = None
+    generator_secret: str
+    max_tasks_per_team: Optional[int] = None
+    score: Optional[int] = 100
+    time_to_solve: int
+
 
 class TypeStats(BaseModel):
     """Statistics for a task type."""

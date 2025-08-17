@@ -273,7 +273,7 @@ def test_task_type_list() -> None:
     cmd = f"task-type list --round {round_id}"
     result = run_ok(*cmd.split())
     # The table output truncates the type name with an ellipsis
-    assert "test_list_type…" in result.output
+    assert "test_list_type" in result.output
 
 
 def test_task_type_show() -> None:
@@ -288,7 +288,6 @@ def test_task_type_show() -> None:
     # Now show the task type
     result = run_ok("task-type", "show", "--id", task_type_id)
     assert f"Type: {type_name}" in result.output
-    assert "Generator URL:" in result.output
 
 
 def test_task_type_update() -> None:
@@ -355,9 +354,11 @@ def login_team2() -> Result:
 
 def run_ok(*args: str) -> Result:
     try:
-        result = runner.invoke(app, list(args), catch_exceptions=True)
+        result = runner.invoke(app, list(args), catch_exceptions=False)
         print(f"Stdout:\n{result.output}")
         if result.exit_code != 0:
+            print(f"Stderr:\n{result.stderr}")
+            print(f"Exception:\n{result.exception}")
             # Don't try to access stderr if it's not captured
             assert False, f"Command failed with exit code {result.exit_code}"
         return result

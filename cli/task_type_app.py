@@ -40,11 +40,10 @@ def task_type_list(
 
     table = Table(title=f"Task Types for Round {round_id}")
     table.add_column("ID", style="cyan")
-    table.add_column("Type", max_width=15, overflow="ellipsis", no_wrap=True)
-    table.add_column("Max Tasks Per Team")
-    table.add_column("Time to Solve (min)")
-    table.add_column("Generator URL")
-    table.add_column("Generator Settings")
+    table.add_column("Type")
+    table.add_column("Task Count")
+    table.add_column("Time")
+    table.add_column("Score")
 
     for task_type in task_types:
         table.add_row(
@@ -52,8 +51,7 @@ def task_type_list(
             task_type.type,
             str(task_type.max_tasks_per_team) if task_type.max_tasks_per_team is not None else "N/A",
             str(task_type.time_to_solve),
-            task_type.generator_url,
-            task_type.generator_settings if task_type.generator_settings else "N/A"
+            str(task_type.score)
         )
 
     console.print(table)
@@ -77,17 +75,10 @@ def task_type_show(
     console.print(f"[bold]Round ID:[/bold] {task_type.round_id}")
     console.print(f"[bold]Type:[/bold] {task_type.type}")
     console.print(
-        f"[bold]Max Tasks Per Team:[/bold] "
+        f"[bold]Task Count[/bold] "
         f"{task_type.max_tasks_per_team if task_type.max_tasks_per_team is not None else 'N/A'}"
     )
-    console.print(f"[bold]Time to Solve:[/bold] {task_type.time_to_solve} minutes")
-    console.print(f"[bold]Generator URL:[/bold] {task_type.generator_url}")
-    console.print(
-        f"[bold]Generator Settings:[/bold] "
-        f"{task_type.generator_settings if task_type.generator_settings else 'N/A'}"
-    )
-    console.print(f"[bold]Generator Secret:[/bold] {'*' * 8} (hidden)")
-
+    console.print(f"[bold]Time[/bold] {task_type.time_to_solve} minutes")
     return None
 
 

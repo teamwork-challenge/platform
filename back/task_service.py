@@ -1,58 +1,33 @@
+from __future__ import annotations
+
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 from datetime import datetime, timezone, timedelta
 import requests
 import json
-from api_models import GenRequest, GenResponse, TaskProgress, CheckRequest, CheckResult, CheckStatus, CheckResponse
-from api_models import Submission as ApiSubmission, SubmissionStatus, TaskStatus as ApiTaskStatus
-from back.db_models import Team, Task, Round, RoundTaskType, Submission
 import random
 import logging
 from pydantic import TypeAdapter
 
+from api_models import (
+    GenRequest, GenResponse, TaskProgress, CheckRequest, CheckResult, CheckStatus, CheckResponse,
+)
+from api_models import Submission as ApiSubmission, SubmissionStatus, TaskStatus as ApiTaskStatus
+from back.db_models import Team, Task, Round, RoundTaskType, Submission
+
+
 class TaskGenClient:
-    """Client for interacting with task generator service."""
-    
     def generate_task(self, generator_url: str, generator_secret: str, gen_request: GenRequest) -> GenResponse:
-        """Generate task content by calling the task generator and return the generator response."""
         try:
             response = requests.post(
                 f"{generator_url}/gen",
-                headers={"Content-Type": "application/json", "X-API-KEY": generator_secret or ""},
+                headers={"Content-Type": "application/json"},
                 data=json.dumps(gen_request.model_dump())
             )
-
-            try:
-                response.raise_for_status()
-            except requests.exceptions.HTTPError as http_err:
-                if response.status_code == 401 or response.status_code == 403:
-                    raise RuntimeError(f"Authentication error with task generator: {http_err}")
-                elif response.status_code == 404:
-                    raise RuntimeError(f"Task generator endpoint not found: {generator_url}/gen")
-                elif response.status_code >= 500:
-                    raise RuntimeError(f"Task generator server error: {http_err}")
-                else:
-                    raise RuntimeError(f"HTTP error when calling task generator: {http_err}")
-
-            try:
-                gen_response = GenResponse.model_validate(response.json())
-            except json.JSONDecodeError:
-                raise RuntimeError("Invalid JSON response from task generator")
-            except Exception as validation_err:
-                raise RuntimeError(f"Invalid response format from task generator: {validation_err}")
-
-            return gen_response
-
-        except requests.exceptions.ConnectionError:
-            raise RuntimeError(f"Could not connect to task generator at {generator_url}")
-        except requests.exceptions.Timeout:
-            raise RuntimeError(f"Connection to task generator timed out")
-        except requests.exceptions.RequestException as req_err:
-            raise RuntimeError(f"Error making request to task generator: {req_err}")
-        except ValueError:
-            raise
+            response.raise_for_status()
+            return GenResponse.model_validate(response.json())
         except Exception as e:
-            raise RuntimeError(f"Unexpected error generating task: {str(e)}")
+            raise RuntimeError(f"Error generating task: {str(e)}")
 
     def check_answer(self, generator_url: str, answer: str, checker_hint: str, input_text: str, task_id: str | None = None) -> CheckResponse:
         check_request = CheckRequest(
@@ -83,16 +58,16 @@ class TaskGenClient:
             raise RuntimeError(f"Error checking answer: {str(e)}")
 
 
-class PlayerService:
+class TaskService:
     def __init__(self, db: Session):
         self.db = db
         self.task_gen_client = TaskGenClient()
 
     def list_tasks_for_team(self, team_id: int,
-                               status: ApiTaskStatus | None = None,
-                               task_type: str | None = None,
-                               round_id: int | None = None,
-                               since: datetime | None = None) -> list[Task]:
+                             status: ApiTaskStatus | None = None,
+                             task_type: str | None = None,
+                             round_id: int | None = None,
+                             since: datetime | None = None) -> list[Task]:
         condition = (Task.team_id == team_id)
         if status is not None:
             condition = condition & (Task.status == status)
@@ -315,7 +290,7 @@ class PlayerService:
 
         check_response = self.check_answer(answer, checker_hint, round_task_type.generator_url, task.input)
 
-        submissions = []
+        submissions: list[ApiSubmission] = []
 
         # Create a submission for each check result
         for check_result in check_response:
@@ -355,7 +330,8 @@ class PlayerService:
 
         def get_probability(task_type: RoundTaskType) -> float:
             taken_tasks_count = len([t for t in existing_tasks if t.type == task_type.type])
-            return max(0.0, task_type.max_tasks_per_team - taken_tasks_count)
+            max_per_team = task_type.max_tasks_per_team or 0
+            return max(0.0, float(max_per_team - taken_tasks_count))
 
         probs = list(map(get_probability, task_types))
         if not any(prob > 0 for prob in probs):

@@ -1,18 +1,19 @@
+from typing import Sequence, List
+
 import sqlalchemy
 from sqlalchemy import select
 from sqlalchemy.orm import Session
-import uuid
 
 from api_models import ChallengeUpdateRequest
-from api_models import TeamCreateRequest, RoundCreateRequest, RoundTaskTypeCreateRequest
-from back.db_models import Challenge, Team, Round, RoundTaskType
-from typing import List, Sequence
+from api_models import RoundCreateRequest, RoundTaskTypeCreateRequest
+from back.db_models import Challenge, Round, RoundTaskType
 
 
-class AdminService:
+class ChallengeService:
     def __init__(self, db: Session):
         self.db = db
 
+    # Challenge CRUD
     def get_challenge(self, challenge_id: int) -> Challenge | None:
         stmt = select(Challenge).where(Challenge.id == challenge_id)
         return self.db.execute(stmt).scalar_one_or_none()
@@ -53,35 +54,7 @@ class AdminService:
             return challenge
         return None
 
-    def create_teams(self, challenge: Challenge, teams: List[TeamCreateRequest]) -> list[Team]:
-
-        created_teams = []
-
-        for team_data in teams:
-            team_name = team_data.name
-            members = team_data.members
-            captain_contact = team_data.captain_contact
-
-            api_key = str(uuid.uuid4())
-
-            team = Team(
-                api_key=api_key,
-                challenge_id=challenge.id,
-                name=team_name,
-                members=members,
-                captain_contact=captain_contact,
-                total_score=0
-            )
-
-            self.db.add(team)
-            self.db.flush()
-
-            created_teams.append(team)
-
-        self.db.commit()
-
-        return created_teams
-
+    # Rounds
     def create_round(self, round_data: RoundCreateRequest) -> Round:
         game_round = Round(
             challenge_id=round_data.challenge_id,
@@ -95,7 +68,7 @@ class AdminService:
         )
 
         self.db.add(game_round)
-        # Raises SQLAlchemyError: If the challenge_id does not exist (foreign key constraint)
+        # Raises SQLAlchemyError if challenge_id does not exist
         self.db.commit()
         self.db.refresh(game_round)
 
@@ -139,6 +112,7 @@ class AdminService:
         self.db.execute(round_stmt)
         self.db.commit()
 
+    # Round Task Types
     def create_round_task_type(self, task_type_data: RoundTaskTypeCreateRequest) -> RoundTaskType:
         round_task_type = RoundTaskType(
             round_id=task_type_data.round_id,
@@ -200,11 +174,3 @@ class AdminService:
         self.db.commit()
 
         return round_task_type
-
-    def get_teams_by_challenge(self, challenge_id: int) -> Sequence[Team]:
-        stmt = select(Team).where(Team.challenge_id == challenge_id)
-        return self.db.execute(stmt).scalars().all()
-
-    def get_all_teams(self) -> Sequence[Team]:
-        stmt = select(Team)
-        return self.db.execute(stmt).scalars().all()
