@@ -1,5 +1,5 @@
 from typing import List, Optional
-from enum import Enum
+from enum import StrEnum
 from pydantic import BaseModel
 
 
@@ -28,9 +28,9 @@ class GenResponse(BaseModel):
     checker_hint: str = ""
 
 
-class CheckStatus(str, Enum):
-    ACCEPTED = "AC"
-    WRONG_ANSWER = "WA"
+class CheckStatus(StrEnum):
+    ACCEPTED = "ac"
+    WRONG_ANSWER = "wa"
 
 
 class CheckRequest(BaseModel):

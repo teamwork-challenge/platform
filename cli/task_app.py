@@ -125,15 +125,8 @@ def task_submit(
     if json:
         return print_as_json(submission)
 
-    # Format status as "SubmissionStatus.AC/WA" to match tests regardless of enum/string
-    status_obj = getattr(submission, "status", None)
-    try:
-        if status_obj is not None and hasattr(status_obj, "name"):
-            status_str = f"{status_obj.__class__.__name__}.{status_obj.name}"
-        else:
-            status_str = f"SubmissionStatus.{str(status_obj)}"
-    except Exception:
-        status_str = f"SubmissionStatus.{str(status_obj)}"
+    # Keep backward-compatible output format expected by tests
+    status_str = f"SubmissionStatus.{submission.status.name}"
 
     console.print(f"[green]Successfully submitted answer for task {task_id}[/green]")
     console.print(f"Submission ID: {submission.id}")
@@ -167,31 +160,41 @@ def task_list(
     """List tasks."""
     ensure_logged_in()
 
-    # ApiClient.list_tasks does not accept filters; fetch all tasks and filter client-side in future if needed
-    tasks = api_client.list_tasks()
+    # Fetch tasks with optional filters
+    tasks = api_client.list_tasks(
+        status=status,
+        task_type=task_type,
+        round_id=round_id,
+        since=since
+    )
 
     if json:
         return print_as_json(tasks)
 
-    table = Table(title="Tasks")
+    table = Table(title=f"Tasks (shown {len(tasks.tasks)} last tasks):")
     table.add_column("Task ID", style="cyan")
     table.add_column("Type")
     table.add_column("Status", style="green")
     table.add_column("Score")
     table.add_column("Claimed At")
-    table.add_column("Last Attempt At")
-    table.add_column("Solved At")
+    if status != "pending":
+        table.add_column("Last Attempt At")
+    if status == "ac":
+        table.add_column("Solved At")
 
     for task in tasks.tasks:
-        table.add_row(
+        cells = [
             str(task.id),
             task.type,
             task.status,
             str(task.score),
-            str(task.claimed_at),
-            str(task.last_attempt_at) or "N/A",
-            str(task.solved_at) or "N/A"
-        )
+            str(task.claimed_at)
+        ]
+        if status != "pending":
+            cells.append(str(task.last_attempt_at) or "N/A")
+        if status == "ac":
+            cells.append(str(task.solved_at) or "N/A")
+        table.add_row(*cells)
 
     console.print(table)
 

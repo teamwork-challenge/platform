@@ -88,8 +88,21 @@ class PlayerService:
         self.db = db
         self.task_gen_client = TaskGenClient()
 
-    def list_tasks_for_team(self, team_id: int) -> list[Task]:
-        stmt = select(Task).where(Task.team_id == team_id)
+    def list_tasks_for_team(self, team_id: int,
+                               status: ApiTaskStatus | None = None,
+                               task_type: str | None = None,
+                               round_id: int | None = None,
+                               since: datetime | None = None) -> list[Task]:
+        condition = (Task.team_id == team_id)
+        if status is not None:
+            condition = condition & (Task.status == status)
+        if task_type is not None:
+            condition = condition & Task.round_task_type.has(RoundTaskType.type == task_type)
+        if round_id is not None:
+            condition = condition & (Task.round_id == round_id)
+        if since is not None:
+            condition = condition & (Task.claimed_at >= since)
+        stmt = select(Task).where(condition).order_by(Task.claimed_at.desc()).limit(20)
         return list(self.db.execute(stmt).scalars().all())
 
     def get_task(self, task_id: int) -> Task | None:
@@ -136,7 +149,6 @@ class PlayerService:
         task.input = gen_response.input
         task.checker_hint = gen_response.checker_hint
         task.statement = gen_response.statement
-        task.status = ApiTaskStatus.ACTIVE
 
         self.db.commit()
         self.db.refresh(task)
@@ -289,7 +301,7 @@ class PlayerService:
         round_task_type = task.round_task_type
 
         # Check if the submission is within the time limit (handle naive vs aware datetimes)
-        created_at = task.created_at
+        created_at = task.claimed_at
         if created_at.tzinfo is None or created_at.tzinfo.utcoffset(created_at) is None:
             # Assume naive timestamps are in UTC
             created_at = created_at.replace(tzinfo=timezone.utc)

@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
+import sys
+import logging
 from typing import Iterator
 
+from requests import HTTPError
 from typer.testing import CliRunner
 from click.testing import Result
 import tempfile
@@ -12,6 +15,7 @@ import time
 import requests
 from requests.exceptions import RequestException
 from datetime import datetime, timedelta
+import uvicorn
 
 from cli.main import app
 
@@ -20,10 +24,16 @@ backend_port = 8918
 
 @pytest.fixture(scope="session", autouse=True)
 def start_server() -> Iterator[None]:
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(levelname)s: %(message)s",
+        handlers=[logging.StreamHandler(sys.stdout)],
+        force=True,  # nuke prior handlers so this actually applies
+    )
     server_url = "http://127.0.0.1:" + str(backend_port)
     os.environ["CHALLENGE_API_URL"] = server_url  # make CLI use the same port
 
-    proc = subprocess.Popen(["uvicorn", "back.main:app", "--port", str(backend_port)], cwd="..")
+    proc = subprocess.Popen(["uvicorn", "back.main:app", "--port", str(backend_port)], cwd="..", )
     wait_endpoint_up(server_url, 1.0)
 
     yield
@@ -52,7 +62,10 @@ def test_login_ok() -> None:
 
 
 def test_login_fail() -> None:
-    result = runner.invoke(app, ["login", "team1123123"])
+    result = runner.invoke(app, ["login", "team1123123"], catch_exceptions=True)
+    print(f"Stdout:\n{result.output}")
+    print(f"Stderr:\n{result.stderr}")
+    print(f"Exception:\n{result.exception}")
     assert result.exit_code != 0
     assert "Invalid API key" in str(result.exception)
 
@@ -152,7 +165,8 @@ def test_round_delete() -> None:
 # Task App Tests
 def test_task_claim() -> None:
     login_team1()
-    run_ok("task", "claim")
+    result = run_ok("task", "claim")
+    assert "Task ID:" in result.output
 
 
 def test_task_show() -> None:
@@ -212,6 +226,25 @@ def test_task_submit_without_file_or_answer() -> None:
 def test_task_list() -> None:
     login_team1()
     run_ok("task", "list")
+
+
+def test_task_list_with_filter() -> None:
+    login_team1()
+    result = run_ok("task", "list", "--status", "pending")
+    assert "a_plus_b" in result.output
+    result = run_ok("task", "list", "--status", "ac")
+    assert "tst_ac" not in result.output
+
+
+def test_task_list_with_paging() -> None:
+    login_team1()
+    for i in range(21):
+        run_ok("task", "claim")
+    result = run_ok("task", "list", "--status", "pending")
+    assert "20 last tasks" in result.output
+    assert "Solved" not in result.output
+    assert "Attempt" not in result.output
+
 
 
 # Task Type App Tests
@@ -321,12 +354,16 @@ def login_team2() -> Result:
 
 
 def run_ok(*args: str) -> Result:
-    result = runner.invoke(app, list(args), catch_exceptions=False)
-    if result.exit_code != 0:
-        print(f"Output:\n{result.output}")
-        # Don't try to access stderr if it's not captured
-        assert False, f"Command failed with exit code {result.exit_code}"
-    return result
+    try:
+        result = runner.invoke(app, list(args), catch_exceptions=True)
+        print(f"Stdout:\n{result.output}")
+        if result.exit_code != 0:
+            # Don't try to access stderr if it's not captured
+            assert False, f"Command failed with exit code {result.exit_code}"
+        return result
+    except HTTPError as e:
+        print(f"Error: {e}")
+        assert False, f"Command failed with exception"
 
 
 def extract_task_id(output: str) -> str:
@@ -390,3 +427,9 @@ def create_round(challenge_id:str = DEFAULT_CHALLENGE_ID) -> tuple[str, int]:
     if not round_id:
         assert False, "Failed to create round, no Round ID found in output:\n" + create_result.output
     return round_id, round_index
+
+def extract_from_output(output: str, key: str) -> str:
+    for line in output.splitlines():
+        if key in line:
+            return line.split(key)[1].strip()
+    return ""

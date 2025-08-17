@@ -1,13 +1,18 @@
+from urllib.request import Request
+
 import uvicorn
 from fastapi import FastAPI
+from fastapi.exceptions import RequestValidationError
 from fastapi.responses import RedirectResponse
 from mangum import Mangum
+from starlette.responses import PlainTextResponse
 
 # Routers split by domain
 from back.api_teams import router as team_router
 from back.api_challenges import router as challenges_router
 from back.api_tasks import router as tasks_router
 from back.api_boards import router as boards_router
+from back.api_task_gen import router as task_gen_router
 
 
 app = FastAPI(title="Teamwork Challenge API",
@@ -21,8 +26,6 @@ app.include_router(challenges_router)
 app.include_router(tasks_router)
 app.include_router(boards_router)
 
-# Internal task generators moved to a separate router
-from back.api_task_gen import router as task_gen_router
 
 # Hide task generators from OpenAPI
 app.include_router(task_gen_router, include_in_schema=False)

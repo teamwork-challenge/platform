@@ -6,7 +6,7 @@ from api_models import GenRequest, GenResponse, CheckRequest, CheckResult, Check
 router = APIRouter(prefix="/task_gen", tags=["TaskGen"])  # hidden from OpenAPI via include_in_schema in main
 
 
-@router.post("/a_plus_b/gen", response_model=GenResponse)
+@router.post("/a_plus_b/gen")
 def a_plus_b_gen(req: GenRequest) -> GenResponse:
     a, b = 1, 2
     statement = "Given two integers a and b, output a + b."
@@ -20,7 +20,7 @@ def a_plus_b_gen(req: GenRequest) -> GenResponse:
     )
 
 
-@router.post("/a_plus_b/check", response_model=list[CheckResult])
+@router.post("/a_plus_b/check")
 def a_plus_b_check(req: CheckRequest) -> list[CheckResult]:
     parts = (req.input or "").strip().split()
     if len(parts) != 2:

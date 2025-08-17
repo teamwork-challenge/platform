@@ -139,7 +139,7 @@ class Task(Base):
     input: Mapped[str] = mapped_column(nullable=True)
     checker_hint: Mapped[str] = mapped_column(nullable=True)
     statement: Mapped[str] = mapped_column(nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    claimed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     # Foreign key references
     challenge_id: Mapped[int] = mapped_column(
