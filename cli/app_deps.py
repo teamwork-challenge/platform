@@ -4,7 +4,7 @@ from rich.console import Console
 from cli.api_client import ApiClient
 from cli.config_manager import ConfigManager
 
-json_output_option = typer.Option(False, "--json", is_flag=True, help="Output in JSON format", )
+json_output_option = typer.Option(False, "--json", help="Output in JSON format")
 console = Console()
 CONFIG_PATH = Path.home() / ".challenge" / "config.json"
 config_manager = ConfigManager(CONFIG_PATH)

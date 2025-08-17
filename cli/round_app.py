@@ -27,19 +27,15 @@ def round_show(
     """Show round information."""
     ensure_logged_in()
 
-    try:
-        round_info = api_client.get_round_info(round_id)
+    round_info = api_client.get_round_info(round_id)
 
-        if json:
-            return print_as_json(round_info)
+    if json:
+        return print_as_json(round_info)
 
-        console.print(f"[bold]Round {round_info.id} Information:[/bold]")
-        display_round_details(round_info)
+    console.print(f"[bold]Round {round_info.id} Information:[/bold]")
+    display_round_details(round_info)
 
-        return None
-    except Exception as e:
-        console.print(f"[red]Error: {str(e)}[/red]")
-        raise typer.Exit(1)
+    return None
 
 
 @round_app.command("publish")
@@ -49,17 +45,13 @@ def round_publish(
     """Publishes a round so that players can see it."""
     ensure_logged_in()
 
-    try:
-        round_info = api_client.publish_round(round_id)
+    round_info = api_client.publish_round(round_id)
 
-        console.print(
-            f"[green]Round published: Round {round_info.index} "
-            f"(Challenge {round_info.challenge_id}), ID: {round_id}[/green]"
-        )
-        return None
-    except Exception as e:
-        console.print(f"[red]Error: {str(e)}[/red]")
-        raise typer.Exit(1)
+    console.print(
+        f"[green]Round published: Round {round_info.index} "
+        f"(Challenge {round_info.challenge_id}), ID: {round_id}[/green]"
+    )
+    return None
 
 
 @round_app.command("create")
@@ -77,38 +69,33 @@ def round_create(
     """Create a new round."""
     ensure_logged_in()
 
-    try:
+    # Parse the datetime strings
+    start_time_dt = datetime.fromisoformat(start_time)
+    end_time_dt = datetime.fromisoformat(end_time)
+    
+    round_data = RoundCreateRequest(
+        challenge_id=challenge_id,
+        index=index,
+        start_time=start_time_dt,
+        end_time=end_time_dt,
+        claim_by_type=claim_by_type,
+        allow_resubmit=allow_resubmit,
+        score_decay=score_decay,
+        status=RoundStatus(status)
+    )
 
-        # Parse the datetime strings
-        start_time_dt = datetime.fromisoformat(start_time)
-        end_time_dt = datetime.fromisoformat(end_time)
-        
-        round_data = RoundCreateRequest(
-            challenge_id=challenge_id,
-            index=index,
-            start_time=start_time_dt,
-            end_time=end_time_dt,
-            claim_by_type=claim_by_type,
-            allow_resubmit=allow_resubmit,
-            score_decay=score_decay,
-            status=RoundStatus(status)
-        )
+    round_info = api_client.create_round(round_data)
 
-        round_info = api_client.create_round(round_data)
+    if json:
+        return print_as_json(round_info)
 
-        if json:
-            return print_as_json(round_info)
-
-        console.print(f"[bold green]Round created successfully![/bold green]")
-        console.print(f"Round ID: {round_info.id}")
-        console.print(f"Challenge ID: {round_info.challenge_id}")
-        console.print(f"Index: {round_info.index}")
-        display_round_details(round_info)
-        
-        return None
-    except Exception as e:
-        console.print(f"[red]Error: {str(e)}[/red]")
-        raise typer.Exit(1)
+    console.print(f"[bold green]Round created successfully![/bold green]")
+    console.print(f"Round ID: {round_info.id}")
+    console.print(f"Challenge ID: {round_info.challenge_id}")
+    console.print(f"Index: {round_info.index}")
+    display_round_details(round_info)
+    
+    return None
 
 
 @round_app.command("list")
@@ -119,33 +106,29 @@ def round_list(
     """List all rounds for a challenge."""
     ensure_logged_in()
 
-    try:
-        rounds = api_client.list_rounds(challenge_id)
+    rounds = api_client.list_rounds(challenge_id)
 
-        if json:
-            return print_as_json(rounds)
+    if json:
+        return print_as_json(rounds)
 
-        table = Table(title="Rounds")
-        table.add_column("ID", justify="right", style="cyan")
-        table.add_column("Index", justify="right", style="cyan")
-        table.add_column("Status", style="green")
-        table.add_column("Start Time")
-        table.add_column("End Time")
+    table = Table(title="Rounds")
+    table.add_column("ID", justify="right", style="cyan")
+    table.add_column("Index", justify="right", style="cyan")
+    table.add_column("Status", style="green")
+    table.add_column("Start Time")
+    table.add_column("End Time")
 
-        for round_info in rounds.rounds:
-            table.add_row(
-                "Round " + str(round_info.id),
-                str(round_info.index),
-                round_info.status,
-                str(round_info.start_time),
-                str(round_info.end_time)
-            )
+    for round_info in rounds.rounds:
+        table.add_row(
+            "Round " + str(round_info.id),
+            str(round_info.index),
+            round_info.status,
+            str(round_info.start_time),
+            str(round_info.end_time)
+        )
 
-        console.print(table)
-        return None
-    except Exception as e:
-        console.print(f"[red]Error: {str(e)}[/red]")
-        raise typer.Exit(1)
+    console.print(table)
+    return None
 
 
 @round_app.command("update")
@@ -162,34 +145,30 @@ def round_update(
     """Update round information."""
     ensure_logged_in()
 
-    try:
-        # Build update data dictionary with only provided fields
-        update_data = RoundUpdateRequest()
-        if status is not None:
-            update_data.status = RoundStatus(status)
-        if start_time is not None:
-            update_data.start_time = datetime.fromisoformat(start_time)
-        if end_time is not None:
-            update_data.end_time = datetime.fromisoformat(end_time)
-        if claim_by_type is not None:
-            update_data.claim_by_type = claim_by_type.lower() in ["true", "1", "yes", "y"]
-        if allow_resubmit is not None:
-            update_data.allow_resubmit = allow_resubmit.lower() in ["true", "1", "yes", "y"]
-        if score_decay is not None:
-            update_data.score_decay = score_decay
+    # Build update data dictionary with only provided fields
+    update_data = RoundUpdateRequest()
+    if status is not None:
+        update_data.status = RoundStatus(status)
+    if start_time is not None:
+        update_data.start_time = datetime.fromisoformat(start_time)
+    if end_time is not None:
+        update_data.end_time = datetime.fromisoformat(end_time)
+    if claim_by_type is not None:
+        update_data.claim_by_type = claim_by_type.lower() in ["true", "1", "yes", "y"]
+    if allow_resubmit is not None:
+        update_data.allow_resubmit = allow_resubmit.lower() in ["true", "1", "yes", "y"]
+    if score_decay is not None:
+        update_data.score_decay = score_decay
 
-        round_info = api_client.update_round(round_id, update_data)
+    round_info = api_client.update_round(round_id, update_data)
 
-        if json:
-            return print_as_json(round_info)
+    if json:
+        return print_as_json(round_info)
 
-        console.print(f"[bold green]Round {round_info.id} updated successfully![/bold green]")
-        display_round_details(round_info)
+    console.print(f"[bold green]Round {round_info.id} updated successfully![/bold green]")
+    display_round_details(round_info)
 
-        return None
-    except Exception as e:
-        console.print(f"[red]Error: {str(e)}[/red]")
-        raise typer.Exit(1)
+    return None
 
 
 @round_app.command("delete")
@@ -201,29 +180,24 @@ def round_delete(
     """Delete a round."""
     ensure_logged_in()
 
-    try:
-        round_info = api_client.get_round_info(round_id)
+    round_info = api_client.get_round_info(round_id)
 
-        if not confirm:
-            console.print(f"[bold yellow]Warning: You are about to delete Round {round_id}[/bold yellow]")
-            console.print(f"Status: {round_info.status}")
-            console.print(f"Start Time: {round_info.start_time}")
-            console.print(f"End Time: {round_info.end_time}")
+    if not confirm:
+        console.print(f"[bold yellow]Warning: You are about to delete Round {round_id}[/bold yellow]")
+        console.print(f"Status: {round_info.status}")
+        console.print(f"Start Time: {round_info.start_time}")
+        console.print(f"End Time: {round_info.end_time}")
 
-            confirmed = typer.confirm("Are you sure you want to delete this round?")
-            if not confirmed:
-                console.print("[yellow]Operation cancelled.[/yellow]")
-                return None
+        confirmed = typer.confirm("Are you sure you want to delete this round?")
+        if not confirmed:
+            console.print("[yellow]Operation cancelled.[/yellow]")
+            return None
 
-        result = api_client.delete_round(round_id)
+    result = api_client.delete_round(round_id)
 
-        if json:
-            return print_as_json(result)
+    if json:
+        return print_as_json(result)
 
-        console.print(f"[bold green]Round {round_id} deleted successfully![/bold green]")
+    console.print(f"[bold green]Round {round_id} deleted successfully![/bold green]")
 
-        return None
-    except Exception as e:
-        console.print(f"[red]Error: {str(e)}[/red]")
-
-        raise typer.Exit(1)
+    return None

@@ -222,7 +222,7 @@ class ApiClient:
 
     def list_tasks(self) -> TaskList:
         """List tasks."""
-        data = self._make_request("GET", "/tasks")
+        data = self._make_request("GET", "/tasks/")
         return TaskList.model_validate({"tasks": data})
 
     # Board-related methods
