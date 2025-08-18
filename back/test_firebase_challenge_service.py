@@ -1,9 +1,9 @@
 import pytest
 
-from api_models import ChallengeUpdateRequest
-from firebase_challenge_service import ChallengeService
-from firebase_db import FirebaseDatabase
-from firebase_test_setup import setup_firebase_emulator, clear_firestore_data, create_test_firebase_data
+from api_models import Challenge
+from back.firebase_challenge_service import ChallengeService
+from back.firebase_db import FirebaseDatabase
+from back.firebase_test_setup import setup_firebase_emulator, clear_firestore_data, create_test_firebase_data
 
 
 class TestFirebaseChallengeService:
@@ -66,9 +66,11 @@ class TestFirebaseChallengeService:
     
     def test_update_challenge(self):
         """Test updating a challenge"""
-        update_data = ChallengeUpdateRequest(
+        update_data = Challenge(
+            id = "challenge_42",
             title="Updated Challenge Title",
-            description="Updated description"
+            description="Updated description",
+            current_round_id=None
         )
         
         updated_challenge = self.service.update_challenge("challenge_1", update_data)
@@ -80,12 +82,7 @@ class TestFirebaseChallengeService:
         # Verify the update persisted
         retrieved_challenge = self.service.get_challenge("challenge_1")
         assert retrieved_challenge.title == "Updated Challenge Title"
-    
-    def test_update_challenge_invalid(self):
-        """Test updating non-existent challenge"""
-        update_data = ChallengeUpdateRequest(title="New Title")
-        result = self.service.update_challenge("invalid_challenge", update_data)
-        assert result is None
+
     
     def test_get_rounds_by_challenge(self):
         """Test getting rounds for a challenge"""

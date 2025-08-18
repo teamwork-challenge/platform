@@ -88,23 +88,6 @@ def get_round_or_404(
     return game_round
 
 
-def get_round_task_type_or_404(
-    round_id: str,
-    challenge_id: str,
-    task_type_id: str,
-    challenge_service: ChallengeService,
-    auth_data: AuthData,
-    req_method: str = "GET"
-) -> RoundTaskType:
-    get_round_or_404(round_id, challenge_id, challenge_service, auth_data)
-
-    round_task_type = challenge_service.get_round_task_type(task_type_id, challenge_id, round_id)
-    if round_task_type is None:
-        raise HTTPException(status_code=404, detail="Task type not found for this round")
-
-    return round_task_type
-
-
 def get_task_or_404(
     task_id: str,
     task_service: TaskService,

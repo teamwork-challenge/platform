@@ -104,7 +104,8 @@ def test_round_show() -> None:
     login_team1()
 
     result = run_ok("round", "show", "-r", "round_1")
-    assert f"Round round_1" in result.output
+    round_id = extract_from_output(result.output, "RoundID:")
+    assert round_id == "round_1"
 
 
 def test_round_list() -> None:

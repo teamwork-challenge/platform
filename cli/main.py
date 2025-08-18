@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import typer
 from cli.board_app import board_app
 from cli.round_app import round_app
 from cli.task_app import task_app

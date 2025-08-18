@@ -1,11 +1,10 @@
 from typing import List, Optional, Any
 
 from api_models import (
-    ChallengeUpdateRequest,
     Challenge as APIChallenge, Round as APIRound, RoundTaskType as APIRoundTaskType
 )
 from back.firebase_db import get_firestore_db
-from back.firebase_models import ChallengeDocument, RoundDocument, TaskTypeDocument
+from back.firebase_models import ChallengeDocument, RoundDocument
 
 
 class ChallengeService:
@@ -53,26 +52,10 @@ class ChallengeService:
 
         return APIChallenge.model_validate(data)
 
-    def update_challenge(self, challenge_id: str, update: ChallengeUpdateRequest) -> Optional[APIChallenge]:
+    def update_challenge(self, challenge_id: str, update: APIChallenge) -> Optional[APIChallenge]:
         """Update a challenge"""
         challenge_ref = self.db.collection('challenges').document(challenge_id)
-        challenge_doc = challenge_ref.get()
-
-        if not challenge_doc.exists:
-            return None
-
-        challenge_data = challenge_doc.to_dict()
-
-        # Update fields
-        if update.title is not None:
-            challenge_data['title'] = update.title
-        if update.description is not None:
-            challenge_data['description'] = update.description
-        if update.current_round_id is not None:
-            challenge_data['current_round_id'] = update.current_round_id
-
-        challenge_ref.set(challenge_data)
-
+        challenge_ref.set(update.model_dump())
         return self.get_challenge(challenge_id)
 
 
@@ -120,19 +103,9 @@ class ChallengeService:
         for tt_doc in self.db.collection('challenges').document(challenge_id) \
                 .collection('rounds').document(round_id) \
                 .collection('task_types').stream():
-            td = tt_doc.to_dict()
-            types.append(APIRoundTaskType.model_validate({
-                'id': tt_doc.id,
-                'round_id': round_id,
-                'type': td['type'],
-                'generator_url': td['generator_url'],
-                'generator_settings': td.get('generator_settings'),
-                'generator_secret': td['generator_secret'],
-                'n_tasks': td['n_tasks'],
-                'score': td['score'],
-                'time_to_solve': td['time_to_solve']
-            }))
+            types.append(APIRoundTaskType.model_validate(tt_doc.to_dict()))
         return types
+
 
     def _find_task_type_ref(self, task_type_id: str, challenge_id: str, round_id: str) -> Optional[tuple[Any, str, Any, Any]]:
         """Internal: find the Firestore reference and parent info for a task type by its document ID under known challenge/round."""
@@ -141,25 +114,13 @@ class ChallengeService:
         tt_doc = tt_ref.get()
         if tt_doc.exists:
             return ch_ref, round_id, tt_ref, tt_doc
-        return None
+        raise ValueError("Task type not found")
 
-    def get_round_task_type(self, task_type_id: str, challenge_id: str, round_id: str) -> Optional[APIRoundTaskType]:
-        found = self._find_task_type_ref(task_type_id, challenge_id, round_id)
-        if not found:
-            return None
-        _, _, _, tt_doc = found
+
+    def get_round_task_type(self, task_type_id: str, challenge_id: str, round_id: str) -> APIRoundTaskType:
+        _, _, _, tt_doc = self._find_task_type_ref(task_type_id, challenge_id, round_id)
         td = tt_doc.to_dict()
-        return APIRoundTaskType.model_validate({
-            'id': tt_doc.id,
-            'round_id': round_id,
-            'type': td['type'],
-            'generator_url': td['generator_url'],
-            'generator_settings': td.get('generator_settings'),
-            'generator_secret': td['generator_secret'],
-            'n_tasks': td['n_tasks'],
-            'score': td['score'],
-            'time_to_solve': td['time_to_solve']
-        })
+        return APIRoundTaskType.model_validate(td)
 
 
     def update_round(self, round_data: APIRound) -> APIRound:

@@ -44,17 +44,6 @@ class Challenge(BaseModel):
     current_round_id: Optional[str] = None
 
 
-class ChallengeCreateRequest(BaseModel):
-    title: str
-    description: str
-
-
-class ChallengeUpdateRequest(BaseModel):
-    title: Optional[str] = None
-    description: Optional[str] = None
-    current_round_id: Optional[str] = None
-
-
 class SubmitAnswerRequest(BaseModel):
     answer: str
 

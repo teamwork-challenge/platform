@@ -1,6 +1,6 @@
 import json
 import logging
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
 
 import requests
 
@@ -57,25 +57,6 @@ class ApiClient:
         response.raise_for_status()
         return response.json()
 
-    def _resolve_task_type_location(self, task_type_id: str) -> tuple[str, str]:
-        """Find (round_id, challenge_id) for a given task_type_id by scanning challenges and rounds.
-        This is used for admin endpoints that require explicit IDs.
-        """
-        challenges = self.get_challenges()
-        for ch in challenges:
-            # List rounds for this challenge
-            rounds = self.list_rounds(ch.id).rounds
-            for rd in rounds:
-                # List task types for this round under this challenge
-                try:
-                    types = self._make_request("GET", f"/task-types?round_id={rd.id}&challenge_id={ch.id}")
-                except requests.HTTPError:
-                    continue
-                for tt in types:
-                    if str(tt.get("id", "")) == task_type_id:
-                        return rd.id, ch.id
-        raise requests.HTTPError(f"Task type not found: {task_type_id}")
-
     # Team-related methods
     def auth(self) -> str:
         data = self._make_request("GET", "/auth")
@@ -96,11 +77,11 @@ class ApiClient:
         return [Challenge.model_validate(d) for d in data]
 
     # Challenge-related methods
-    def get_challenge_info(self, challenge_id: Optional[str]) -> Challenge:
+    def get_challenge_info(self, challenge_id: Optional[str] = None) -> Challenge:
         data = self._make_request("GET", f"/challenges/{challenge_id if challenge_id is not None else 'current'}")
         return Challenge.model_validate(data)
 
-    def update_challenge(self, challenge: Challenge) -> Challenge:
+    def put_challenge(self, challenge: Challenge) -> Challenge:
         data = self._make_request("PUT", f"/challenges/{challenge.id}", challenge.model_dump_json(exclude_unset=True))
         return Challenge.model_validate(data)
 
@@ -111,44 +92,34 @@ class ApiClient:
         return Challenge.model_validate(data)
 
     # Round-related methods
-    def get_round_info(self, round_id: Optional[str] = None) -> Round:
-        if not round_id:
-            data = self._make_request("GET", "/rounds/current")
-            return Round.model_validate(data)
-        data = self._make_request("GET", f"/rounds/{round_id}")
+    def get_round_info(self, challenge_id: str | None, round_id: str | None) -> Round:
+        round_id = round_id or "current"
+        challenge_id = challenge_id or "current"
+        data = self._make_request("GET", f"/challenges/{challenge_id}/rounds/{round_id}")
         return Round.model_validate(data)
 
 
-    def list_rounds(self, challenge_id: Optional[str] = None) -> RoundList:
+    def list_rounds(self, challenge_id: Optional[str] = None) -> List[Round]:
         """List all rounds for a challenge."""
         if challenge_id is None:
-            # Get the current challenge ID
-            challenge = self.get_challenge_info(None)
+            challenge = self.get_challenge_info()
             challenge_id = challenge.id
             
-        endpoint = f"/rounds?challenge_id={challenge_id}"
+        endpoint = f"/challenges/{challenge_id}/rounds"
         data = self._make_request("GET", endpoint)
-        # Wrap the list of rounds in a dictionary with a "rounds" key
-        # to match the RoundList model's expected structure
-        return RoundList.model_validate({"rounds": data})
+        return [Round.model_validate(d) for d in data]
 
     def update_round(self, new_round: Round) -> Round:
         round_json = new_round.model_dump_json(exclude_none=True)
         # Make the request with all required fields and required challenge_id param
-        endpoint = f"/rounds/{new_round.id}"
+        endpoint = f"/challenges/{new_round.challenge_id}/rounds/{new_round.id}"
         data = self._make_request("PUT", endpoint, round_json)
         return Round.model_validate(data)
 
     def delete_round(self, challenge_id: str, round_id: str) -> DeleteResponse:
-        endpoint = f"/rounds/{round_id}?challenge_id={challenge_id}"
+        endpoint = f"/challenges/{challenge_id}/rounds/{round_id}"
         return DeleteResponse.model_validate(self._make_request("DELETE", endpoint))
 
-    # Task Type-related methods
-    def get_round_task_types(self, round_id: str) -> list[RoundTaskType]:
-        round_info = self.get_round_info(round_id)
-        data = self._make_request("GET", f"/task-types?round_id={round_id}&challenge_id={round_info.challenge_id}")
-        return [RoundTaskType.model_validate(d) for d in data]
-    
     # Task-related methods
     def claim_task(self, task_type: Optional[str] = None) -> Task:
         query = "" if task_type is None else f"?task_type={task_type}"

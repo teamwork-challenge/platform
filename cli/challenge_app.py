@@ -60,7 +60,7 @@ def update(challenge_hjson_path: str = typer.Argument(..., help="Challenge HJSON
     with open(challenge_hjson_path) as f:
         challenge_hjson = hjson.load(f)
     challenge = Challenge.model_validate(challenge_hjson)
-    challenge = api_client.update_challenge(challenge)
+    challenge = api_client.put_challenge(challenge)
     return print_as_json(challenge)
 
 

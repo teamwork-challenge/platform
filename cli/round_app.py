@@ -11,29 +11,48 @@ from cli.formatter import print_as_json
 round_app = typer.Typer(help="Round management commands")
 
 
-def display_round_details(round_info: Round) -> None:
-    console.print(f"Published: {round_info.published}")
+def print_round(round_info: Round) -> None:
+    console.print(f"RoundID: {round_info.id}")
+    if not round_info.published:
+        console.print(f"NOT PUBLISHED")
+    console.print(f"ChallengeID: {round_info.challenge_id}")
     console.print(f"Start Time: {round_info.start_time}")
     console.print(f"End Time: {round_info.end_time}")
     console.print(f"Claim by Type: {round_info.claim_by_type}")
+    if round_info.task_types is None:
+        return
+    task_types_table = Table(title="Task Types")
+    task_types_table.add_column("Type")
+    task_types_table.add_column("Task Count")
+    task_types_table.add_column("Time To Solve")
+    task_types_table.add_column("Score")
+    for task_type in round_info.task_types:
+        task_types_table.add_row(
+            task_type.type,
+            str(task_type.n_tasks),
+            str(task_type.time_to_solve),
+            str(task_type.score)
+        )
+    console.print(task_types_table)
 
 
 # Round commands
 @round_app.command("show")
 def round_show(
+    challenge_id: Optional[str] = typer.Option(None, "--challenge", "-c", help="Challenge ID"),
     round_id: Optional[str] = typer.Option(None, "--round", "-r", help="Round ID"),
     json: bool = json_output_option
 ) -> None:
     """Show round information."""
     ensure_logged_in()
 
-    round_info = api_client.get_round_info(round_id)
+    round_info = api_client.get_round_info(challenge_id, round_id)
+    #round_info.task_types = api_client.get_round_task_types(round_id)
 
     if json:
         return print_as_json(round_info)
 
-    console.print(f"[bold]Round {round_info.id} Information:[/bold]")
-    display_round_details(round_info)
+    print_round(round_info)
 
     return None
 
@@ -57,7 +76,7 @@ def round_list(
     table.add_column("Start Time")
     table.add_column("End Time")
 
-    for round_info in rounds.rounds:
+    for round_info in rounds:
         table.add_row(
             "Round " + str(round_info.id),
             str(round_info.published),
