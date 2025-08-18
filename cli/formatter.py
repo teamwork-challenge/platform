@@ -10,9 +10,10 @@ from rich.table import Table
 def print_as_json(obj: Any) -> None:
     d = obj
     if isinstance(obj, BaseModel):
-        d = obj.model_dump()
-    Console().print(json.dumps(d, indent=2))
-
+        d = obj.model_dump_json(indent=2)
+    else:
+        d = json.dumps(d, indent=2)
+    Console().print(d)
 
 def as_table(obj: Any) -> Table:
     table = Table(title=type(obj).__name__)

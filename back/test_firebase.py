@@ -109,7 +109,7 @@ class TestFirebaseSetup:
         
         # Verify task types in round via subcollection
         task_types = list(db.collection('challenges').document('challenge_1').collection('rounds').document('round_1').collection('task_types').stream())
-        assert any(tt.to_dict().get('task_type') == 'a_plus_b' for tt in task_types)
+        assert any(tt.to_dict().get('type') == 'a_plus_b' for tt in task_types)
         
         # Verify tasks in round via subcollection
         tasks = list(db.collection('challenges').document('challenge_1').collection('rounds').document('round_1').collection('tasks').stream())

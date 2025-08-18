@@ -63,18 +63,6 @@ class TestFirebaseTaskService:
         task = self.service.get_task("invalid_task", "challenge_1")
         assert task is None
     
-    def test_get_existing_tasks(self):
-        """Test counting existing tasks for a team"""
-        existing_count = self.service.get_existing_tasks("team_1", "challenge_1", "round_1")
-        assert existing_count == 4  # All tasks in test data are for team_1, round_1
-        
-        # Test filtering by task type
-        a_plus_b_count = self.service.get_existing_tasks("team_1", "challenge_1", "round_1", "a_plus_b")
-        assert a_plus_b_count == 1  # Only 1 a_plus_b task in test data
-        
-        test_type_count = self.service.get_existing_tasks("team_1", "challenge_1", "round_1", "test-type")
-        assert test_type_count == 3  # 3 test-type tasks in test data
-    
     @patch('firebase_task_service.TaskGenClient.generate_task')
     def test_create_task(self, mock_generate_task):
         """Test creating a new task"""
@@ -94,8 +82,8 @@ class TestFirebaseTaskService:
         assert new_task.status == TaskStatus.PENDING
         assert new_task.statement == "Test generated statement"
         assert new_task.input == "test input"
-        assert "a_plus_b" in new_task.title
-        
+        assert "a_plus_b" in new_task.type
+
         # Verify the generator was called
         mock_generate_task.assert_called_once()
         
@@ -132,7 +120,7 @@ class TestFirebaseTaskService:
         mock_check_answer.return_value = mock_check_response
         
         # Submit answer for task_1 (which is PENDING)
-        submission = self.service.submit_task_answer("task_1", "team_1", "challenge_1", "3")
+        submission = self.service.submit_task_answer("task_1", "team_1", "challenge_1", "round_1", "3")
         
         assert submission is not None
         assert submission.status.value == "ac"
@@ -160,13 +148,13 @@ class TestFirebaseTaskService:
         mock_check_answer.return_value = mock_check_response
         
         # Submit wrong answer for task_2 (which is PENDING)
-        submission = self.service.submit_task_answer("task_2", "team_1", "challenge_1", "wrong")
+        submission = self.service.submit_task_answer("task_2", "team_1", "challenge_1", "round_1", "wrong")
         
         assert submission is not None
         assert submission.status.value == "wa"
         assert submission.answer == "wrong"
         assert submission.score == 0
-        assert "Wrong answer" in submission.explanation
+        assert "Wrong answer" in submission.checker_output
         
         # Verify task status was updated
         updated_task = self.service.get_task("task_2", "challenge_1")
@@ -175,12 +163,12 @@ class TestFirebaseTaskService:
     def test_submit_task_answer_invalid_task(self):
         """Test submitting answer for non-existent task"""
         with pytest.raises(ValueError, match="Task not found"):
-            self.service.submit_task_answer("invalid_task", "team_1", "challenge_1", "answer")
+            self.service.submit_task_answer("invalid_task", "team_1", "challenge_1", "round_1", "answer")
     
     def test_submit_task_answer_wrong_team(self):
         """Test submitting answer for task that doesn't belong to team"""
         with pytest.raises(ValueError, match="Task does not belong to this team"):
-            self.service.submit_task_answer("task_1", "team_2", "challenge_1", "answer")
+            self.service.submit_task_answer("task_1", "team_2", "challenge_1", "round_1", "answer")
 
 
 if __name__ == "__main__":

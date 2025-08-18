@@ -41,7 +41,7 @@ def get_teams(
 ) -> list[Team]:
     if challenge_id is not None:
         # Check if the challenge exists
-        get_challenge_or_404(challenge_id, challenge_service, auth_data, "GET")
+        get_challenge_or_404(challenge_id, challenge_service, auth_data)
         # Get teams for the specified challenge
         teams = team_service.get_teams_by_challenge(challenge_id)
         return [Team.model_validate(t, from_attributes=True) for t in teams]
@@ -58,7 +58,7 @@ def create_teams(
     team_service: TeamService = Depends(get_team_service),
     auth_data: AuthData = Depends(authenticate_admin)
 ) -> TeamsImportResponse:
-    challenge = get_challenge_or_404(request.challenge_id, challenge_service, auth_data, "POST")
+    challenge = get_challenge_or_404(request.challenge_id, challenge_service, auth_data)
     teams_data = team_service.create_teams(challenge.id, request.teams)
     teams = [Team.model_validate(team, from_attributes=True) for team in teams_data]
     return TeamsImportResponse(challenge_id=challenge.id, teams=teams)

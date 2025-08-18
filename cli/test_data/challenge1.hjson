@@ -1,0 +1,11 @@
+id: challenge_1
+title: "Super Challenge 1"
+description:
+    '''
+    ## RULES
+
+    There are no rules except for the following one:
+
+    1. **NO RULES**
+    '''
+current_round_id: "r1"

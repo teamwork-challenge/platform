@@ -41,7 +41,6 @@ class Challenge(BaseModel):
     id: str
     title: str
     description: str
-    deleted: bool
     current_round_id: Optional[str] = None
 
 
@@ -53,7 +52,6 @@ class ChallengeCreateRequest(BaseModel):
 class ChallengeUpdateRequest(BaseModel):
     title: Optional[str] = None
     description: Optional[str] = None
-    deleted: Optional[bool] = None
     current_round_id: Optional[str] = None
 
 
@@ -65,21 +63,20 @@ class Submission(BaseModel):
     id: str
     status: SubmissionStatus
     submitted_at: datetime
-    task_id: Optional[str] = None
-    answer: Optional[str] = None
-    explanation: Optional[str] = None
-    score: Optional[int] = None
+    task_id: str
+    answer: str
+    checker_output: str
+    score: int
 
 
 class Task(BaseModel):
     id: str
-    title: str
     type: str
     status: TaskStatus = TaskStatus.PENDING
     score: int
-    statement: Optional[str] = None
-    input: Optional[str] = None
-    claimed_at: Optional[datetime] = None
+    statement: str
+    input: str
+    claimed_at: datetime
     submissions: List[Submission] = Field(default_factory=list)
     last_attempt_at: Optional[datetime] = None
     solved_at: Optional[datetime] = None
@@ -122,65 +119,27 @@ class TeamScore(BaseModel):
 
 
 class RoundTaskType(BaseModel):
-    id: str
-    round_id: str
     type: str
-    max_tasks_per_team: int
+    n_tasks: int
     generator_url: str
-    generator_settings: Optional[str] = None
+    generator_settings: str
     generator_secret: str
-    score: int = 100
+    score: int
     time_to_solve: int
 
 
 class Round(BaseModel):
     id: str
     challenge_id: str
-    published: bool = False
-    deleted: bool = False
+    published: bool
     start_time: datetime
     end_time: datetime
-    claim_by_type: bool = False
+    claim_by_type: bool
     task_types: Optional[List[RoundTaskType]] = None
-
-
-class RoundCreateRequest(BaseModel):
-    challenge_id: str
-    start_time: datetime
-    end_time: datetime
-    claim_by_type: bool = False
-
-
-class RoundUpdateRequest(BaseModel):
-    start_time: datetime | None = None
-    end_time: datetime | None = None
-    claim_by_type: bool | None = None
-    published: bool | None = None
 
 
 class RoundList(BaseModel):
     rounds: List[Round]
-
-
-class RoundTaskTypeCreateRequest(BaseModel):
-    round_id: str
-    type: str
-    generator_url: str
-    generator_settings: Optional[str] = None
-    generator_secret: str
-    max_tasks_per_team: Optional[int] = None
-    score: Optional[int] = 100
-    time_to_solve: int
-
-class RoundTaskTypeUpdateRequest(BaseModel):
-    round_id: str
-    type: str
-    generator_url: str
-    generator_settings: Optional[str] = None
-    generator_secret: str
-    max_tasks_per_team: Optional[int] = None
-    score: Optional[int] = 100
-    time_to_solve: int
 
 
 class TypeStats(BaseModel):

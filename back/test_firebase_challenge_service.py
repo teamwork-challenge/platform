@@ -1,8 +1,6 @@
-from datetime import datetime, timezone, timedelta
-
 import pytest
 
-from api_models import ChallengeUpdateRequest, RoundCreateRequest, RoundTaskTypeCreateRequest
+from api_models import ChallengeUpdateRequest
 from firebase_challenge_service import ChallengeService
 from firebase_db import FirebaseDatabase
 from firebase_test_setup import setup_firebase_emulator, clear_firestore_data, create_test_firebase_data
@@ -95,55 +93,13 @@ class TestFirebaseChallengeService:
         
         assert len(rounds) == 1
         round = rounds[0]
-        assert round.claim_by_type is True
+        assert round.claim_by_type is False
         assert round.published is False
     
     def test_get_rounds_by_invalid_challenge(self):
         """Test getting rounds for non-existent challenge"""
         rounds = self.service.get_rounds_by_challenge("invalid_challenge")
         assert len(rounds) == 0
-    
-    def test_create_round(self):
-        """Test creating a new round"""
-        now = datetime.now(timezone.utc)
-        round_data = RoundCreateRequest(
-            challenge_id="challenge_1",
-            start_time=now,
-            end_time=now + timedelta(hours=24),
-            claim_by_type=True,
-        )
-        
-        new_round = self.service.create_round(round_data)
-        
-        assert new_round is not None
-        assert new_round.challenge_id == "challenge_1"
-        assert new_round.claim_by_type is True
-        assert new_round.published is False
-        
-        # Verify it was added to the challenge
-        rounds = self.service.get_rounds_by_challenge("challenge_1")
-        assert new_round.id in [r.id for r in rounds]
-    
-    def test_create_round_task_type(self):
-        """Test creating a round task type"""
-        task_type_data = RoundTaskTypeCreateRequest(
-            round_id="round_1",
-            type="new_task_type",
-            generator_url="http://example.com/generator",
-            generator_settings="{}",
-            generator_secret="secret123",
-            max_tasks_per_team=50,
-            score=200,
-            time_to_solve=60
-        )
-        
-        new_task_type = self.service.create_round_task_type(task_type_data, "challenge_1")
-        
-        assert new_task_type is not None
-        assert new_task_type.type == "new_task_type"
-        assert new_task_type.generator_url == "http://example.com/generator"
-        assert new_task_type.score == 200
-        assert new_task_type.time_to_solve == 60
 
 
 if __name__ == "__main__":

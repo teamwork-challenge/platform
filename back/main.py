@@ -47,7 +47,7 @@ if __name__ == "__main__":
             "back.main:app",
             reload=True,
             reload_dirs=[".", "../api_models"],
-            port=8089,
+            port=8088,
         )
     else:
         uvicorn.run(

@@ -35,7 +35,7 @@ class TaskService:
             q = self.db.collection_group('tasks').where('challenge_id', '==', challenge_id).where('team_id', '==', team_id)
 
         if task_type is not None:
-            q = q.where('task_type', '==', task_type)
+            q = q.where('type', '==', task_type)
         if since is not None:
             q = q.where('claimed_at', '>=', since)
 
@@ -46,8 +46,7 @@ class TaskService:
             d = cast(dict[str, Any], snap.to_dict())
             return APITask(
                 id=cast(str, snap.id),
-                title=f"{d['task_type']} Task",
-                type=d['task_type'],
+                type=d['type'],
                 status=ApiTaskStatus(d['status']),
                 score=d.get('score', 0),
                 statement=d['statement'],
@@ -126,7 +125,7 @@ class TaskService:
 
         # Validate task type exists in round via subcollection query
         tt_col = rounds_ref.document(current_round_id).collection('task_types')
-        tt_snaps = list(tt_col.where('task_type', '==', task_type).limit(1).stream())
+        tt_snaps = list(tt_col.where('type', '==', task_type).limit(1).stream())
         if not tt_snaps:
             raise ValueError(f"Task type '{task_type}' is not available in this round")
         task_type_data = tt_snaps[0].to_dict()
@@ -170,7 +169,7 @@ class TaskService:
             challenge_id=challenge_id,
             team_id=team_id,
             round_id=current_round_id,
-            task_type=cast(str, task_type),
+            type=cast(str, task_type),
             status=ApiTaskStatus.PENDING,
             statement=gen_response.statement,
             input=gen_response.input,
@@ -185,7 +184,6 @@ class TaskService:
 
         return APITask(
             id=task_id,
-            title=f"{task_type} Task",
             type=cast(str, task_type),
             status=ApiTaskStatus.PENDING,
             score=task_type_data['score'],
@@ -216,7 +214,7 @@ class TaskService:
         candidates: list[tuple[dict[str, Any], str, int]] = []  # (task_type_data, doc_id, remaining)
         for tt_doc in types_docs:
             td = tt_doc.to_dict()
-            type_code = td.get('task_type')
+            type_code = td.get('type')
             max_per_team = int(td.get('tasks_count', 0))
             taken = self.get_existing_tasks(team_id, game_round.challenge_id, game_round.id, type_code)
             remaining = max(0, max_per_team - taken)
@@ -236,8 +234,8 @@ class TaskService:
         return RoundTaskType.model_validate({
             'id': chosen_id,
             'round_id': game_round.id,
-            'type': chosen_td['task_type'],
-            'max_tasks_per_team': chosen_td.get('tasks_count', 0),
+            'type': chosen_td['type'],
+            'n_tasks': chosen_td.get('n_tasks', 0),
             'generator_url': chosen_td['generator_url'],
             'generator_settings': chosen_td.get('generator_settings'),
             'generator_secret': chosen_td['generator_secret'],
@@ -258,13 +256,13 @@ class TaskService:
             .where('team_id', '==', team_id)
         )
         if task_type is not None:
-            q = q.where('task_type', '==', task_type)
+            q = q.where('type', '==', task_type)
         # Use aggregation count to avoid downloading docs
         agg = q.count()
         res = agg.get()
         # res is a list of rows; each row is a list of AggregationResult. First cell holds the count.
         if res and isinstance(res[0], list) and res[0]:
-            return int(res[0][0].value)  # type: ignore[no-any-return]
+            return int(res[0][0].value)
         return 0
 
 
@@ -288,7 +286,7 @@ class TaskService:
             gen_request
         )
 
-    def submit_task_answer(self, task_id: str, team_id: str, challenge_id: str, answer: str, round_id: str | None = None) -> ApiSubmission:
+    def submit_task_answer(self, task_id: str, team_id: str, challenge_id: str, round_id: str, answer: str) -> ApiSubmission:
         """Submit an answer for a task. If round_id provided, directly access the task within that round; otherwise scan rounds."""
         challenge_ref = self.db.collection('challenges').document(challenge_id)
         challenge_doc = challenge_ref.get()
@@ -299,48 +297,24 @@ class TaskService:
         task_data = None
         task_type_data = None
         task_ref = None
-        resolved_round_id: str | None = None
+        resolved_round_id: str
         rounds_ref = challenge_ref.collection('rounds')
 
-        if round_id is not None:
-            # Directly look up task within the specified round
-            t_ref = rounds_ref.document(round_id).collection('tasks').document(task_id)
-            t_doc = t_ref.get()
-            if t_doc.exists:
-                task_data = t_doc.to_dict()
-                task_ref = t_ref
-                resolved_round_id = round_id
-                # Verify task belongs to team
-                if task_data['team_id'] != team_id:
-                    raise ValueError("Task does not belong to this team")
-                # Load task type configuration from this round only via query
-                task_type = task_data['task_type']
-                tt_q = rounds_ref.document(round_id).collection('task_types').where('task_type', '==', task_type).limit(1)
-                tt_snaps = list(tt_q.stream())
-                if tt_snaps:
-                    task_type_data = tt_snaps[0].to_dict()
-            else:
-                raise ValueError("Task not found")
+        t_ref = rounds_ref.document(round_id).collection('tasks').document(task_id)
+        t_doc = t_ref.get()
+        if t_doc.exists:
+            task_data = t_doc.to_dict()
+            task_ref = t_ref
+            resolved_round_id = round_id
+            # Verify task belongs to team
+            if task_data['team_id'] != team_id:
+                raise ValueError("Task does not belong to this team")
+            # Load task type configuration from this round only via query
+            task_type = task_data['type']
+            tt_q = rounds_ref.document(resolved_round_id).collection('task_types').document(task_type)
+            task_type_data = tt_q.get().to_dict()
         else:
-            # Fallback: use collection group to locate the task under this challenge
-            cg = self.db.collection_group('tasks').where('challenge_id', '==', challenge_id).where('id', '==', task_id).limit(1)
-            cg_snaps = list(cg.stream())
-            if cg_snaps:
-                snap = cg_snaps[0]
-                task_data = cast(dict[str, Any], snap.to_dict())
-                resolved_round_id = task_data['round_id']
-                t_ref = rounds_ref.document(resolved_round_id).collection('tasks').document(task_id)
-                task_ref = t_ref
-                # Verify task belongs to team
-                if task_data['team_id'] != team_id:
-                    raise ValueError("Task does not belong to this team")
-                # Get task type data from subcollection via query
-                task_type = task_data['task_type']
-                tt_q = rounds_ref.document(resolved_round_id).collection('task_types').where('task_type', '==', task_type).limit(1)
-                tt_snaps = list(tt_q.stream())
-                if tt_snaps:
-                    task_type_data = tt_snaps[0].to_dict()
-
+            raise ValueError("Task not found")
         if not task_data:
             raise ValueError("Task not found")
         if not task_type_data:
@@ -413,7 +387,7 @@ class TaskService:
             submitted_at=submission_doc.submitted_at,
             task_id=task_id,
             answer=submission_doc.answer,
-            explanation=submission_doc.checker_output,
+            checker_output=submission_doc.checker_output,
             score=submission_doc.score
         )
 

@@ -1,0 +1,26 @@
+id: r1
+challenge_id: challenge_1
+published: true
+start_time: "2025-01-01"
+end_time: "2125-01-01"
+claim_by_type: true
+task_types: [
+    {
+      type: "a_plus_b"
+      n_tasks: 100
+      generator_url: "http://127.0.0.1:8918/task_gen/a_plus_b"
+      generator_settings: ""
+      generator_secret:  "secret"
+      score: 100
+      time_to_solve: 30
+    },
+    {
+      type: "sum_a_b"
+      n_tasks: 50
+      generator_url: "http://127.0.0.1:8918/task_gen/a_plus_b"
+      generator_settings: ""
+      generator_secret:  "secret"
+      score: 200
+      time_to_solve: 30
+    }
+]

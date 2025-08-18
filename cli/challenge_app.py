@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
 from typing import Optional
 
+import hjson
 import typer
 from rich.markdown import Markdown
 
+from api_models import Challenge
 from cli.app_deps import api_client, console, ensure_logged_in, json_output_option
 from cli.formatter import print_as_json
-from api_models import ChallengeUpdateRequest, Challenge
 
 app = typer.Typer(help="Teamwork Challenge CLI", pretty_exceptions_short=True, pretty_exceptions_show_locals=False)
 
@@ -53,40 +54,14 @@ def show(
 
 
 @app.command("update")
-def update(
-    challenge_id: str = typer.Option(..., "--challenge-id", "-c", help="Challenge ID"),
-    title: Optional[str] = typer.Option(None, "--title", "-t", help="Challenge title"),
-    description: Optional[str] = typer.Option(None, "--description", "-d", help="Challenge description"),
-    current_round_id: Optional[str] = typer.Option(None, "--current-round", "-r", help="Current round ID"),
-    do_delete: Optional[bool] = typer.Option(None, "--delete", help="delete challenge"),
-    undo_delete: Optional[bool] = typer.Option(None, "--undelete", help="undelete challenge"),
-    as_json: bool = json_output_option
-) -> None:
+def update(challenge_hjson_path: str = typer.Argument(..., help="Challenge HJSON file path")) -> None:
     """Update challenge information."""
     ensure_logged_in()
-
-    update_data = ChallengeUpdateRequest()
-    update_data.title = title
-    update_data.description = description
-    update_data.current_round_id = current_round_id
-    if do_delete:
-        update_data.deleted = True
-    if undo_delete:
-        update_data.deleted = False
-
-    if not update_data:
-        console.print("[red]Error: At least one field to update must be provided[/red]")
-        raise typer.Exit(1)
-
-    challenge = api_client.update_challenge(challenge_id, update_data)
-
-    if as_json:
-        return print_as_json(challenge)
-
-    console.print("[bold green]Challenge updated successfully![/bold green]")
-    print_challenge(challenge)
-
-    return None
+    with open(challenge_hjson_path) as f:
+        challenge_hjson = hjson.load(f)
+    challenge = Challenge.model_validate(challenge_hjson)
+    challenge = api_client.update_challenge(challenge)
+    return print_as_json(challenge)
 
 
 @app.command("delete")

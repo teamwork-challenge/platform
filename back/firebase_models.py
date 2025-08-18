@@ -10,7 +10,6 @@ class ChallengeDocument(BaseModel):
     id: str
     title: str
     description: str  # markdown
-    deleted: bool = False
     current_round_id: Optional[str] = None
 
 
@@ -25,9 +24,9 @@ class TeamDocument(BaseModel):
 
 class APIKeyDocument(BaseModel):
     key: str
-    challenge_id: str  # denormalized
+    challenge_id: str | None = None # denormalized
     role: str  # "player" | "admin"
-    team_id: Optional[str] = None
+    team_id: str | None = None
 
 
 class RoundDocument(BaseModel):
@@ -41,10 +40,10 @@ class RoundDocument(BaseModel):
 
 
 class TaskTypeDocument(BaseModel):
-    task_type: str
+    type: str
     challenge_id: str  # denormalized
     round_id: str  # denormalized
-    tasks_count: int
+    n_tasks: int
     generator_url: str
     generator_settings: str
     generator_secret: str
@@ -57,7 +56,7 @@ class TaskDocument(BaseModel):
     challenge_id: str  # denormalized
     team_id: str  # denormalized
     round_id: str  # denormalized
-    task_type: str
+    type: str
     status: TaskStatus
     statement: str
     input: str

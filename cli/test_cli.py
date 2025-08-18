@@ -24,6 +24,8 @@ backend_port = 8918
 
 @pytest.fixture(scope="session", autouse=True)
 def start_server() -> Iterator[None]:
+    if os.getcwd().endswith("cli"):
+        os.chdir("..")
     logging.basicConfig(
         level=logging.INFO,
         format="%(levelname)s: %(message)s",
@@ -86,16 +88,8 @@ def test_challenge_show_ok() -> None:
 
 def test_challenge_update() -> None:
     login_admin()
-    result = run_ok("update", "-c", "challenge_1", "-t", "Updated Challenge Title")
-    assert "Challenge updated successfully" in result.output
-
-
-def test_challenge_delete() -> None:
-    login_admin()
-    result = run_ok("delete", "-c", "challenge_1", "--yes")
-    assert "marked as deleted" in result.output
-    result = run_ok("update", "-c", "challenge_1", "--undelete")
-    assert "marked as deleted" not in result.output
+    result = run_ok("update", "cli/test_data/challenge1.hjson")
+    assert "Super Challenge 1" in result.output
 
 
 # Team App Tests
@@ -107,11 +101,10 @@ def test_team_show_ok() -> None:
 
 # Round App Tests
 def test_round_show() -> None:
-    login_admin()
-    round_id = create_round()
+    login_team1()
 
-    result = run_ok("round", "show", "-r", round_id)
-    assert f"Round {round_id}" in result.output
+    result = run_ok("round", "show", "-r", "round_1")
+    assert f"Round round_1" in result.output
 
 
 def test_round_list() -> None:
@@ -123,48 +116,33 @@ def test_round_list() -> None:
 
 def test_round_create() -> None:
     login_admin()
-    create_round()
-
-
-def test_round_publish() -> None:
-    login_admin()
-
-    round_id = create_round()
-
-    # Now publish the round
-    result = run_ok("round", "publish", round_id)
-
-    assert "Round published" in result.output
-    assert f"Round {round_id}" in result.output
+    result = run_ok("round", "update", "cli/test_data/round1.hjson")
+    assert "r1" in result.output
 
 
 def test_round_update() -> None:
     login_admin()
-    round_id = create_round()
-
-    result = run_ok("round", "update", "-r", round_id, "--claim-by-type=true")
-
-    assert f"Round {round_id} updated" in result.output
-    assert f"Claim by Type: True" in result.output
+    run_ok("round", "update", "cli/test_data/round1.hjson")
+    result = run_ok("round", "update", "cli/test_data/round1.hjson")
+    assert "r1" in result.output
 
 
 def test_round_delete() -> None:
     login_admin()
 
-    challenge_id = "challenge_2"
-    round_id = create_round(challenge_id)
-    result = run_ok("round", "list", "-c", challenge_id)
-    assert f"Round {round_id}" in result.output
+    run_ok("round", "update", "cli/test_data/round1.hjson")
+    result = run_ok("round", "list", "-c", "challenge_1")
+    assert f"r1" in result.output
 
-    run_ok("round", "delete", "-r", round_id, "--yes")
-    result = run_ok("round", "list", "-c", challenge_id)
-    assert f"Round {round_id}" not in result.output
+    run_ok("round", "delete", "-r", "r1", "-c", "challenge_1", "--yes")
+    result = run_ok("round", "list", "-c", "challenge_1")
+    assert f"r1" not in result.output
 
 
 # Task App Tests
 def test_task_claim() -> None:
     login_team1()
-    result = run_ok("task", "claim")
+    result = run_ok("task", "claim", "--type", "a_plus_b")
     assert "Task ID:" in result.output
 
 
@@ -246,84 +224,6 @@ def test_task_list_with_paging() -> None:
 
 
 
-# Task Type App Tests
-def test_task_type_create() -> None:
-    login_admin()
-
-    # Create a round first to ensure we have a valid round ID
-    round_id = create_round()
-
-    # Create a task type for the round
-    task_type_id, type_name = create_task_type(round_id, "test_create_type")
-    
-    assert task_type_id is not None
-    assert type_name is not None
-
-
-def test_task_type_list() -> None:
-    login_admin()
-
-    # Create a round first to ensure we have a valid round ID
-    round_id = create_round()
-
-    # Create a task type for the round
-    _, type_name = create_task_type(round_id, "test_list_type")
-
-    cmd = f"task-type list --round {round_id}"
-    result = run_ok(*cmd.split())
-    # The table output truncates the type name with an ellipsis
-    assert "test_list_type" in result.output
-
-
-def test_task_type_show() -> None:
-    login_admin()
-
-    # Create a round first to ensure we have a valid round ID
-    round_id = create_round()
-
-    # Create a task type for the round
-    task_type_id, type_name = create_task_type(round_id, "test_show_type")
-    
-    # Now show the task type
-    result = run_ok("task-type", "show", "--id", task_type_id)
-    assert f"Type: {type_name}" in result.output
-
-
-def test_task_type_update() -> None:
-    login_admin()
-
-    # Create a round first
-    round_id = create_round()
-    
-    # Create a task type for the round
-    task_type_id, _ = create_task_type(round_id, "test_update_type")
-
-    # Now update the task type
-    result = run_ok(
-        "task-type", "update",
-        "--id", task_type_id,
-        "--type", "updated_test_type",
-        "--max-tasks", "100500"
-    )
-    assert f"Task type updated successfully with ID: {task_type_id}" in result.output
-    assert "Type: updated_test_type" in result.output
-    assert "Max Tasks Per Team: 100500" in result.output
-
-
-def test_task_type_delete() -> None:
-    login_admin()
-    
-    # Create a round first
-    round_id = create_round()
-    
-    # Create a task type for the round
-    task_type_id, _ = create_task_type(round_id, "test_delete_type")
-    
-    # Now delete the task type
-    result = run_ok("task-type", "delete", "--id", task_type_id, "--yes")
-    assert f"Task type with ID {task_type_id} deleted successfully" in result.output
-
-
 # Board App Tests
 @pytest.mark.skip(reason="Board app is not yet implemented")
 def test_board_dashboard() -> None:
@@ -378,7 +278,7 @@ DEFAULT_CHALLENGE_ID = "challenge_2"
 
 
 
-def create_task_type(round_id: str, type_name_prefix: str = "test_type") -> tuple[str, str]:
+def create_task_type(round_id: str, type_name_prefix: str = "test_type") -> str:
     type_name = f"{type_name_prefix}_{int(time.time())}"
     create_result = run_ok(
         "task-type", "create",
@@ -387,20 +287,11 @@ def create_task_type(round_id: str, type_name_prefix: str = "test_type") -> tupl
         "--generator-url", "https://example.com/generator",
         "--generator-settings", "{\"difficulty\": \"easy\"}",
         "--generator-secret", "test_secret",
-        "--max-tasks", "5"
+        "--n-tasks", "5"
     )
     
-    # Extract the task type ID from the output
-    task_type_id = None
-    for line in create_result.output.splitlines():
-        if "Task type created successfully with ID:" in line:
-            task_type_id = line.split("ID:")[1].strip()
-            break
-    
-    if not task_type_id:
-        assert False, "Failed to create task type, no ID found in output"
-        
-    return task_type_id, type_name
+    task_type = extract_from_output(create_result.output, "Task type created successfully:")
+    return task_type
 
 
 def get_task_id() -> str:

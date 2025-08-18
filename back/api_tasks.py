@@ -22,8 +22,8 @@ def get_task(
     db_task = get_task_or_404(task_id, task_service, auth_data)
     return Task.model_validate({
         'id': db_task.id,
-        'title': f"{db_task.task_type} Task",
-        'type': db_task.task_type,
+        'title': f"{db_task.type} Task",
+        'type': db_task.type,
         'status': db_task.status,
         'score': db_task.score,
         'statement': getattr(db_task, 'statement', None),
@@ -44,9 +44,9 @@ def submit_task_answer(
 ) -> Submission:
     answer = answer_data.answer
     try:
-        if auth_data.team_id is None or auth_data.challenge_id is None:
-            raise HTTPException(status_code=400, detail="Team or challenge not found")
-        submission = task_service.submit_task_answer(task_id, auth_data.team_id, auth_data.challenge_id, answer, auth_data.round_id)
+        if auth_data.team_id is None or auth_data.challenge_id is None or auth_data.round_id is None:
+            raise HTTPException(status_code=400, detail="Team, challenge or round not found")
+        submission = task_service.submit_task_answer(task_id, auth_data.team_id, auth_data.challenge_id, auth_data.round_id, answer)
         return Submission.model_validate(submission, from_attributes=True)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))

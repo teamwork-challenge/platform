@@ -132,10 +132,10 @@ def create_test_firebase_data() -> None:
     
     # Create task types as subcollection under round1
     task_type1 = TaskTypeDocument(
-        task_type="a_plus_b",
+        type="a_plus_b",
         challenge_id=challenge1_id,
         round_id=round1_id,
-        tasks_count=100,
+        n_tasks=100,
         generator_url="http://127.0.0.1:8918/task_gen/a_plus_b",
         generator_settings="",
         generator_secret="twc",
@@ -143,10 +143,10 @@ def create_test_firebase_data() -> None:
         time_to_solve=30
     )
     task_type11 = TaskTypeDocument(
-        task_type="sum_a_b",
+        type="sum_a_b",
         challenge_id=challenge1_id,
         round_id=round1_id,
-        tasks_count=50,
+        n_tasks=50,
         generator_url="http://127.0.0.1:8918/task_gen/a_plus_b",
         generator_settings="",
         generator_secret="twc",
@@ -154,10 +154,10 @@ def create_test_firebase_data() -> None:
         time_to_solve=30
     )
     task_type2 = TaskTypeDocument(
-        task_type="test-type",
+        type="test-type",
         challenge_id=challenge1_id,
         round_id=round2_id,
-        tasks_count=5,
+        n_tasks=5,
         generator_url="no-generator",
         generator_settings="",
         generator_secret="",
@@ -165,11 +165,11 @@ def create_test_firebase_data() -> None:
         time_to_solve=45
     )
     round1_task_types = challenge1_rounds.document(round1_id).collection('task_types')
-    round1_task_types.document().set(task_type1.model_dump())
-    round1_task_types.document().set(task_type11.model_dump())
+    round1_task_types.document(task_type1.type).set(task_type1.model_dump())
+    round1_task_types.document(task_type11.type).set(task_type11.model_dump())
 
     round2_task_types = challenge1_rounds.document(round2_id).collection('task_types')
-    round2_task_types.document().set(task_type2.model_dump())
+    round2_task_types.document(task_type2.type).set(task_type2.model_dump())
 
     # Create tasks and store inside round1 document (as field)
     tasks = {
@@ -178,7 +178,7 @@ def create_test_firebase_data() -> None:
             challenge_id=challenge1_id,
             team_id=team1_id,
             round_id=round1_id,
-            task_type="a_plus_b",
+            type="a_plus_b",
             status=TaskStatus.PENDING,
             statement="Given two integers a and b, find their sum a + b.",
             input="1 2",
@@ -191,7 +191,7 @@ def create_test_firebase_data() -> None:
             challenge_id=challenge1_id,
             team_id=team1_id,
             round_id=round1_id,
-            task_type="test-type",
+            type="sum_a_b",
             status=TaskStatus.PENDING,
             statement="You can't solve this task. It has no generator",
             input="This is some strange task input",
@@ -204,7 +204,7 @@ def create_test_firebase_data() -> None:
             challenge_id=challenge1_id,
             team_id=team1_id,
             round_id=round1_id,
-            task_type="test-type",
+            type="test-type",
             status=TaskStatus.AC,
             statement="You can't solve this task. It has no generator",
             input="This is some strange task input",
@@ -217,7 +217,7 @@ def create_test_firebase_data() -> None:
             challenge_id=challenge1_id,
             team_id=team1_id,
             round_id=round1_id,
-            task_type="test-type",
+            type="test-type",
             status=TaskStatus.WA,
             statement="You can't solve this task. It has no generator",
             input="This is some strange task input",

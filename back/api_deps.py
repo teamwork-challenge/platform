@@ -50,23 +50,14 @@ def authenticate_admin(
 
 # Helpers
 
-def ensure_challenge_is_not_deleted(challenge: Challenge) -> None:
-    if challenge.deleted:
-        raise HTTPException(status_code=404, detail="Challenge is deleted")
-
-
 def get_challenge_or_404(
     challenge_id: str,
     challenge_service: ChallengeService,
-    auth_data: AuthData,
-    req_method: str = "GET"
+    auth_data: AuthData
 ) -> Challenge:
     challenge = challenge_service.get_challenge(challenge_id)
     if challenge is None:
         raise HTTPException(status_code=404, detail="Challenge not found")
-
-    if challenge.deleted and req_method != "GET":
-        raise HTTPException(status_code=404, detail="Challenge is deleted")
 
     # If a user is a player, check if they have access to this challenge
     if auth_data.role == UserRole.PLAYER and challenge.id != auth_data.challenge_id:
@@ -79,14 +70,13 @@ def get_round_or_404(
     round_id: str,
     challenge_id: str,
     challenge_service: ChallengeService,
-    auth_data: AuthData,
-    req_method: str = "GET"
+    auth_data: AuthData
 ) -> RoundDocument:
     game_round = challenge_service.get_round(round_id, challenge_id)
     if game_round is None:
         raise HTTPException(status_code=404, detail="Round not found")
 
-    challenge = get_challenge_or_404(challenge_id, challenge_service, auth_data, req_method)
+    challenge = get_challenge_or_404(challenge_id, challenge_service, auth_data)
 
     if game_round.challenge_id != challenge.id:
         raise HTTPException(status_code=404, detail="Round not found for this challenge")
@@ -106,7 +96,7 @@ def get_round_task_type_or_404(
     auth_data: AuthData,
     req_method: str = "GET"
 ) -> RoundTaskType:
-    get_round_or_404(round_id, challenge_id, challenge_service, auth_data, req_method)
+    get_round_or_404(round_id, challenge_id, challenge_service, auth_data)
 
     round_task_type = challenge_service.get_round_task_type(task_type_id, challenge_id, round_id)
     if round_task_type is None:
