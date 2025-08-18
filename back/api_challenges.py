@@ -121,7 +121,7 @@ def get_round(
     return res
 
 
-def fix_round_id(auth_data: AuthData, round_id: str):
+def fix_round_id(auth_data: AuthData, round_id: str) -> str:
     if round_id.lower() == "current":
         if auth_data.round_id is None:
             raise HTTPException(status_code=404, detail="Current round not found")
@@ -162,13 +162,13 @@ def get_round_task_types(
 @router.get("/challenges/{challenge_id}/round/{round_id}/task-types/{task_type}")
 def get_round_task_type(
     task_type: str,
-    round_id: str | None = None,
-    challenge_id: str | None = None,
+    round_id: str,
+    challenge_id: str,
     challenge_service: ChallengeService = Depends(get_challenge_service),
     auth_data: AuthData = Depends(authenticate_player)
 ) -> RoundTaskType:
     challenge_id = fix_challenge_id(auth_data, challenge_id)
     round_id = fix_round_id(auth_data, round_id)
     get_round_or_404(round_id, challenge_id, challenge_service, auth_data)
-    task_type = challenge_service.get_round_task_type(task_type, challenge_id, round_id)
-    return RoundTaskType.model_validate(task_type, from_attributes=True)
+    task_type_object = challenge_service.get_round_task_type(task_type, challenge_id, round_id)
+    return RoundTaskType.model_validate(task_type_object, from_attributes=True)

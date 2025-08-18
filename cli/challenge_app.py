@@ -4,6 +4,7 @@ from typing import Optional
 import hjson
 import typer
 from rich.markdown import Markdown
+from rich.table import Table
 
 from api_models import Challenge
 from cli.app_deps import api_client, console, ensure_logged_in, json_output_option
@@ -33,6 +34,27 @@ def logout() -> None:
     """Remove an API key from the config file."""
     api_client.remove_api_key()
     console.print("[green]Successfully logged out[/green]")
+
+
+@app.command("list")
+def list_challenges(as_json: bool = json_output_option) -> None:
+    """List all challenges."""
+    ensure_logged_in()
+    challenges = api_client.get_challenges()
+
+    if as_json:
+        return print_as_json(challenges)
+
+    table = Table(title="Challenges")
+    table.add_column("ID", style="cyan")
+    table.add_column("Title", style="green")
+    table.add_column("Current Round")
+
+    for ch in challenges:
+        table.add_row(str(ch.id), str(ch.title), str(ch.current_round_id))
+
+    console.print(table)
+    return None
 
 
 @app.command("show")

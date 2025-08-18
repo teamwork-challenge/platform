@@ -334,21 +334,7 @@ def test_team_rename() -> None:
 
 
 def test_get_challenges_admin() -> None:
-    # Admin-only endpoint: ensure we are logged in as admin
     login_admin()
-    from cli.app_deps import api_client as _api_client
-
-    challenges = _api_client.get_challenges()
-
-    # Should return at least the seeded challenges
-    assert isinstance(challenges, list)
-    assert len(challenges) >= 1
-
-    # Expect at least challenge_1 to exist; challenge_2 is also commonly present
-    ids = {c.id for c in challenges}
-    assert "challenge_1" in ids
-    # challenge_2 may exist in test data; if present, it validates listing multiple items
-    # We don't fail if it's absent, but we check and allow either way
-    # This keeps the test robust if seed data changes
-    # Optionally assert it too if present in many setups
-    # assert "challenge_2" in ids
+    result = run_ok("list")
+    assert "challenge_1" in result.output
+    assert "challenge_2" in result.output

@@ -107,7 +107,7 @@ class ChallengeService:
         return types
 
 
-    def _find_task_type_ref(self, task_type_id: str, challenge_id: str, round_id: str) -> Optional[tuple[Any, str, Any, Any]]:
+    def _find_task_type_ref(self, task_type_id: str, challenge_id: str, round_id: str) -> tuple[Any, str, Any, Any]:
         """Internal: find the Firestore reference and parent info for a task type by its document ID under known challenge/round."""
         ch_ref = self.db.collection('challenges').document(challenge_id)
         tt_ref = ch_ref.collection('rounds').document(round_id).collection('task_types').document(task_type_id)
