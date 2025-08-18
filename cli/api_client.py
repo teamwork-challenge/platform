@@ -85,12 +85,6 @@ class ApiClient:
         data = self._make_request("PUT", f"/challenges/{challenge.id}", challenge.model_dump_json(exclude_unset=True))
         return Challenge.model_validate(data)
 
-    def delete_challenge(self, challenge_id: str) -> Challenge:
-        """Mark a challenge as deleted by setting the deleted flag."""
-        # For challenges, we use a flag instead of actual deletion
-        data = self._make_request("PUT", f"/challenges/{challenge_id}", json.dumps({"deleted": True}))
-        return Challenge.model_validate(data)
-
     # Round-related methods
     def get_round_info(self, challenge_id: str | None, round_id: str | None) -> Round:
         round_id = round_id or "current"

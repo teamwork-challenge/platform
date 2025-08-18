@@ -320,3 +320,35 @@ def extract_from_output(output: str, key: str) -> str:
         if key in line:
             return line.split(key)[1].strip()
     return ""
+
+# New tests for rename team and get challenges
+
+def test_team_rename() -> None:
+    login_team1()
+
+    new_name = "New {Team:} Name"
+    result = run_ok("team", "rename", new_name)
+
+    result = run_ok("team", "show")
+    assert new_name in result.output
+
+
+def test_get_challenges_admin() -> None:
+    # Admin-only endpoint: ensure we are logged in as admin
+    login_admin()
+    from cli.app_deps import api_client as _api_client
+
+    challenges = _api_client.get_challenges()
+
+    # Should return at least the seeded challenges
+    assert isinstance(challenges, list)
+    assert len(challenges) >= 1
+
+    # Expect at least challenge_1 to exist; challenge_2 is also commonly present
+    ids = {c.id for c in challenges}
+    assert "challenge_1" in ids
+    # challenge_2 may exist in test data; if present, it validates listing multiple items
+    # We don't fail if it's absent, but we check and allow either way
+    # This keeps the test robust if seed data changes
+    # Optionally assert it too if present in many setups
+    # assert "challenge_2" in ids

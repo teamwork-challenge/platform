@@ -1,13 +1,14 @@
 from typing import Sequence
 
 from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel
 
 from api_models import Team, TeamsImportRequest, TeamsImportResponse, UserRole, AuthData
 from back.api_deps import authenticate_player, authenticate_admin, get_team_service, get_challenge_service, get_challenge_or_404
 from back.firebase_team_service import TeamService
 from back.firebase_challenge_service import ChallengeService
 
-router = APIRouter(prefix="", tags=["Team"]) 
+router = APIRouter(prefix="", tags=["Team"])
 
 
 # Player: auth & team
@@ -31,24 +32,37 @@ def get_team(
     return Team.model_validate(team, from_attributes=True)
 
 
+class RenameTeamRequest(BaseModel):
+    name: str
+
+
+@router.put("/team")
+def rename_team(
+    request: RenameTeamRequest,
+    auth_data: AuthData = Depends(authenticate_player),
+    team_service: TeamService = Depends(get_team_service)
+) -> Team:
+    if auth_data.team_id is None:
+        raise HTTPException(status_code=404, detail="Team not found")
+    if auth_data.challenge_id is None:
+        raise HTTPException(status_code=404, detail="Challenge not found")
+    updated = team_service.rename_team(auth_data.team_id, auth_data.challenge_id, request.name)
+    if updated is None:
+        raise HTTPException(status_code=404, detail="Team not found")
+    return Team.model_validate(updated, from_attributes=True)
+
+
 # Admin: teams management
-@router.get("/teams")
+@router.get("/challenges/{challenge_id}/teams")
 def get_teams(
-    challenge_id: str | None = None,
+    challenge_id: str,
     challenge_service: ChallengeService = Depends(get_challenge_service),
     team_service: TeamService = Depends(get_team_service),
     auth_data: AuthData = Depends(authenticate_admin)
 ) -> list[Team]:
-    if challenge_id is not None:
-        # Check if the challenge exists
-        get_challenge_or_404(challenge_id, challenge_service, auth_data)
-        # Get teams for the specified challenge
-        teams = team_service.get_teams_by_challenge(challenge_id)
-        return [Team.model_validate(t, from_attributes=True) for t in teams]
-    else:
-        # Get all teams
-        teams = team_service.get_all_teams()
-        return [Team.model_validate(t, from_attributes=True) for t in teams]
+    get_challenge_or_404(challenge_id, challenge_service, auth_data)
+    teams = team_service.get_teams_by_challenge(challenge_id)
+    return [Team.model_validate(t, from_attributes=True) for t in teams]
 
 
 @router.post("/teams")

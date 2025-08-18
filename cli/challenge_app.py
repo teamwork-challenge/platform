@@ -64,36 +64,6 @@ def update(challenge_hjson_path: str = typer.Argument(..., help="Challenge HJSON
     return print_as_json(challenge)
 
 
-@app.command("delete")
-def delete(
-    challenge_id: str = typer.Option(..., "--challenge-id", "-c", help="Challenge ID"),
-    confirm: bool = typer.Option(False, "--yes", "-y", help="Skip confirmation prompt"),
-    as_json: bool = json_output_option
-) -> None:
-    """Mark a challenge as deleted."""
-    ensure_logged_in()
-
-    challenge = api_client.get_challenge_info(challenge_id)
-
-    if not confirm:
-        console.print(f"[bold yellow]Warning: You are about to mark Challenge {challenge_id} as deleted[/bold yellow]")
-        console.print(f"Title: {challenge.title}")
-
-        confirmed = typer.confirm("Are you sure you want to mark this challenge as deleted?")
-        if not confirmed:
-            console.print("[yellow]Operation cancelled.[/yellow]")
-            return None
-
-    result = api_client.delete_challenge(challenge_id)
-
-    if as_json:
-        return print_as_json(result)
-
-    console.print(f"[bold green]Challenge {challenge_id} marked as deleted successfully![/bold green]")
-
-    return None
-
-
 def print_challenge(challenge: Challenge) -> None:
     console.print(f"[bold blue]Challenge {challenge.id}[/bold blue]")
     console.print(f"Name: {challenge.title}")

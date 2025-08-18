@@ -25,8 +25,9 @@ def team_show(as_json: bool = json_output_option) -> None:
     return None
 
 
-# @team_app.command("rename") # Backend is not ready yet
-def team_rename(new_name: str, as_json: bool = json_output_option) -> None:
+@team_app.command("rename")
+def team_rename(new_name: str = typer.Argument(..., help="New team name"),
+                as_json: bool = json_output_option) -> None:
     """Rename team (allowed until first submission)."""
     ensure_logged_in()
 
