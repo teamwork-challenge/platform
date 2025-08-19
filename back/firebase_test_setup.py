@@ -106,35 +106,9 @@ def create_test_firebase_data() -> None:
     db.collection('challenges').document(challenge1_id).collection('teams').document(team1_id).set(team1.model_dump())
     db.collection('challenges').document(challenge2_id).collection('teams').document(team2_id).set(team2.model_dump())
     
-    # Create round documents in subcollections
-    round1 = RoundDocument(
-        id=round1_id,
-        challenge_id=challenge1_id,
-        published=True,
-        claim_by_type=True,
-        start_time=now,
-        end_time=now + timedelta(hours=2000),
-    )
-    round2 = RoundDocument(
-        id=round2_id,
-        challenge_id=challenge2_id,
-        published=False,
-        claim_by_type=False,
-        start_time=now - timedelta(hours=1),
-        end_time=now + timedelta(hours=2000),
-    )
-
-    challenge1_rounds = db.collection('challenges').document(challenge1_id).collection('rounds')
-    challenge1_rounds.document(round1_id).set(round1.model_dump())
-
-    challenge2_rounds = db.collection('challenges').document(challenge2_id).collection('rounds')
-    challenge2_rounds.document(round2_id).set(round2.model_dump())
-    
-    # Create task types as subcollection under round1
+    # Create round documents in subcollections with embedded task types
     task_type1 = TaskTypeDocument(
         type="a_plus_b",
-        challenge_id=challenge1_id,
-        round_id=round1_id,
         n_tasks=100,
         generator_url="http://127.0.0.1:8918/task_gen/a_plus_b",
         generator_settings="",
@@ -144,8 +118,6 @@ def create_test_firebase_data() -> None:
     )
     task_type11 = TaskTypeDocument(
         type="sum_a_b",
-        challenge_id=challenge1_id,
-        round_id=round1_id,
         n_tasks=50,
         generator_url="http://127.0.0.1:8918/task_gen/a_plus_b",
         generator_settings="",
@@ -155,8 +127,6 @@ def create_test_firebase_data() -> None:
     )
     task_type2 = TaskTypeDocument(
         type="test-type",
-        challenge_id=challenge1_id,
-        round_id=round2_id,
         n_tasks=5,
         generator_url="no-generator",
         generator_settings="",
@@ -164,12 +134,31 @@ def create_test_firebase_data() -> None:
         score=100,
         time_to_solve=45
     )
-    round1_task_types = challenge1_rounds.document(round1_id).collection('task_types')
-    round1_task_types.document(task_type1.type).set(task_type1.model_dump())
-    round1_task_types.document(task_type11.type).set(task_type11.model_dump())
 
-    round2_task_types = challenge1_rounds.document(round2_id).collection('task_types')
-    round2_task_types.document(task_type2.type).set(task_type2.model_dump())
+    round1 = RoundDocument(
+        id=round1_id,
+        challenge_id=challenge1_id,
+        published=True,
+        claim_by_type=True,
+        start_time=now,
+        end_time=now + timedelta(hours=2000),
+        task_types=[task_type1, task_type11]
+    )
+    round2 = RoundDocument(
+        id=round2_id,
+        challenge_id=challenge2_id,
+        published=False,
+        claim_by_type=False,
+        start_time=now - timedelta(hours=1),
+        end_time=now + timedelta(hours=2000),
+        task_types=[task_type2]
+    )
+
+    challenge1_rounds = db.collection('challenges').document(challenge1_id).collection('rounds')
+    challenge1_rounds.document(round1_id).set(round1.model_dump())
+
+    challenge2_rounds = db.collection('challenges').document(challenge2_id).collection('rounds')
+    challenge2_rounds.document(round2_id).set(round2.model_dump())
 
     # Create tasks and store inside round1 document (as field)
     tasks = {

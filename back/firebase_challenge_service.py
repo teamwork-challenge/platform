@@ -1,10 +1,10 @@
-from typing import List, Optional, Any
+from typing import List, Optional
 
 from api_models import (
     Challenge as APIChallenge, Round as APIRound, RoundTaskType as APIRoundTaskType
 )
 from back.firebase_db import get_firestore_db
-from back.firebase_models import ChallengeDocument, RoundDocument
+from back.firebase_models import ChallengeDocument, RoundDocument, TaskTypeDocument
 
 
 class ChallengeService:
@@ -77,41 +77,16 @@ class ChallengeService:
 
 
     def get_round_task_types_by_round(self, round_id: str, challenge_id: str) -> List[APIRoundTaskType]:
-        """List task types for a given round. Requires challenge_id; no fallbacks."""
-        types: List[APIRoundTaskType] = []
-        for tt_doc in self.db.collection('challenges').document(challenge_id) \
-                .collection('rounds').document(round_id) \
-                .collection('task_types').stream():
-            round_task_type = APIRoundTaskType.model_validate(tt_doc.to_dict())
-            types.append(round_task_type)
-        return types
-
-
-    def get_round_task_type(self, task_type_id: str, challenge_id: str, round_id: str) -> APIRoundTaskType:
-        doc = self.db.collection('challenges').document(challenge_id) \
-                 .collection('rounds').document(round_id) \
-                 .collection('task_types').document(task_type_id) \
-                 .get()
-        if not doc.exists:
-            raise ValueError("Task type not found")
-        return APIRoundTaskType.model_validate(doc.to_dict())
+        """List task types embedded in a round document."""
+        rd_doc = self.db.collection('challenges').document(challenge_id).collection('rounds').document(round_id).get()
+        rd: RoundDocument = RoundDocument.model_validate(rd_doc.to_dict())
+        return [APIRoundTaskType.model_validate(tt, from_attributes=True) for tt in rd.task_types]
 
 
     def update_round(self, round_data: APIRound) -> APIRound:
         rd_ref = self.db.collection('challenges').document(round_data.challenge_id).collection('rounds').document(round_data.id)
-        doc = RoundDocument.model_validate(round_data, from_attributes=True)
-        rd_ref.set(doc.model_dump())
-        tts = rd_ref.collection('task_types')
-        ids = {}
-        for tt in round_data.task_types or []:
-            tts.document(tt.type).set(tt.model_dump())
-            ids[tt.type] = 1
-        existing = list(tts.stream())
-        batch = self.db.batch()
-        for snap in existing:
-            if snap.id not in ids:
-                batch.delete(snap.reference)
-        batch.commit()
+        base = RoundDocument.model_validate(round_data, from_attributes=True).model_dump()
+        rd_ref.set(base)
         return round_data
 
 

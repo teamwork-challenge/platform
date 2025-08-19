@@ -59,7 +59,7 @@ Subcollections:
 - claim_by_type: boolean
 - start: Date
 - end: Date
-- task-types: {type-code: TaskTypeDocument}
+- task-types: list[TaskTypeDocument]
 
 Subcollections:
 - tasks: {tid: TaskDocument}

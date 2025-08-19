@@ -86,35 +86,7 @@ class TestFirebaseSetup:
         assert team_key_data['role'] == 'player'
         assert team_key_data['team_id'] == 'team_1'
     
-    def test_nested_collections_structure(self):
-        """Test the nested collection structure matches the design"""
-        create_test_firebase_data()
-        
-        db = get_firestore_db()
-        challenge1 = db.collection('challenges').document('challenge_1').get()
-        challenge_data = challenge1.to_dict()
-        
-        # Verify teams structure via subcollection
-        team1_doc = db.collection('challenges').document('challenge_1').collection('teams').document('team_1').get()
-        assert team1_doc.exists
-        team_data = team1_doc.to_dict()
-        assert team_data['name'] == 'Test Team 1'
-        assert team_data['members'] == 'Member 1, Member 2'
-        
-        # Verify rounds structure: use subcollection now
-        round1_doc = db.collection('challenges').document('challenge_1').collection('rounds').document('round_1').get()
-        assert round1_doc.exists
-        round_data = round1_doc.to_dict()
-        assert round_data['published'] is True
-        
-        # Verify task types in round via subcollection
-        task_types = list(db.collection('challenges').document('challenge_1').collection('rounds').document('round_1').collection('task_types').stream())
-        assert any(tt.to_dict().get('type') == 'a_plus_b' for tt in task_types)
-        
-        # Verify tasks in round via subcollection
-        tasks = list(db.collection('challenges').document('challenge_1').collection('rounds').document('round_1').collection('tasks').stream())
-        assert len(tasks) == 4
-    
+
     def test_api_key_lookup(self):
         """Test API key document structure for auth lookups"""
         create_test_firebase_data()

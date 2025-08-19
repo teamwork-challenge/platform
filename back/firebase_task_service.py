@@ -105,7 +105,9 @@ class TaskService:
         if current_time > round_end:
             raise ValueError("Round has already ended")
 
-        task_type_data = self.get_task_type(current_round, rounds_ref, task_type, team_id)
+        task_type_data = self.get_task_type(current_round, task_type, team_id)
+        if task_type_data is None:
+            raise ValueError("No task type found")
 
         # Check task limits
         existing_count = self.get_existing_tasks(team_id, challenge_id, current_round_id, task_type)
@@ -148,14 +150,9 @@ class TaskService:
 
         return APITask.model_validate(task_doc, from_attributes=True)
 
-    def get_task_type(self, current_round, rounds_ref, task_type, team_id) -> TaskTypeDocument:
+    def get_task_type(self, current_round: RoundDocument, task_type: str, team_id: str) -> TaskTypeDocument:
         task_type = task_type or self.get_random_task_type(current_round, team_id).type
-        # Validate task type exists in round by document id equal to type
-        tt_doc = rounds_ref.document(current_round.id).collection('task_types').document(task_type).get()
-        if not tt_doc.exists:
-            raise ValueError(f"Task type '{task_type}' is not available in this round")
-        task_type_data = TaskTypeDocument.model_validate(tt_doc.to_dict())
-        return task_type_data
+        return current_round.get_task_type(task_type)
 
 
     def get_random_task_type(self, game_round: Round | RoundDocument, team_id: str) -> RoundTaskType:
@@ -167,44 +164,30 @@ class TaskService:
         if not round_ref.get().exists:
             raise ValueError("Round not found")
 
-        # Load all task types for the round from subcollection
-        types_docs = list(round_ref.collection('task_types').stream())
-        if not types_docs:
-            raise ValueError("No task types available for this round")
-
-        # Compute remaining quota per type for this team
-        from typing import Any
-        candidates: list[tuple[dict[str, Any], str, int]] = []  # (task_type_data, doc_id, remaining)
-        for tt_doc in types_docs:
-            td = tt_doc.to_dict()
-            type_code = td.get('type')
-            max_per_team = int(td.get('tasks_count', 0))
-            taken = self.get_existing_tasks(team_id, game_round.challenge_id, game_round.id, type_code)
-            remaining = max(0, max_per_team - taken)
+        # Load all task types from embedded map
+        rd_doc = round_ref.get()
+        if not rd_doc.exists:
+            raise ValueError("Round not found")
+        rd = RoundDocument.model_validate(rd_doc.to_dict())
+        candidates: list[tuple[TaskTypeDocument, int]] = []  # (task_type_data, remaining)
+        for tt in rd.task_types:
+            n_tasks = tt.n_tasks
+            taken = self.get_existing_tasks(team_id, game_round.challenge_id, game_round.id, tt.type)
+            remaining = max(0, n_tasks - taken)
             if remaining > 0:
-                candidates.append((td, tt_doc.id, remaining))
+                candidates.append((tt, remaining))
 
         if not candidates:
             raise ValueError("All tasks were already taken for this round")
 
         # Weighted random selection proportional to remaining
         if len(candidates) == 1:
-            chosen_td, chosen_id, _ = candidates[0]
+            chosen_td, _ = candidates[0]
         else:
-            weights = [rem for _, _, rem in candidates]
+            weights = [rem for _, rem in candidates]
             idx = random.choices(range(len(candidates)), weights=weights, k=1)[0]
-            chosen_td, chosen_id, _ = candidates[idx]
-        return RoundTaskType.model_validate({
-            'id': chosen_id,
-            'round_id': game_round.id,
-            'type': chosen_td['type'],
-            'n_tasks': chosen_td.get('n_tasks', 0),
-            'generator_url': chosen_td['generator_url'],
-            'generator_settings': chosen_td.get('generator_settings'),
-            'generator_secret': chosen_td['generator_secret'],
-            'score': chosen_td.get('score', 100),
-            'time_to_solve': chosen_td['time_to_solve']
-        })
+            chosen_td, _ = candidates[idx]
+        return chosen_td
 
 
     def get_existing_tasks(self, team_id: str, challenge_id: str, round_id: str, task_type: str | None = None) -> int:
@@ -257,37 +240,30 @@ class TaskService:
         if not challenge_doc.exists:
             raise ValueError("Challenge not found")
 
-        task_data = None
-        task_type_data = None
-        task_ref = None
+        task = None
         resolved_round_id: str
         rounds_ref = challenge_ref.collection('rounds')
 
         t_ref = rounds_ref.document(round_id).collection('tasks').document(task_id)
         t_doc = t_ref.get()
         if t_doc.exists:
-            task_data = t_doc.to_dict()
+            task = TaskDocument.model_validate(t_doc.to_dict())
             task_ref = t_ref
             resolved_round_id = round_id
             # Verify task belongs to team
-            if task_data['team_id'] != team_id:
+            if task.team_id != team_id:
                 raise ValueError("Task does not belong to this team")
-            # Load task type configuration from this round only via query
-            task_type = task_data['type']
-            tt_q = rounds_ref.document(resolved_round_id).collection('task_types').document(task_type)
-            task_type_data = tt_q.get().to_dict()
+            task_type = task.type
+            r_doc = rounds_ref.document(resolved_round_id).get()
+            round = RoundDocument.model_validate(r_doc.to_dict())
+            task_type_doc = round.get_task_type(task_type)
         else:
             raise ValueError("Task not found")
-        if not task_data:
-            raise ValueError("Task not found")
-        if not task_type_data:
-            raise ValueError("Task type configuration not found")
-        assert isinstance(resolved_round_id, str)
 
         # Check time limit
         current_time = datetime.now(timezone.utc)
-        claimed_at = task_data['claimed_at']
-        time_limit_minutes = task_type_data['time_to_solve']
+        claimed_at = task.claimed_at
+        time_limit_minutes = task_type_doc.time_to_solve
         deadline = claimed_at + timedelta(minutes=time_limit_minutes)
 
         if current_time > deadline:
@@ -295,10 +271,10 @@ class TaskService:
 
         # Check the answer
         check_response = self.task_gen_client.check_answer(
-            task_type_data['generator_url'],
+            task_type_doc.generator_url,
             answer,
-            task_data.get('checker_hint', ''),
-            task_data.get('input', ''),
+            task.checker_hint,
+            task.input,
             task_id
         )
 
@@ -312,7 +288,7 @@ class TaskService:
             # Update task status in task document
             task_ref.update({'status': ApiTaskStatus.AC, 'solved_at': current_time})
             # Calculate score
-            score = int(float(task_data['score']) * check_result.score)
+            score = int(float(task_type_doc.score) * check_result.score)
             submission_doc = SubmissionDocument(
                 id=submission_id,
                 challenge_id=challenge_id,

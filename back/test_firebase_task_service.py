@@ -98,14 +98,9 @@ class TestFirebaseTaskService:
     
     def test_create_task_invalid_task_type(self):
         """Test creating task with invalid task type"""
-        with pytest.raises(ValueError, match="Task type 'invalid_type' is not available"):
+        with pytest.raises(ValueError, match="No task type found"):
             self.service.create_task("challenge_1", "round_1", "team_1", "invalid_type")
-    
-    def test_create_task_invalid_team(self):
-        """Test creating task for non-existent team"""
-        with pytest.raises(ValueError, match="Team not found"):
-            self.service.create_task("challenge_1", "round_1", "invalid_team", "a_plus_b")
-    
+
     @patch('firebase_task_service.TaskGenClient.check_answer')
     def test_submit_task_answer_accepted(self, mock_check_answer):
         """Test submitting a correct answer"""

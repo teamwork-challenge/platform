@@ -29,6 +29,16 @@ class APIKeyDocument(BaseModel):
     team_id: str | None = None
 
 
+class TaskTypeDocument(BaseModel):
+    type: str
+    n_tasks: int
+    generator_url: str
+    generator_settings: str
+    generator_secret: str
+    score: int
+    time_to_solve: int
+
+
 class RoundDocument(BaseModel):
     id: str
     challenge_id: str  # denormalized
@@ -37,18 +47,15 @@ class RoundDocument(BaseModel):
     start_time: datetime
     end_time: datetime
     deleted: bool = False
+    task_types: list[TaskTypeDocument]
+
+    def get_task_type(self, task_type: str) -> TaskTypeDocument | None:
+        for tt in self.task_types:
+            if tt.type == task_type:
+                return tt
+        return None
 
 
-class TaskTypeDocument(BaseModel):
-    type: str
-    challenge_id: str  # denormalized
-    round_id: str  # denormalized
-    n_tasks: int
-    generator_url: str
-    generator_settings: str
-    generator_secret: str
-    score: int
-    time_to_solve: int
 
 
 class TaskDocument(BaseModel):

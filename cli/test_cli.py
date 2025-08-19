@@ -2,12 +2,12 @@
 import sys
 import logging
 from typing import Iterator
+from pathlib import Path
 
 from requests import HTTPError
 from typer.testing import CliRunner
 from click.testing import Result
 import tempfile
-import json
 import os.path
 import os
 import pytest
@@ -25,8 +25,8 @@ backend_port = 8918
 
 @pytest.fixture(scope="session", autouse=True)
 def start_server() -> Iterator[None]:
-    if os.getcwd().endswith("cli"):
-        os.chdir("..")
+    project_root = Path(__file__).resolve().parents[1]  # .../platform
+    os.chdir(project_root)  # make imports like 'back.*' work everywhere
     logging.basicConfig(
         level=logging.INFO,
         format="%(levelname)s: %(message)s",
