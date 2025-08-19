@@ -1,11 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException
 
-from back.api_deps import fix_challenge_id
 from api_models import Team, TeamsImportRequest, TeamsImportResponse, UserRole, AuthData, RenameTeamRequest
-from back.api_deps import authenticate_player, authenticate_admin, get_team_service, get_challenge_service, \
+from back.api.deps import fix_challenge_id
+from back.api.deps import authenticate_player, authenticate_admin, get_team_service, get_challenge_service, \
     get_challenge_or_404
-from back.firebase_challenge_service import ChallengeService
-from back.firebase_team_service import TeamService
+from back.services.challenge_service import ChallengeService
+from back.services.team_service import TeamService
 
 router = APIRouter(prefix="", tags=["Team"])
 

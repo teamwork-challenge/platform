@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
-import typer
-from cli.board_app import board_app
-from cli.round_app import round_app
-from cli.task_app import task_app
-from cli.team_app import team_app
-from cli.challenge_app import app
+from cli.typers.board_app import board_app
+from cli.typers.round_app import round_app
+from cli.typers.task_app import task_app
+from cli.typers.team_app import team_app
+from cli.typers.challenge_app import app
 
 __all__ = ["app"]
 

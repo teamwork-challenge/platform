@@ -7,7 +7,7 @@ from rich.markdown import Markdown
 from rich.table import Table
 
 from api_models import Challenge
-from cli.app_deps import api_client, console, ensure_logged_in, json_output_option
+from cli.typers.app_deps import api_client, console, ensure_logged_in, json_output_option
 from cli.formatter import print_as_json
 
 app = typer.Typer(help="Teamwork Challenge CLI", pretty_exceptions_short=True, pretty_exceptions_show_locals=False)

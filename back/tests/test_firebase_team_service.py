@@ -1,9 +1,9 @@
 import pytest
 
 from api_models import TeamCreateRequest, UserRole
-from firebase_db import FirebaseDatabase
-from firebase_team_service import TeamService
-from firebase_test_setup import setup_firebase_emulator, clear_firestore_data, create_test_firebase_data
+from back.services.db import FirebaseDatabase
+from back.services.team_service import TeamService
+from test_setup import setup_firebase_emulator, clear_firestore_data, create_test_firebase_data
 
 
 class TestFirebaseTeamService:

@@ -5,13 +5,13 @@ from fastapi import FastAPI
 from fastapi.responses import RedirectResponse
 from mangum import Mangum
 
-from back.api_boards import router as boards_router
-from back.api_challenges import router as challenges_router
-from back.api_task_gen import router as task_gen_router
-from back.api_tasks import router as tasks_router
+from back.api.boards_api import router as boards_router
+from back.api.challenges_api import router as challenges_router
+from back.api.taskgen_api import router as task_gen_router
+from back.api.tasks_api import router as tasks_router
 # Routers split by domain
-from back.api_teams import router as team_router
-from back.firebase_test_setup import setup_firebase_emulator, create_test_firebase_data
+from back.api.teams_api import router as team_router
+from back.tests.test_setup import setup_firebase_emulator, create_test_firebase_data
 
 app = FastAPI(title="Teamwork Challenge API",
               description="API for managing teamwork challenges and tasks",

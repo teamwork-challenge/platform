@@ -4,7 +4,7 @@ from typing import Optional, Dict, Any, List
 
 import requests
 
-from api_models import Task, RoundTaskType, Team, Challenge, Round, RoundList, Submission, \
+from api_models import Task, Team, Challenge, Round, Submission, \
     TaskList, Dashboard, Leaderboard, DeleteResponse, SubmitAnswerRequest, TeamsImportRequest, TeamsImportResponse
 from cli.config_manager import ConfigManager
 

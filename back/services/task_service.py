@@ -9,10 +9,9 @@ from api_models import (
     GenRequest, GenResponse, TaskProgress, CheckStatus, Task as APITask, Submission as ApiSubmission, SubmissionStatus,
     TaskStatus as ApiTaskStatus, Round, RoundTaskType
 )
-from back.firebase_db import get_firestore_db
-from back.firebase_models import TaskDocument, SubmissionDocument, RoundDocument
-from back.taskgen_client import TaskGenClient
-from back.firebase_models import TaskTypeDocument
+from back.services.db import get_firestore_db
+from back.db_models import TaskDocument, SubmissionDocument, RoundDocument, TaskTypeDocument
+from back.services.taskgen_client import TaskGenClient
 
 
 class TaskService:
@@ -150,12 +149,12 @@ class TaskService:
 
         return APITask.model_validate(task_doc, from_attributes=True)
 
-    def get_task_type(self, current_round: RoundDocument, task_type: str, team_id: str) -> TaskTypeDocument:
+    def get_task_type(self, current_round: RoundDocument, task_type: str | None, team_id: str) -> TaskTypeDocument | None:
         task_type = task_type or self.get_random_task_type(current_round, team_id).type
         return current_round.get_task_type(task_type)
 
 
-    def get_random_task_type(self, game_round: Round | RoundDocument, team_id: str) -> RoundTaskType:
+    def get_random_task_type(self, game_round: Round | RoundDocument, team_id: str) -> TaskTypeDocument:
         """Pick a task type from the current round (Firestore) that still has remaining quota for the team.
         Returns an API RoundTaskType instance. If none available, raises ValueError.
         """
@@ -259,6 +258,8 @@ class TaskService:
             task_type_doc = round.get_task_type(task_type)
         else:
             raise ValueError("Task not found")
+        if task_type_doc is None:
+            raise ValueError("Task type not found")
 
         # Check time limit
         current_time = datetime.now(timezone.utc)

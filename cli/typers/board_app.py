@@ -1,5 +1,5 @@
 import typer
-from cli.app_deps import api_client, json_output_option, console
+from cli.typers.app_deps import api_client, json_output_option, console
 from typing import Optional
 from rich.table import Table
 from cli.formatter import print_as_json

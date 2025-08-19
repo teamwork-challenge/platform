@@ -1,7 +1,7 @@
 import csv
 import typer
 from api_models import TeamsImportRequest
-from cli.app_deps import api_client, json_output_option, console, ensure_logged_in
+from cli.typers.app_deps import api_client, json_output_option, console, ensure_logged_in
 from cli.formatter import print_as_json
 
 team_app = typer.Typer(help="Team management commands")

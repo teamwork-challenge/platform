@@ -3,8 +3,8 @@ from typing import List, Optional
 from api_models import (
     Challenge as APIChallenge, Round as APIRound, RoundTaskType as APIRoundTaskType
 )
-from back.firebase_db import get_firestore_db
-from back.firebase_models import ChallengeDocument, RoundDocument, TaskTypeDocument
+from back.services.db import get_firestore_db
+from back.db_models import ChallengeDocument, RoundDocument
 
 
 class ChallengeService:

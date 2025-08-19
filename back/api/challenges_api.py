@@ -1,14 +1,14 @@
 from fastapi import APIRouter, Depends, HTTPException
 
-from back.api_deps import fix_round_id, fix_challenge_id
+from back.api.deps import fix_round_id, fix_challenge_id
 from api_models import (
     Challenge, Round, AuthData, DeleteResponse, UserRole
 )
-from back.api_deps import (
+from back.api.deps import (
     authenticate_player, authenticate_admin, get_challenge_service,
     get_challenge_or_404, get_round_or_404
 )
-from back.firebase_challenge_service import ChallengeService
+from back.services.challenge_service import ChallengeService
 
 router = APIRouter(prefix="", tags=["Challenges & Rounds"]) 
 

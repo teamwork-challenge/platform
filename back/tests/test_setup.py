@@ -2,8 +2,8 @@ import os
 from datetime import datetime, timezone, timedelta
 
 from api_models import TaskStatus
-from back.firebase_db import get_firestore_db, FirebaseDatabase
-from back.firebase_models import (
+from back.services.db import get_firestore_db, FirebaseDatabase
+from back.db_models import (
     ChallengeDocument, TeamDocument, APIKeyDocument, RoundDocument,
     TaskTypeDocument, TaskDocument
 )

@@ -1,9 +1,9 @@
 import pytest
 
 from api_models import Challenge
-from back.firebase_challenge_service import ChallengeService
-from back.firebase_db import FirebaseDatabase
-from back.firebase_test_setup import setup_firebase_emulator, clear_firestore_data, create_test_firebase_data
+from back.services.challenge_service import ChallengeService
+from back.services.db import FirebaseDatabase
+from back.tests.test_setup import setup_firebase_emulator, clear_firestore_data, create_test_firebase_data
 
 
 class TestFirebaseChallengeService:

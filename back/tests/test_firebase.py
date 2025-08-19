@@ -1,9 +1,9 @@
-import pytest
-import os
 from datetime import datetime, timezone
-from firebase_db import FirebaseDatabase, get_firestore_db
-from firebase_test_setup import setup_firebase_emulator, clear_firestore_data, create_test_firebase_data
-from firebase_models import ChallengeDocument, TeamDocument, APIKeyDocument
+
+import pytest
+
+from back.services.db import FirebaseDatabase, get_firestore_db
+from test_setup import setup_firebase_emulator, clear_firestore_data, create_test_firebase_data
 
 
 class TestFirebaseSetup:

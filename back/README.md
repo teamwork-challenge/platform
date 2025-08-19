@@ -43,7 +43,7 @@ Public deployment: https://93a6a2ehkb.execute-api.eu-north-1.amazonaws.com/docs
 In the root directory:
 
    ```bash
-   platform> python -m back.main
+   platform> cd back & python -m main
    ```
 ## Type checking
 

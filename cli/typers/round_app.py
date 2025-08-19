@@ -5,7 +5,7 @@ import typer
 from rich.table import Table
 
 from api_models import Round
-from cli.app_deps import api_client, json_output_option, console, ensure_logged_in
+from cli.typers.app_deps import api_client, json_output_option, console, ensure_logged_in
 from cli.formatter import print_as_json
 
 round_app = typer.Typer(help="Round management commands")

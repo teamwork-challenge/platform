@@ -2,7 +2,7 @@ import typer
 from pathlib import Path
 
 from api_models import SubmitAnswerRequest
-from cli.app_deps import api_client, json_output_option, console, ensure_logged_in
+from cli.typers.app_deps import api_client, json_output_option, console, ensure_logged_in
 from cli.formatter import print_as_json
 from typing import Optional
 from rich.table import Table
@@ -121,6 +121,9 @@ def task_submit(
 
         with open(file_path) as f:
             answer = f.read()
+
+    if answer is None:
+        raise ValueError("Answer cannot be None")
 
     submission = api_client.submit_task_answer(SubmitAnswerRequest(task_id=task_id, answer=answer))
 

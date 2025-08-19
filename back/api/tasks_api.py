@@ -4,10 +4,9 @@ from fastapi import APIRouter, Depends, HTTPException
 
 from api_models import Task, SubmitAnswerRequest, Submission, AuthData, UserRole
 from api_models import TaskStatus
-from back.api_challenges import fix_challenge_id, fix_round_id
-from back.api_deps import authenticate_player, get_task_service, get_challenge_service, get_round_or_404
-from back.firebase_challenge_service import ChallengeService
-from back.firebase_task_service import TaskService
+from back.api.deps import authenticate_player, get_task_service, get_challenge_service, get_round_or_404, fix_challenge_id, fix_round_id
+from back.services.challenge_service import ChallengeService
+from back.services.task_service import TaskService
 
 router = APIRouter(prefix="/challenges/{challenge_id}/rounds/{round_id}", tags=["Tasks"])
 
@@ -93,5 +92,4 @@ def submit_task_answer(
         raise HTTPException(status_code=400, detail="Team not found")
     challenge_id = fix_challenge_id(auth_data, challenge_id)
     round_id = fix_round_id(auth_data, round_id)
-    submission = task_service.submit_task_answer(submission.task_id, auth_data.team_id, challenge_id, round_id, submission.answer)
-    return Submission.model_validate(submission, from_attributes=True)
+    return task_service.submit_task_answer(submission.task_id, auth_data.team_id, challenge_id, round_id, submission.answer)

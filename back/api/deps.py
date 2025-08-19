@@ -2,10 +2,10 @@ from fastapi import Depends, HTTPException
 from fastapi.security import APIKeyHeader
 
 from api_models import *
-from back.firebase_challenge_service import ChallengeService
-from back.firebase_models import RoundDocument, TaskDocument
-from back.firebase_task_service import TaskService
-from back.firebase_team_service import TeamService
+from back.services.challenge_service import ChallengeService
+from back.db_models import RoundDocument, TaskDocument
+from back.services.task_service import TaskService
+from back.services.team_service import TeamService
 
 
 # Services providers
@@ -53,7 +53,7 @@ def authenticate_admin(
 def ensure_has_access(
     auth_data: AuthData,
     challenge_id: str
-):
+) -> None:
     if auth_data.role != UserRole.ADMIN and challenge_id != auth_data.challenge_id:
         raise HTTPException(status_code=404, detail="Challenge not found or access forbidden")
 

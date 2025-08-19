@@ -18,7 +18,7 @@ from requests.exceptions import RequestException
 from datetime import datetime, timedelta
 
 from cli.main import app
-from back.firebase_test_setup import clear_firestore_data, create_test_firebase_data
+from back.tests.test_setup import clear_firestore_data, create_test_firebase_data
 
 backend_port = 8918
 
@@ -38,7 +38,7 @@ def start_server() -> Iterator[None]:
     os.environ["FIRESTORE_EMULATOR_HOST"] = "127.0.0.1:8080"
     clear_firestore_data()
     create_test_firebase_data()
-    proc = subprocess.Popen(["uvicorn", "back.main:app", "--port", str(backend_port)], cwd="..", )
+    proc = subprocess.Popen(["uvicorn", "main:app", "--port", str(backend_port)], cwd="back", )
     wait_endpoint_up(server_url, 1.0)
 
     yield

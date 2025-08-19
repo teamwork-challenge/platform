@@ -2,8 +2,8 @@ import uuid
 from typing import List, Optional
 
 from api_models import TeamCreateRequest, AuthData, UserRole, Team as APITeam
-from back.firebase_db import get_firestore_db
-from back.firebase_models import TeamDocument, APIKeyDocument
+from back.services.db import get_firestore_db
+from back.db_models import TeamDocument, APIKeyDocument
 
 
 class TeamService:

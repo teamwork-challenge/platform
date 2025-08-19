@@ -3,9 +3,9 @@ from unittest.mock import patch
 import pytest
 
 from api_models import GenResponse, CheckResponse, CheckResult, CheckStatus, TaskStatus
-from firebase_db import FirebaseDatabase
-from firebase_task_service import FirebaseTaskService
-from firebase_test_setup import setup_firebase_emulator, clear_firestore_data, create_test_firebase_data
+from back.services.db import FirebaseDatabase
+from back.services.task_service import FirebaseTaskService
+from back.tests.test_setup import setup_firebase_emulator, clear_firestore_data, create_test_firebase_data
 
 
 class TestFirebaseTaskService:
@@ -63,7 +63,7 @@ class TestFirebaseTaskService:
         task = self.service.get_task("invalid_task", "challenge_1", "round_1")
         assert task is None
     
-    @patch('firebase_task_service.TaskGenClient.generate_task')
+    @patch('back.services.task_service.TaskGenClient.generate_task')
     def test_create_task(self, mock_generate_task):
         """Test creating a new task"""
         # Mock the task generator response
@@ -101,7 +101,7 @@ class TestFirebaseTaskService:
         with pytest.raises(ValueError, match="No task type found"):
             self.service.create_task("challenge_1", "round_1", "team_1", "invalid_type")
 
-    @patch('firebase_task_service.TaskGenClient.check_answer')
+    @patch('back.services.task_service.TaskGenClient.check_answer')
     def test_submit_task_answer_accepted(self, mock_check_answer):
         """Test submitting a correct answer"""
         # Mock the checker response
@@ -129,7 +129,7 @@ class TestFirebaseTaskService:
         updated_task = self.service.get_task("task_1", "challenge_1", "round_1")
         assert updated_task.status == TaskStatus.AC
     
-    @patch('firebase_task_service.TaskGenClient.check_answer')
+    @patch('back.services.task_service.TaskGenClient.check_answer')
     def test_submit_task_answer_wrong_answer(self, mock_check_answer):
         """Test submitting a wrong answer"""
         # Mock the checker response
