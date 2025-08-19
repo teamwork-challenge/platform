@@ -177,7 +177,7 @@ class TaskService:
             else:
                 dash_local.task_types.append(TeamTaskDashboardDocument(task_type=task_type_data.type, score=0, ac=0, wa=0, pending=1))
             tx.set(dash_ref, dash_local.model_dump())
-        _do_create(db_client.transaction())
+        _do_create(db_client.transaction(max_attempts=1))
 
         return APITask.model_validate(task_doc, from_attributes=True)
 

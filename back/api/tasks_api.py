@@ -56,10 +56,14 @@ def create_task(
         task_type = task_service.get_random_task_type(game_round, auth_data.team_id).type
     elif not game_round.claim_by_type:
         raise HTTPException(status_code=400, detail="Round does not allow task creation by type")
-    return Task.model_validate(
-        task_service.create_task(challenge_id, round_id, auth_data.team_id, task_type),
-        from_attributes=True
-    )
+    try:
+        created = task_service.create_task(challenge_id, round_id, auth_data.team_id, task_type)
+    except Exception as e:
+        msg = str(e)
+        if "Failed to commit transaction" in msg:
+            raise HTTPException(status_code=409, detail=msg)
+        raise
+    return Task.model_validate(created, from_attributes=True)
 
 
 @router.get("/tasks/{task_id}")
