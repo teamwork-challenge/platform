@@ -37,6 +37,10 @@ class AuthData(BaseModel):
     round_id: Optional[str] = None
 
 
+class RenameTeamRequest(BaseModel):
+    name: str
+
+
 class Challenge(BaseModel):
     id: str
     title: str
@@ -45,6 +49,7 @@ class Challenge(BaseModel):
 
 
 class SubmitAnswerRequest(BaseModel):
+    task_id: str
     answer: str
 
 

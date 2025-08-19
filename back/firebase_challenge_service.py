@@ -42,36 +42,17 @@ class ChallengeService:
         challenge_doc = ChallengeDocument(
             id=challenge_id,
             title=title,
-            description=description,
+            description=description
         )
 
         data = challenge_doc.model_dump()
-        data['id'] = challenge_id
-        data['current_round_id'] = None
         self.db.collection('challenges').document(challenge_id).set(data)
-
         return APIChallenge.model_validate(data)
 
     def update_challenge(self, challenge_id: str, update: APIChallenge) -> Optional[APIChallenge]:
         """Update a challenge"""
         challenge_ref = self.db.collection('challenges').document(challenge_id)
         challenge_ref.set(update.model_dump())
-        return self.get_challenge(challenge_id)
-
-
-    def delete_challenge(self, challenge_id: str) -> Optional[APIChallenge]:
-        """Delete a challenge (soft delete by marking deleted field)"""
-        challenge_ref = self.db.collection('challenges').document(challenge_id)
-        challenge_doc = challenge_ref.get()
-        
-        if not challenge_doc.exists:
-            return None
-            
-        challenge_data = challenge_doc.to_dict()
-        challenge_data['deleted'] = True
-        
-        challenge_ref.set(challenge_data)
-        
         return self.get_challenge(challenge_id)
 
     def get_rounds_by_challenge(self, challenge_id: str) -> List[APIRound]:
@@ -82,13 +63,11 @@ class ChallengeService:
         
         rounds: List[APIRound] = []
         for round_doc in challenge_ref.collection('rounds').stream():
-            rd = round_doc.to_dict()
-            rounds.append(APIRound.model_validate(rd))
+            rounds.append(APIRound.model_validate(round_doc.to_dict()))
         
         return rounds
 
     def get_round(self, round_id: str, challenge_id: str) -> Optional[RoundDocument]:
-        """Get a specific round by ID. Requires challenge_id; no scanning fallbacks."""
         ch_ref = self.db.collection('challenges').document(challenge_id)
         rd_ref = ch_ref.collection('rounds').document(round_id)
         rd_doc = rd_ref.get()
@@ -103,24 +82,19 @@ class ChallengeService:
         for tt_doc in self.db.collection('challenges').document(challenge_id) \
                 .collection('rounds').document(round_id) \
                 .collection('task_types').stream():
-            types.append(APIRoundTaskType.model_validate(tt_doc.to_dict()))
+            round_task_type = APIRoundTaskType.model_validate(tt_doc.to_dict())
+            types.append(round_task_type)
         return types
 
 
-    def _find_task_type_ref(self, task_type_id: str, challenge_id: str, round_id: str) -> tuple[Any, str, Any, Any]:
-        """Internal: find the Firestore reference and parent info for a task type by its document ID under known challenge/round."""
-        ch_ref = self.db.collection('challenges').document(challenge_id)
-        tt_ref = ch_ref.collection('rounds').document(round_id).collection('task_types').document(task_type_id)
-        tt_doc = tt_ref.get()
-        if tt_doc.exists:
-            return ch_ref, round_id, tt_ref, tt_doc
-        raise ValueError("Task type not found")
-
-
     def get_round_task_type(self, task_type_id: str, challenge_id: str, round_id: str) -> APIRoundTaskType:
-        _, _, _, tt_doc = self._find_task_type_ref(task_type_id, challenge_id, round_id)
-        td = tt_doc.to_dict()
-        return APIRoundTaskType.model_validate(td)
+        doc = self.db.collection('challenges').document(challenge_id) \
+                 .collection('rounds').document(round_id) \
+                 .collection('task_types').document(task_type_id) \
+                 .get()
+        if not doc.exists:
+            raise ValueError("Task type not found")
+        return APIRoundTaskType.model_validate(doc.to_dict())
 
 
     def update_round(self, round_data: APIRound) -> APIRound:

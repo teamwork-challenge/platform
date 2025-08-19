@@ -50,19 +50,23 @@ def authenticate_admin(
 
 # Helpers
 
+def ensure_has_access(
+    auth_data: AuthData,
+    challenge_id: str
+):
+    if auth_data.role != UserRole.ADMIN and challenge_id != auth_data.challenge_id:
+        raise HTTPException(status_code=404, detail="Challenge not found or access forbidden")
+
+
 def get_challenge_or_404(
     challenge_id: str,
     challenge_service: ChallengeService,
     auth_data: AuthData
 ) -> Challenge:
+    ensure_has_access(auth_data, challenge_id)
     challenge = challenge_service.get_challenge(challenge_id)
     if challenge is None:
         raise HTTPException(status_code=404, detail="Challenge not found")
-
-    # If a user is a player, check if they have access to this challenge
-    if auth_data.role == UserRole.PLAYER and challenge.id != auth_data.challenge_id:
-        raise HTTPException(status_code=404, detail="Challenge not found")
-
     return challenge
 
 
@@ -74,7 +78,7 @@ def get_round_or_404(
 ) -> RoundDocument:
     game_round = challenge_service.get_round(round_id, challenge_id)
     if game_round is None:
-        raise HTTPException(status_code=404, detail="Round not found")
+        raise HTTPException(status_code=404, detail=f"Round not found: {round_id=} {challenge_id=}")
 
     challenge = get_challenge_or_404(challenge_id, challenge_service, auth_data)
 
@@ -88,6 +92,28 @@ def get_round_or_404(
     return game_round
 
 
+def fix_round_id(auth_data: AuthData, round_id: str) -> str:
+    if round_id.lower() == "current":
+        if auth_data.round_id is None:
+            raise HTTPException(status_code=404, detail="Current round not found")
+        round_id = auth_data.round_id
+    return round_id
+
+
+def fix_challenge_id(auth_data: AuthData, challenge_id: str | None) -> str:
+    if auth_data.role == UserRole.ADMIN:
+        if challenge_id is None:
+            raise HTTPException(status_code=400, detail="challenge_id is required for admin")
+        if challenge_id.lower() == "current":
+            if auth_data.challenge_id is None:
+                raise HTTPException(status_code=404, detail="Current challenge not found")
+            challenge_id = auth_data.challenge_id
+        return challenge_id
+    # Player path
+    if auth_data.challenge_id is None:
+        raise HTTPException(status_code=400, detail="Challenge not found")
+    return auth_data.challenge_id
+
 def get_task_or_404(
     task_id: str,
     task_service: TaskService,
@@ -97,6 +123,8 @@ def get_task_or_404(
         raise HTTPException(status_code=400, detail="Invalid team or challenge context")
     if auth_data.round_id is None:
         raise HTTPException(status_code=400, detail="Round not found")
+    assert auth_data.challenge_id is not None
+    assert auth_data.round_id is not None
     task = task_service.get_task(task_id, auth_data.challenge_id, auth_data.round_id)
     if task is None:
         raise HTTPException(status_code=404, detail="Task not found")

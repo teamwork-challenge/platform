@@ -86,6 +86,31 @@ def update(challenge_hjson_path: str = typer.Argument(..., help="Challenge HJSON
     return print_as_json(challenge)
 
 
+@app.command("teams")
+def list_teams(
+    challenge_id: Optional[str] = typer.Option(None, "--challenge", "-c", help="Challenge ID"),
+    as_json: bool = json_output_option
+) -> None:
+    """List teams for the specified or current challenge."""
+    ensure_logged_in()
+    teams = api_client.get_teams(challenge_id)
+
+    if as_json:
+        return print_as_json(teams)
+
+    table = Table(title=f"Teams for challenge '{challenge_id or 'current'}'")
+    table.add_column("ID", style="cyan")
+    table.add_column("Name", style="green")
+    table.add_column("Members")
+    table.add_column("Captain Contact")
+
+    for t in teams:
+        table.add_row(str(t.id), str(t.name), str(t.members), str(t.captain_contact))
+
+    console.print(table)
+    return None
+
+
 def print_challenge(challenge: Challenge) -> None:
     console.print(f"[bold blue]Challenge {challenge.id}[/bold blue]")
     console.print(f"Name: {challenge.title}")

@@ -1,5 +1,7 @@
 import typer
 from pathlib import Path
+
+from api_models import SubmitAnswerRequest
 from cli.app_deps import api_client, json_output_option, console, ensure_logged_in
 from cli.formatter import print_as_json
 from typing import Optional
@@ -120,7 +122,7 @@ def task_submit(
         with open(file_path) as f:
             answer = f.read()
 
-    submission = api_client.submit_task_answer(task_id, str(answer))
+    submission = api_client.submit_task_answer(SubmitAnswerRequest(task_id=task_id, answer=answer))
 
     if json:
         return print_as_json(submission)

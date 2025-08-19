@@ -5,8 +5,14 @@ from typing import Optional, Dict, Any, List
 import requests
 
 from api_models import Task, RoundTaskType, Team, Challenge, Round, RoundList, Submission, \
-    TaskList, Dashboard, Leaderboard, DeleteResponse
+    TaskList, Dashboard, Leaderboard, DeleteResponse, SubmitAnswerRequest, TeamsImportRequest, TeamsImportResponse
 from cli.config_manager import ConfigManager
+
+
+def _build_round_path(challenge_id: Optional[str], round_id: Optional[str], rest_path: str) -> str:
+    ch = challenge_id or "current"
+    rd = round_id or "current"
+    return f"/challenges/{ch}/rounds/{rd}{rest_path}"
 
 
 class ApiClient:
@@ -71,6 +77,16 @@ class ApiClient:
         data = self._make_request("PUT", "/team", json.dumps({"name": new_name}))
         return Team.model_validate(data)
 
+    def create_teams(self, request: TeamsImportRequest) -> TeamsImportResponse:
+        data = self._make_request("POST", "/teams", request.model_dump_json())
+        return TeamsImportResponse.model_validate(data)
+
+    def get_teams(self, challenge_id: Optional[str] = None) -> list[Team]:
+        """List teams for the specified or current challenge."""
+        ch = challenge_id or "current"
+        data = self._make_request("GET", f"/challenges/{ch}/teams")
+        return [Team.model_validate(d) for d in data]
+
     # Challenge-related methods
     def get_challenges(self) -> list[Challenge]:
         data = self._make_request("GET", "/challenges")
@@ -86,75 +102,66 @@ class ApiClient:
         return Challenge.model_validate(data)
 
     # Round-related methods
-    def get_round_info(self, challenge_id: str | None, round_id: str | None) -> Round:
-        round_id = round_id or "current"
-        challenge_id = challenge_id or "current"
-        data = self._make_request("GET", f"/challenges/{challenge_id}/rounds/{round_id}")
+    def get_round(self, challenge_id: str | None, round_id: str | None) -> Round:
+        data = self._make_request("GET", _build_round_path(challenge_id, round_id, ""))
         return Round.model_validate(data)
-
 
     def list_rounds(self, challenge_id: Optional[str] = None) -> List[Round]:
         """List all rounds for a challenge."""
-        if challenge_id is None:
-            challenge = self.get_challenge_info()
-            challenge_id = challenge.id
-            
+        challenge_id = challenge_id or "current"
         endpoint = f"/challenges/{challenge_id}/rounds"
         data = self._make_request("GET", endpoint)
         return [Round.model_validate(d) for d in data]
 
     def update_round(self, new_round: Round) -> Round:
         round_json = new_round.model_dump_json(exclude_none=True)
-        # Make the request with all required fields and required challenge_id param
-        endpoint = f"/challenges/{new_round.challenge_id}/rounds/{new_round.id}"
-        data = self._make_request("PUT", endpoint, round_json)
+        data = self._make_request("PUT", _build_round_path(new_round.challenge_id, new_round.id, ""), round_json)
         return Round.model_validate(data)
 
     def delete_round(self, challenge_id: str, round_id: str) -> DeleteResponse:
-        endpoint = f"/challenges/{challenge_id}/rounds/{round_id}"
-        return DeleteResponse.model_validate(self._make_request("DELETE", endpoint))
+        response = self._make_request("DELETE", _build_round_path(challenge_id, round_id, ""))
+        return DeleteResponse.model_validate(response)
 
     # Task-related methods
-    def claim_task(self, task_type: Optional[str] = None) -> Task:
+    def claim_task(self, task_type: Optional[str] = None, challenge_id: Optional[str] = None, round_id: Optional[str] = None) -> Task:
         query = "" if task_type is None else f"?task_type={task_type}"
-        response = self._make_request("POST", f"/tasks{query}")
+        response = self._make_request("POST", _build_round_path(challenge_id, round_id, f"/tasks{query}"))
         return Task.model_validate(response)
 
-    def get_task_info(self, task_id: str) -> Task:
-        data = self._make_request("GET", f"/tasks/{task_id}")
+    def get_task_info(self, task_id: str, challenge_id: Optional[str] = None, round_id: Optional[str] = None) -> Task:
+        data = self._make_request("GET", _build_round_path(challenge_id, round_id, f"/tasks/{task_id}"))
         return Task.model_validate(data)
 
-    def get_task_input(self, task_id: str) -> str:
+    def get_task_input(self, task_id: str, challenge_id: Optional[str] = None, round_id: Optional[str] = None) -> str:
         """Get task input. Fetches a task and returns its input field."""
-        data = self._make_request("GET", f"/tasks/{task_id}")
+        data = self._make_request("GET", _build_round_path(challenge_id, round_id, f"/tasks/{task_id}"))
         # The response is a Task-like dict; extract 'input' if present
         return str(data.get("input", ""))
 
-    def submit_task_answer(self, task_id: str, answer: str) -> Submission:
-        data = self._make_request("POST", f"/tasks/{task_id}/submission", json.dumps({"answer": answer}))
+    def submit_task_answer(self, submission: SubmitAnswerRequest, challenge_id: Optional[str] = None, round_id: Optional[str] = None) -> Submission:
+        data = self._make_request("POST", _build_round_path(challenge_id, round_id, f"/submissions"), submission.model_dump_json())
         return Submission.model_validate(data)
 
-    def get_submission_info(self, submit_id: str) -> Submission:
-        data = self._make_request("GET", f"/submissions/{submit_id}")
+    def get_submission_info(self, submission_id: str, challenge_id: Optional[str] = None, round_id: Optional[str] = None) -> Submission:
+        data = self._make_request("GET", _build_round_path(challenge_id, round_id, f"/submissions/{submission_id}"))
         return Submission.model_validate(data)
 
     def list_tasks(self,
                     status: Optional[str] = None,
                     task_type: Optional[str] = None,
                     round_id: Optional[str] = None,
-                    since: Optional[str] = None) -> TaskList:
-        """List tasks with optional filters."""
-        params = []
+                    since: Optional[str] = None,
+                    challenge_id: Optional[str] = None) -> TaskList:
+        """List tasks with optional filters within a round."""
+        params: list[str] = []
         if status:
             params.append(f"status={status}")
         if task_type:
             params.append(f"task_type={task_type}")
-        if round_id is not None:
-            params.append(f"round_id={round_id}")
         if since:
             params.append(f"since={since}")
         query = ("?" + "&".join(params)) if params else ""
-        data = self._make_request("GET", f"/tasks/{query}")
+        data = self._make_request("GET", _build_round_path(challenge_id, round_id, "/tasks" + query))
         return TaskList.model_validate({"tasks": data})
 
     # Board-related methods

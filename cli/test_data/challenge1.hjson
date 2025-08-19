@@ -1,5 +1,5 @@
-id: challenge_1
-title: "Super Challenge 1"
+id: challenge_temp
+title: "Temporary Challenge"
 description:
     '''
     ## RULES
@@ -8,4 +8,4 @@ description:
 
     1. **NO RULES**
     '''
-current_round_id: "r1"
+current_round_id: "r_temp"

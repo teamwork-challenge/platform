@@ -13,9 +13,9 @@ class TaskProgress(BaseModel):
 
 
 class GenRequest(BaseModel):
-    challenge: str
-    team: str
-    round: str
+    challenge_id: str
+    team_id: str
+    round_id: str
     task_id: Optional[str] = None
     progress: TaskProgress
     task_settings: str = ""

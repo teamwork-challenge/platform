@@ -2,100 +2,96 @@ from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException
 
-from api_models import Task, SubmitAnswerRequest, Submission, AuthData
+from api_models import Task, SubmitAnswerRequest, Submission, AuthData, UserRole
 from api_models import TaskStatus
-from back.api_deps import authenticate_player, get_task_service, get_challenge_service, get_round_or_404, \
-    get_task_or_404
+from back.api_challenges import fix_challenge_id, fix_round_id
+from back.api_deps import authenticate_player, get_task_service, get_challenge_service, get_round_or_404
 from back.firebase_challenge_service import ChallengeService
 from back.firebase_task_service import TaskService
 
-router = APIRouter(prefix="/tasks", tags=["Tasks"]) 
+router = APIRouter(prefix="/challenges/{challenge_id}/rounds/{round_id}", tags=["Tasks"])
 
 
-@router.get("/{task_id}")
-def get_task(
-    task_id: str,
-    auth_data: AuthData = Depends(authenticate_player),
-    task_service: TaskService = Depends(get_task_service)
-) -> Task:
-    # Use the existing helper for access checks, then map Firestore TaskDocument to API Task
-    db_task = get_task_or_404(task_id, task_service, auth_data)
-    return Task.model_validate({
-        'id': db_task.id,
-        'title': f"{db_task.type} Task",
-        'type': db_task.type,
-        'status': db_task.status,
-        'score': db_task.score,
-        'statement': getattr(db_task, 'statement', None),
-        'input': getattr(db_task, 'input', None),
-        'claimed_at': db_task.claimed_at,
-        'submissions': [],
-        'last_attempt_at': db_task.claimed_at,
-        'solved_at': getattr(db_task, 'solved_at', None)
-    })
-
-
-@router.post("/{task_id}/submission")
-def submit_task_answer(
-    task_id: str,
-    answer_data: SubmitAnswerRequest,
-    auth_data: AuthData = Depends(authenticate_player),
-    task_service: TaskService = Depends(get_task_service)
-) -> Submission:
-    answer = answer_data.answer
-    try:
-        if auth_data.team_id is None or auth_data.challenge_id is None or auth_data.round_id is None:
-            raise HTTPException(status_code=400, detail="Team, challenge or round not found")
-        submission = task_service.submit_task_answer(task_id, auth_data.team_id, auth_data.challenge_id, auth_data.round_id, answer)
-        return Submission.model_validate(submission, from_attributes=True)
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
-
-
-@router.post("")
-def create_task(
-    task_type: str | None = None,
-    auth_data: AuthData = Depends(authenticate_player),
-    task_service: TaskService = Depends(get_task_service),
-    challenge_service: ChallengeService = Depends(get_challenge_service)
-) -> Task:
-    if auth_data.round_id is None:
-        raise HTTPException(status_code=400, detail="No current round available")
-    if auth_data.challenge_id is None:
-        raise HTTPException(status_code=400, detail="Challenge not found")
-    game_round = get_round_or_404(auth_data.round_id, auth_data.challenge_id, challenge_service, auth_data)
-    try:
-        if auth_data.challenge_id is None or auth_data.team_id is None:
-            raise HTTPException(status_code=400, detail="Invalid team or challenge context")
-        if task_type is None:
-            task_type = task_service.get_random_task_type(game_round, auth_data.team_id).type
-        elif not game_round.claim_by_type:
-            raise HTTPException(status_code=400, detail="Round does not allow task creation by type")
-        return Task.model_validate(task_service.create_task(auth_data.challenge_id, auth_data.team_id, task_type), from_attributes=True)
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
-
-
-@router.get("")
+@router.get("/tasks")
 def list_tasks(
+    challenge_id: str,
+    round_id: str,
     status: TaskStatus | None = None,
     task_type: str | None = None,
-    round_id: str | None = None,
     since: datetime | None = None,
     auth_data: AuthData = Depends(authenticate_player),
     task_service: TaskService = Depends(get_task_service)
 ) -> list[Task]:
     if auth_data.team_id is None:
         raise HTTPException(status_code=400, detail="Team not found")
-    if auth_data.challenge_id is None:
-        raise HTTPException(status_code=400, detail="Challenge not found")
-
+    challenge_id = fix_challenge_id(auth_data, challenge_id)
+    round_id = fix_round_id(auth_data, round_id)
     tasks = task_service.list_tasks_for_team(
         auth_data.team_id,
-        auth_data.challenge_id,
+        challenge_id,
         status=status,
         task_type=task_type,
         round_id=round_id,
         since=since
     )
     return [Task.model_validate(t, from_attributes=True) for t in tasks]
+
+
+@router.post("/tasks")
+def create_task(
+    challenge_id: str,
+    round_id: str,
+    task_type: str | None = None,
+    auth_data: AuthData = Depends(authenticate_player),
+    task_service: TaskService = Depends(get_task_service),
+    challenge_service: ChallengeService = Depends(get_challenge_service)
+) -> Task:
+    if auth_data.team_id is None:
+        raise HTTPException(status_code=400, detail="Team not found")
+    challenge_id = fix_challenge_id(auth_data, challenge_id)
+    round_id = fix_round_id(auth_data, round_id)
+    game_round = get_round_or_404(round_id, challenge_id, challenge_service, auth_data)
+    if auth_data.team_id is None:
+        raise HTTPException(status_code=400, detail="Invalid team context")
+    if task_type is None:
+        task_type = task_service.get_random_task_type(game_round, auth_data.team_id).type
+    elif not game_round.claim_by_type:
+        raise HTTPException(status_code=400, detail="Round does not allow task creation by type")
+    return Task.model_validate(
+        task_service.create_task(challenge_id, round_id, auth_data.team_id, task_type),
+        from_attributes=True
+    )
+
+
+@router.get("/tasks/{task_id}")
+def get_task(
+    task_id: str,
+    challenge_id: str,
+    round_id: str,
+    auth_data: AuthData = Depends(authenticate_player),
+    task_service: TaskService = Depends(get_task_service)
+) -> Task:
+    challenge_id = fix_challenge_id(auth_data, challenge_id)
+    round_id = fix_round_id(auth_data, round_id)
+    task_doc = task_service.get_task(task_id, challenge_id, round_id)
+    if task_doc is None:
+        raise HTTPException(status_code=404, detail="Task not in the DB")
+    if task_doc.challenge_id != challenge_id or (auth_data.role == UserRole.PLAYER and task_doc.team_id != auth_data.team_id):
+        raise HTTPException(status_code=403, detail="Access to this task is forbidden")
+    return Task.model_validate(task_doc, from_attributes=True)
+
+
+@router.post("/submissions")
+def submit_task_answer(
+    challenge_id: str,
+    round_id: str,
+    submission: SubmitAnswerRequest,
+    auth_data: AuthData = Depends(authenticate_player),
+    task_service: TaskService = Depends(get_task_service)
+) -> Submission:
+    if auth_data.team_id is None:
+        raise HTTPException(status_code=400, detail="Team not found")
+    challenge_id = fix_challenge_id(auth_data, challenge_id)
+    round_id = fix_round_id(auth_data, round_id)
+    submission = task_service.submit_task_answer(submission.task_id, auth_data.team_id, challenge_id, round_id, submission.answer)
+    return Submission.model_validate(submission, from_attributes=True)

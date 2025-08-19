@@ -46,7 +46,7 @@ def round_show(
     """Show round information."""
     ensure_logged_in()
 
-    round_info = api_client.get_round_info(challenge_id, round_id)
+    round_info = api_client.get_round(challenge_id, round_id)
     #round_info.task_types = api_client.get_round_task_types(round_id)
 
     if json:

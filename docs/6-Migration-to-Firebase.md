@@ -18,11 +18,9 @@
 
 - challenges/{cid}/ — ChallengeDocument
   - rounds/{rid}/ — RoundDocument
-    - task-types/{type-code} — TaskTypeDocument
     - tasks/{tid} — TaskDocument
     - submissions/{sid} — SubmissionDocument
     - dashboard/{team-id}/ — TeamDashboardDocument
-      - tasks/{type-code} — TeamTaskDashboardDocument
   - teams/{pid}/ — TeamDocument
 - keys/{key}/ — APIKeyDocument
 
@@ -31,6 +29,8 @@
 - cid: string
 - title: string
 - description: str markdown
+
+Subcollections:
 - teams: {tid: TeamDocument}
 - rounds: {rid: RoundDocument}
   
@@ -60,6 +60,8 @@
 - start: Date
 - end: Date
 - task-types: {type-code: TaskTypeDocument}
+
+Subcollections:
 - tasks: {tid: TaskDocument}
 - submissions: {sid: SubmissionDocument}
 

@@ -7,6 +7,7 @@ from requests import HTTPError
 from typer.testing import CliRunner
 from click.testing import Result
 import tempfile
+import json
 import os.path
 import os
 import pytest
@@ -72,6 +73,7 @@ def test_login_fail() -> None:
     print(f"Exception:\n{result.exception}")
     assert result.exit_code != 0
     assert "Invalid API key" in str(result.exception)
+    assert "500" not in str(result.exception)
 
 
 def test_logout() -> None:
@@ -89,7 +91,7 @@ def test_challenge_show_ok() -> None:
 def test_challenge_update() -> None:
     login_admin()
     result = run_ok("update", "cli/test_data/challenge1.hjson")
-    assert "Super Challenge 1" in result.output
+    assert "Temporary Challenge" in result.output
 
 
 # Team App Tests
@@ -117,27 +119,27 @@ def test_round_list() -> None:
 
 def test_round_create() -> None:
     login_admin()
-    result = run_ok("round", "update", "cli/test_data/round1.hjson")
-    assert "r1" in result.output
+    result = run_ok("round", "update", "cli/test_data/round_temp.hjson")
+    assert "r_temp" in result.output
 
 
 def test_round_update() -> None:
     login_admin()
-    run_ok("round", "update", "cli/test_data/round1.hjson")
-    result = run_ok("round", "update", "cli/test_data/round1.hjson")
-    assert "r1" in result.output
+    run_ok("round", "update", "cli/test_data/round_temp.hjson")
+    result = run_ok("round", "update", "cli/test_data/round_temp.hjson")
+    assert "r_temp" in result.output
 
 
 def test_round_delete() -> None:
     login_admin()
 
-    run_ok("round", "update", "cli/test_data/round1.hjson")
+    run_ok("round", "update", "cli/test_data/round_temp.hjson")
     result = run_ok("round", "list", "-c", "challenge_1")
-    assert f"r1" in result.output
+    assert f"r_temp" in result.output
 
-    run_ok("round", "delete", "-r", "r1", "-c", "challenge_1", "--yes")
+    run_ok("round", "delete", "-r", "r_temp", "-c", "challenge_1", "--yes")
     result = run_ok("round", "list", "-c", "challenge_1")
-    assert f"r1" not in result.output
+    assert f"r_temp" not in result.output
 
 
 # Task App Tests
@@ -338,3 +340,34 @@ def test_get_challenges_admin() -> None:
     result = run_ok("list")
     assert "challenge_1" in result.output
     assert "challenge_2" in result.output
+
+
+def test_team_create_batch() -> None:
+    # Admin should be able to create teams in bulk via TSV file
+    login_admin()
+    # Prepare TSV content with optional header
+    tsv_lines = [
+        "name\tmembers\tcaptain_contact",
+        "Alpha Team\tAlice,Bob\talpha@example.com",
+        "Beta Team\tCarol,Dan\tbeta@example.com",
+    ]
+    with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.tsv') as f:
+        f.write("\n".join(tsv_lines))
+        temp_file = f.name
+
+    try:
+        result = run_ok("team", "create", "challenge_2", temp_file)
+        # Should return JSON payload containing created teams
+        assert "Alpha Team" in result.output
+        assert "Beta Team" in result.output
+        assert "challenge_2" in result.output
+    finally:
+        os.unlink(temp_file)
+
+
+def test_challenge_teams_list_admin() -> None:
+    # Admin can list teams for a specific challenge using top-level `teams` command
+    login_admin()
+    result = run_ok("teams", "-c", "challenge_1")
+    # Expect to see at least team_1 from seed data
+    assert "team_1" in result.output

@@ -18,12 +18,12 @@ class TeamService:
             return None
         return APITeam.model_validate(team_doc.to_dict())
 
-    def rename_team(self, team_id: str, challenge_id: str, new_name: str) -> Optional[APITeam]:
+    def rename_team(self, team_id: str, challenge_id: str, new_name: str) -> APITeam:
         """Rename a team by updating its 'name' field. Returns updated team or None if not found."""
         team_ref = self.db.collection('challenges').document(challenge_id).collection('teams').document(team_id)
         team_doc = team_ref.get()
         if not team_doc.exists:
-            return None
+            raise ValueError(f"Team {team_id} not found")
         team_ref.update({"name": new_name})
         # Read back the updated document
         updated_doc = team_ref.get()
@@ -75,37 +75,10 @@ class TeamService:
             return []
         teams: List[APITeam] = []
         for team_doc in challenge_ref.collection('teams').stream():
-            td = team_doc.to_dict()
-            api_team = APITeam.model_validate({
-                'id': team_doc.id,
-                'challenge_id': challenge_id,
-                'name': td['name'],
-                'members': td['members'],
-                'captain_contact': td['captain_contact'],
-                'api_key': "",
-                'total_score': td.get('total_score', 0)
-            })
+            api_team = APITeam.model_validate(team_doc.to_dict())
             teams.append(api_team)
         return teams
 
-
-    def get_all_teams(self) -> List[APITeam]:
-        """Get all teams across all challenges (iterate subcollections)."""
-        teams: List[APITeam] = []
-        for ch_doc in self.db.collection('challenges').stream():
-            ch_id = ch_doc.id
-            for team_doc in self.db.collection('challenges').document(ch_id).collection('teams').stream():
-                td = team_doc.to_dict()
-                teams.append(APITeam.model_validate({
-                    'id': team_doc.id,
-                    'challenge_id': ch_id,
-                    'name': td['name'],
-                    'members': td['members'],
-                    'captain_contact': td['captain_contact'],
-                    'api_key': "",
-                    'total_score': td.get('total_score', 0)
-                }))
-        return teams
 
     def get_auth_data(self, api_key: str) -> Optional[AuthData]:
         """Get authentication data for an API key"""
@@ -125,19 +98,13 @@ class TeamService:
         else:
             challenge_id = key_data['challenge_id']
             team_id = key_data['team_id']
-            challenge_ref = self.db.collection('challenges').document(challenge_id)
-            current_round_id = None
-            rounds_ref = challenge_ref.collection('rounds')
-            for rd in rounds_ref.stream():
-                rd_data = rd.to_dict()
-                if rd_data.get('published', False):
-                    current_round_id = rd.id
-                    break
+            challenge = self.db.collection('challenges').document(challenge_id).get().to_dict()
+            round_id = challenge['current_round_id']
 
             return AuthData(
                 key=api_key,
                 role=UserRole.PLAYER,
                 team_id=team_id,
                 challenge_id=challenge_id,
-                round_id=current_round_id,
+                round_id=round_id
             )

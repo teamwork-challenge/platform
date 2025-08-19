@@ -12,6 +12,8 @@ from api_models import (
 from back.firebase_db import get_firestore_db
 from back.firebase_models import TaskDocument, SubmissionDocument, RoundDocument
 from back.taskgen_client import TaskGenClient
+from back.firebase_models import TaskTypeDocument
+
 
 class TaskService:
     def __init__(self) -> None:
@@ -23,16 +25,14 @@ class TaskService:
                              task_type: str | None = None,
                              round_id: str | None = None,
                              since: datetime | None = None) -> list[APITask]:
-        """List tasks for a team with optional filters using Firestore queries (no round/task enumeration)."""
+        """List tasks for a team with optional filters scoped to a specific round. No fallbacks."""
+        if round_id is None:
+            return []
         challenge_ref = self.db.collection('challenges').document(challenge_id)
         if not challenge_ref.get().exists:
             return []
 
-        # Build query: either scoped to a round, or across the challenge via collection group
-        if round_id:
-            q = challenge_ref.collection('rounds').document(round_id).collection('tasks').where('team_id', '==', team_id)
-        else:
-            q = self.db.collection_group('tasks').where('challenge_id', '==', challenge_id).where('team_id', '==', team_id)
+        q = challenge_ref.collection('rounds').document(round_id).collection('tasks').where('team_id', '==', team_id)
 
         if task_type is not None:
             q = q.where('type', '==', task_type)
@@ -68,84 +68,49 @@ class TaskService:
         return tasks[:20]
 
 
-    def get_task(self, task_id: str, challenge_id: str, round_id: str | None = None) -> TaskDocument | None:
-        """Get a specific task"""
+    def get_task(self, task_id: str, challenge_id: str, round_id: str) -> TaskDocument | None:
+        """Get a specific task under a known challenge/round. No fallbacks."""
         challenge_ref = self.db.collection('challenges').document(challenge_id)
         if not challenge_ref.get().exists:
             return None
-
-        rounds_ref = challenge_ref.collection('rounds')
-        # Fast path: if round_id is provided, avoid iterating rounds
-        if round_id:
-            t_ref = rounds_ref.document(round_id).collection('tasks').document(task_id)
-            t_doc = t_ref.get()
-            if t_doc.exists:
-                return TaskDocument.model_validate(t_doc.to_dict())
-            return None
-        # Fallback: use collection group query to find the task by id under this challenge
-        cg = self.db.collection_group('tasks').where('challenge_id', '==', challenge_id).where('id', '==', task_id).limit(1)
-        snaps = list(cg.stream())
-        if snaps:
-            return TaskDocument.model_validate(cast(dict[str, Any], snaps[0].to_dict()))
+        t_ref = challenge_ref.collection('rounds').document(round_id).collection('tasks').document(task_id)
+        t_doc = t_ref.get()
+        if t_doc.exists:
+            return TaskDocument.model_validate(t_doc.to_dict())
         return None
 
-    def create_task(self, challenge_id: str, team_id: str, task_type: str | None) -> APITask:
-        """Create a new task for a team"""
-        # Get challenge and validate current round
+    def create_task(self, challenge_id: str, round_id: str, team_id: str, task_type: str | None) -> APITask:
+        """Create a new task for a team in the specified round. No auto-current fallbacks."""
+        # Get challenge and the specific round
         challenge_ref = self.db.collection('challenges').document(challenge_id)
         challenge_doc = challenge_ref.get()
-
         if not challenge_doc.exists:
             raise ValueError("Challenge not found")
 
-        challenge_data = challenge_doc.to_dict()
-
-        # Find current active round from subcollection using query
         rounds_ref = challenge_ref.collection('rounds')
-        rd_snaps = list(rounds_ref.where('published', '==', True).limit(1).stream())
-        if not rd_snaps:
-            raise ValueError("No active round found for this challenge")
-        rd_snap = rd_snaps[0]
-        current_round = rd_snap.to_dict()
-        current_round_id = rd_snap.id
+        rd_doc = rounds_ref.document(round_id).get()
+        if not rd_doc.exists:
+            raise ValueError("Round not found")
+        current_round = RoundDocument.model_validate(rd_doc.to_dict())
+        current_round_id = current_round.id
 
-        if not current_round:
-            raise ValueError("No active round found for this challenge")
-
-        # Validate round timing (support both 'start'/'end' and 'start_time'/'end_time' keys)
+        # Validate round timing (support both 'start'/'end' and 'start_time'/'end_time' keys) and published flag
         current_time = datetime.now(timezone.utc)
-        round_start = current_round.get('start') or current_round.get('start_time')
-        round_end = current_round.get('end') or current_round.get('end_time')
-        if round_start is None or round_end is None:
-            raise ValueError("Round timing is not configured")
+        round_start = current_round.start_time
+        round_end = current_round.end_time
+        if not current_round.published:
+            raise ValueError("Round is not published")
         if current_time < round_start:
             raise ValueError("Round has not started yet")
         if current_time > round_end:
             raise ValueError("Round has already ended")
 
-        # Validate task type exists in round via subcollection query
-        tt_col = rounds_ref.document(current_round_id).collection('task_types')
-        tt_snaps = list(tt_col.where('type', '==', task_type).limit(1).stream())
-        if not tt_snaps:
-            raise ValueError(f"Task type '{task_type}' is not available in this round")
-        task_type_data = tt_snaps[0].to_dict()
+        task_type_data = self.get_task_type(current_round, rounds_ref, task_type, team_id)
 
         # Check task limits
-        assert current_round_id is not None
         existing_count = self.get_existing_tasks(team_id, challenge_id, current_round_id, task_type)
-        max_tasks = task_type_data.get('tasks_count', 100)
-
-        if existing_count >= max_tasks:
-            raise ValueError(f"Maximum number of tasks of type '{task_type}' already taken")
-
-        # Validate team exists using subcollection
-        team_doc = challenge_ref.collection('teams').document(team_id).get()
-        if not team_doc.exists:
-            raise ValueError("Team not found")
-
-        # Load team name for generator context
-        team_payload = team_doc.to_dict()
-        team_data = {'id': team_id, 'name': team_payload.get('name', team_id)}
+        if existing_count >= task_type_data.n_tasks:
+            raise ValueError(f"Maximum number of tasks of type '{task_type_data.type}' already taken")
 
         # Generate task ID
         task_id = f"task_{uuid.uuid4().hex[:8]}"
@@ -153,15 +118,14 @@ class TaskService:
         # Create task progress info
         task_progress = TaskProgress(
             task_index=existing_count,
-            task_count=max_tasks,
+            task_count=task_type_data.n_tasks,
             elapsed_time=int((current_time - round_start).total_seconds() / 60),
             total_time=int((round_end - round_start).total_seconds() / 60)
         )
 
         # Generate task content
         gen_response = self.generate_task_content(
-            task_id, team_data, challenge_id, current_round_id, task_type_data, task_progress
-        )
+            task_id, team_id, challenge_id, current_round_id, task_type_data, task_progress)
 
         # Create task document
         task_doc = TaskDocument(
@@ -169,12 +133,12 @@ class TaskService:
             challenge_id=challenge_id,
             team_id=team_id,
             round_id=current_round_id,
-            type=cast(str, task_type),
+            type=task_type_data.type,
             status=ApiTaskStatus.PENDING,
             statement=gen_response.statement,
             input=gen_response.input,
             checker_hint=gen_response.checker_hint,
-            score=task_type_data['score'],
+            score=0,
             claimed_at=current_time
         )
 
@@ -182,18 +146,17 @@ class TaskService:
         tasks_ref = rounds_ref.document(current_round_id).collection('tasks')
         tasks_ref.document(task_id).set(task_doc.model_dump())
 
-        return APITask(
-            id=task_id,
-            type=cast(str, task_type),
-            status=ApiTaskStatus.PENDING,
-            score=task_type_data['score'],
-            statement=gen_response.statement,
-            input=gen_response.input,
-            claimed_at=current_time,
-            submissions=[],
-            last_attempt_at=current_time,
-            solved_at=None
-        )
+        return APITask.model_validate(task_doc, from_attributes=True)
+
+    def get_task_type(self, current_round, rounds_ref, task_type, team_id) -> TaskTypeDocument:
+        task_type = task_type or self.get_random_task_type(current_round, team_id).type
+        # Validate task type exists in round by document id equal to type
+        tt_doc = rounds_ref.document(current_round.id).collection('task_types').document(task_type).get()
+        if not tt_doc.exists:
+            raise ValueError(f"Task type '{task_type}' is not available in this round")
+        task_type_data = TaskTypeDocument.model_validate(tt_doc.to_dict())
+        return task_type_data
+
 
     def get_random_task_type(self, game_round: Round | RoundDocument, team_id: str) -> RoundTaskType:
         """Pick a task type from the current round (Firestore) that still has remaining quota for the team.
@@ -266,20 +229,20 @@ class TaskService:
         return 0
 
 
-    def generate_task_content(self, task_id: str, team_data: dict[str, object], challenge_id: str, round_id: str, 
-                             task_type_data: dict[str, object], task_progress: TaskProgress) -> GenResponse:
+    def generate_task_content(self, task_id: str, challenge_id: str, round_id: str, team_id: str,
+                             task_type_data: TaskTypeDocument, task_progress: TaskProgress) -> GenResponse:
         """Generate task content by calling the task generator"""
         gen_request = GenRequest(
-            challenge=challenge_id,
-            team=str(team_data['name']),
-            round=round_id,
+            challenge_id=challenge_id,
+            team_id=team_id,
+            round_id=round_id,
             task_id=task_id,
             progress=task_progress,
-            task_settings=str(task_type_data.get('generator_settings', ''))
+            task_settings=task_type_data.generator_settings
         )
 
-        generator_url = str(task_type_data['generator_url'])
-        generator_secret = str(task_type_data['generator_secret'])
+        generator_url = task_type_data.generator_url
+        generator_secret = task_type_data.generator_secret
         return self.task_gen_client.generate_task(
             generator_url,
             generator_secret,

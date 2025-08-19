@@ -67,15 +67,7 @@ class TestFirebaseTeamService:
         """Test getting teams for non-existent challenge"""
         teams = self.service.get_teams_by_challenge("invalid_challenge")
         assert len(teams) == 0
-    
-    def test_get_all_teams(self):
-        """Test getting all teams across all challenges"""
-        teams = self.service.get_all_teams()
-        
-        assert len(teams) == 2  # Test data has 2 teams across 2 challenges
-        team_names = [team.name for team in teams]
-        assert "Test Team 1" in team_names
-        assert "Test Team 2" in team_names
+
     
     def test_create_teams(self):
         """Test creating new teams"""
