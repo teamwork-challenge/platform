@@ -5,7 +5,7 @@ from api_models import TaskStatus
 from back.services.db import get_firestore_db, FirebaseDatabase
 from back.db_models import (
     ChallengeDocument, TeamDocument, APIKeyDocument, RoundDocument,
-    TaskTypeDocument, TaskDocument
+    TaskTypeDocument, TaskDocument, TeamDashboardDocument, TeamTaskDashboardDocument
 )
 
 
@@ -38,6 +38,9 @@ def clear_firestore_data() -> None:
             # Delete task types
             for tt_doc in rd_ref.collection('task_types').stream():
                 tt_doc.reference.delete()
+            # Delete dashboards
+            for d_doc in rd_ref.collection('dashboards').stream():
+                d_doc.reference.delete()
             rd_ref.delete()
         # Finally delete the challenge doc
         ch_ref.delete()
@@ -219,6 +222,21 @@ def create_test_firebase_data() -> None:
     r1_tasks_ref = challenge1_rounds.document(round1_id).collection('tasks')
     for tid, tdoc in tasks.items():
         r1_tasks_ref.document(tid).set(tdoc)
+    
+    # Create dashboards reflecting the seeded tasks for team_1 in round_1
+    dash_ref = challenge1_rounds.document(round1_id).collection('dashboards').document(team1_id)
+    dashboard = TeamDashboardDocument(
+        team_id=team1_id,
+        challenge_id=challenge1_id,
+        round_id=round1_id,
+        score=200,
+        task_types=[
+            TeamTaskDashboardDocument(task_type="a_plus_b", score=0, ac=0, wa=0, pending=1),
+            TeamTaskDashboardDocument(task_type="sum_a_b", score=0, ac=0, wa=0, pending=1),
+            TeamTaskDashboardDocument(task_type="test-type", score=200, ac=1, wa=1, pending=0),
+        ]
+    )
+    dash_ref.set(dashboard.model_dump())
     
     # Create API keys
     api_keys = [

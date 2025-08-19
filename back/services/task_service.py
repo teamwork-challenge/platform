@@ -108,15 +108,13 @@ class TaskService:
         if task_type_data is None:
             raise ValueError("No task type found")
 
-        # Check task limits using dashboard (taken = ac + wa + pending)
+        # For task progress, peek at dashboard to estimate the index (not authoritative; limit enforced in TX)
         dash = self._get_team_dashboard(challenge_id, current_round_id, team_id)
         taken_count = 0
         for t in dash.task_types:
             if t.task_type == task_type_data.type:
                 taken_count = t.ac + t.wa + t.pending
                 break
-        if taken_count >= task_type_data.n_tasks:
-            raise ValueError(f"Maximum number of tasks of type '{task_type_data.type}' already taken")
 
         # Generate task ID
         task_id = f"task_{uuid.uuid4().hex[:8]}"
@@ -148,27 +146,38 @@ class TaskService:
             claimed_at=current_time
         )
 
-        # Store task as a document in tasks subcollection for the round
+        # Atomically create the task and update the dashboard within a single transaction
         tasks_ref = rounds_ref.document(current_round_id).collection('tasks')
-        tasks_ref.document(task_id).set(task_doc.model_dump())
-
-        # Update dashboard counters in a transaction: increment pending for this type
         dash_ref = rounds_ref.document(current_round_id).collection('dashboards').document(team_id)
-        snap = dash_ref.get()
-        if snap.exists:
-            dash = TeamDashboardDocument.model_validate(snap.to_dict())
-        else:
-            dash = TeamDashboardDocument(team_id=team_id, challenge_id=challenge_id, round_id=current_round_id, score=0, task_types=[])
-        # find or create entry
-        found = False
-        for t in dash.task_types:
-            if t.task_type == task_type_data.type:
-                t.pending += 1
-                found = True
-                break
-        if not found:
-            dash.task_types.append(TeamTaskDashboardDocument(task_type=task_type_data.type, score=0, ac=0, wa=0, pending=1))
-        dash_ref.set(dash.model_dump())
+
+        from google.cloud import firestore as gcs_firestore
+        db_client = self.db
+        @gcs_firestore.transactional
+        def _do_create(tx: Any) -> None:
+            snap = dash_ref.get(transaction=tx)
+            if snap.exists:
+                dash_local = TeamDashboardDocument.model_validate(snap.to_dict())
+            else:
+                dash_local = TeamDashboardDocument(team_id=team_id, challenge_id=challenge_id, round_id=current_round_id, score=0, task_types=[])
+            # recompute taken_count in-transaction to enforce limit under concurrency
+            taken_local = 0
+            found_local = None
+            for tt in dash_local.task_types:
+                if tt.task_type == task_type_data.type:
+                    taken_local = tt.ac + tt.wa + tt.pending
+                    found_local = tt
+                    break
+            if taken_local >= task_type_data.n_tasks:
+                raise ValueError(f"Maximum number of tasks of type '{task_type_data.type}' already taken")
+            # Write task document
+            tx.set(tasks_ref.document(task_id), task_doc.model_dump())
+            # Update dashboard counters: pending++ for this type
+            if found_local is not None:
+                found_local.pending += 1
+            else:
+                dash_local.task_types.append(TeamTaskDashboardDocument(task_type=task_type_data.type, score=0, ac=0, wa=0, pending=1))
+            tx.set(dash_ref, dash_local.model_dump())
+        _do_create(db_client.transaction())
 
         return APITask.model_validate(task_doc, from_attributes=True)
 
