@@ -86,16 +86,17 @@ class SubmissionDocument(BaseModel):
     score: int
 
 
-class TeamDashboardDocument(BaseModel):
-    team_id: str
-    challenge_id: str  # denormalized
-    round_id: str  # denormalized
-    score: int
-
-
 class TeamTaskDashboardDocument(BaseModel):
     task_type: str
     score: int
     ac: int
     wa: int
     pending: int
+
+
+class TeamDashboardDocument(BaseModel):
+    team_id: str
+    challenge_id: str  # denormalized
+    round_id: str  # denormalized
+    score: int
+    task_types: list[TeamTaskDashboardDocument]

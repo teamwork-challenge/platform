@@ -20,7 +20,7 @@
   - rounds/{rid}/ — RoundDocument
     - tasks/{tid} — TaskDocument
     - submissions/{sid} — SubmissionDocument
-    - dashboard/{team-id}/ — TeamDashboardDocument
+    - dashboards/{team-id}/ — TeamDashboardDocument
   - teams/{pid}/ — TeamDocument
 - keys/{key}/ — APIKeyDocument
 
@@ -131,7 +131,7 @@ Admin dashboard links:
 - challenge_id: int # denormalized
 - round_id: int # denormalized
 - score: int
-- task_types: {tid: TeamTaskDashboardDocument} 
+- task_types: list[TeamTaskDashboardDocument] 
 
 
 ### TeamTaskDashboardDocument
