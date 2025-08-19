@@ -10,7 +10,7 @@ from api_models import (
     TaskStatus as ApiTaskStatus, Round, RoundTaskType
 )
 from back.services.db import get_firestore_db
-from back.db_models import TaskDocument, SubmissionDocument, RoundDocument, TaskTypeDocument
+from back.db_models import TaskDocument, SubmissionDocument, RoundDocument, TaskTypeDocument, TeamDashboardDocument, TeamTaskDashboardDocument
 from back.services.taskgen_client import TaskGenClient
 
 
@@ -108,9 +108,14 @@ class TaskService:
         if task_type_data is None:
             raise ValueError("No task type found")
 
-        # Check task limits
-        existing_count = self.get_existing_tasks(team_id, challenge_id, current_round_id, task_type)
-        if existing_count >= task_type_data.n_tasks:
+        # Check task limits using dashboard (taken = ac + wa + pending)
+        dash = self._get_team_dashboard(challenge_id, current_round_id, team_id)
+        taken_count = 0
+        for t in dash.task_types:
+            if t.task_type == task_type_data.type:
+                taken_count = t.ac + t.wa + t.pending
+                break
+        if taken_count >= task_type_data.n_tasks:
             raise ValueError(f"Maximum number of tasks of type '{task_type_data.type}' already taken")
 
         # Generate task ID
@@ -118,7 +123,7 @@ class TaskService:
 
         # Create task progress info
         task_progress = TaskProgress(
-            task_index=existing_count,
+            task_index=taken_count,
             task_count=task_type_data.n_tasks,
             elapsed_time=int((current_time - round_start).total_seconds() / 60),
             total_time=int((round_end - round_start).total_seconds() / 60)
@@ -147,6 +152,24 @@ class TaskService:
         tasks_ref = rounds_ref.document(current_round_id).collection('tasks')
         tasks_ref.document(task_id).set(task_doc.model_dump())
 
+        # Update dashboard counters in a transaction: increment pending for this type
+        dash_ref = rounds_ref.document(current_round_id).collection('dashboards').document(team_id)
+        snap = dash_ref.get()
+        if snap.exists:
+            dash = TeamDashboardDocument.model_validate(snap.to_dict())
+        else:
+            dash = TeamDashboardDocument(team_id=team_id, challenge_id=challenge_id, round_id=current_round_id, score=0, task_types=[])
+        # find or create entry
+        found = False
+        for t in dash.task_types:
+            if t.task_type == task_type_data.type:
+                t.pending += 1
+                found = True
+                break
+        if not found:
+            dash.task_types.append(TeamTaskDashboardDocument(task_type=task_type_data.type, score=0, ac=0, wa=0, pending=1))
+        dash_ref.set(dash.model_dump())
+
         return APITask.model_validate(task_doc, from_attributes=True)
 
     def get_task_type(self, current_round: RoundDocument, task_type: str | None, team_id: str) -> TaskTypeDocument | None:
@@ -154,32 +177,45 @@ class TaskService:
         return current_round.get_task_type(task_type)
 
 
+    def _get_team_dashboard(self, challenge_id: str, round_id: str, team_id: str) -> TeamDashboardDocument:
+        """Fetch or initialize the TeamDashboardDocument for a team/round."""
+        dash_ref = (self.db.collection('challenges').document(challenge_id)
+                    .collection('rounds').document(round_id)
+                    .collection('dashboards').document(team_id))
+        snap = dash_ref.get()
+        if snap.exists:
+            return TeamDashboardDocument.model_validate(snap.to_dict())
+        # If missing, initialize with zeroes (no task types until needed)
+        return TeamDashboardDocument(team_id=team_id, challenge_id=challenge_id, round_id=round_id, score=0, task_types=[])
+
+    def _get_remaining_by_type(self, rd: RoundDocument, dash: TeamDashboardDocument) -> list[tuple[TaskTypeDocument, int]]:
+        # Build a map of counts from dashboard
+        counts: dict[str, int] = {}
+        for t in dash.task_types:
+            # number taken = ac + wa + pending
+            counts[t.task_type] = t.ac + t.wa + t.pending
+        candidates: list[tuple[TaskTypeDocument, int]] = []
+        for tt in rd.task_types:
+            taken = counts.get(tt.type, 0)
+            remaining = max(0, tt.n_tasks - taken)
+            if remaining > 0:
+                candidates.append((tt, remaining))
+        return candidates
+
     def get_random_task_type(self, game_round: Round | RoundDocument, team_id: str) -> TaskTypeDocument:
-        """Pick a task type from the current round (Firestore) that still has remaining quota for the team.
-        Returns an API RoundTaskType instance. If none available, raises ValueError.
-        """
+        """Pick a task type using the per-team dashboard counters instead of scanning tasks."""
         challenge_ref = self.db.collection('challenges').document(game_round.challenge_id)
         round_ref = challenge_ref.collection('rounds').document(game_round.id)
         if not round_ref.get().exists:
             raise ValueError("Round not found")
-
-        # Load all task types from embedded map
         rd_doc = round_ref.get()
         if not rd_doc.exists:
             raise ValueError("Round not found")
         rd = RoundDocument.model_validate(rd_doc.to_dict())
-        candidates: list[tuple[TaskTypeDocument, int]] = []  # (task_type_data, remaining)
-        for tt in rd.task_types:
-            n_tasks = tt.n_tasks
-            taken = self.get_existing_tasks(team_id, game_round.challenge_id, game_round.id, tt.type)
-            remaining = max(0, n_tasks - taken)
-            if remaining > 0:
-                candidates.append((tt, remaining))
-
+        dash = self._get_team_dashboard(game_round.challenge_id, game_round.id, team_id)
+        candidates = self._get_remaining_by_type(rd, dash)
         if not candidates:
             raise ValueError("All tasks were already taken for this round")
-
-        # Weighted random selection proportional to remaining
         if len(candidates) == 1:
             chosen_td, _ = candidates[0]
         else:
@@ -189,26 +225,6 @@ class TaskService:
         return chosen_td
 
 
-    def get_existing_tasks(self, team_id: str, challenge_id: str, round_id: str, task_type: str | None = None) -> int:
-        """Count existing tasks for a team in a round/challenge without retrieving documents."""
-        challenge_ref = self.db.collection('challenges').document(challenge_id)
-        if not challenge_ref.get().exists:
-            return 0
-        q = (
-            challenge_ref
-            .collection('rounds').document(round_id)
-            .collection('tasks')
-            .where('team_id', '==', team_id)
-        )
-        if task_type is not None:
-            q = q.where('type', '==', task_type)
-        # Use aggregation count to avoid downloading docs
-        agg = q.count()
-        res = agg.get()
-        # res is a list of rows; each row is a list of AggregationResult. First cell holds the count.
-        if res and isinstance(res[0], list) and res[0]:
-            return int(res[0][0].value)
-        return 0
 
 
     def generate_task_content(self, task_id: str, challenge_id: str, round_id: str, team_id: str,
@@ -285,11 +301,32 @@ class TaskService:
 
         # Update task document and write submission into subcollection
         assert task_ref is not None
+        # Prepare dashboard refs
+        dash_ref = rounds_ref.document(resolved_round_id).collection('dashboards').document(team_id)
         if check_result.status == CheckStatus.ACCEPTED:
             # Update task status in task document
             task_ref.update({'status': ApiTaskStatus.AC, 'solved_at': current_time})
             # Calculate score
-            score = int(float(task_type_doc.score) * check_result.score)
+            calc_score = int(float(task_type_doc.score) * check_result.score)
+            # Update dashboard within a transaction: pending--, ac++, score+=
+            snap = dash_ref.get()
+            if snap.exists:
+                dash = TeamDashboardDocument.model_validate(snap.to_dict())
+            else:
+                dash = TeamDashboardDocument(team_id=team_id, challenge_id=challenge_id, round_id=resolved_round_id, score=0, task_types=[])
+            # update totals
+            dash.score += calc_score
+            found = False
+            for t in dash.task_types:
+                if t.task_type == task_type_doc.type:
+                    t.pending = max(0, t.pending - 1)
+                    t.ac += 1
+                    t.score += calc_score
+                    found = True
+                    break
+            if not found:
+                dash.task_types.append(TeamTaskDashboardDocument(task_type=task_type_doc.type, score=calc_score, ac=1, wa=0, pending=0))
+            dash_ref.set(dash.model_dump())
             submission_doc = SubmissionDocument(
                 id=submission_id,
                 challenge_id=challenge_id,
@@ -300,11 +337,27 @@ class TaskService:
                 submitted_at=current_time,
                 answer=answer,
                 checker_output="",
-                score=score
+                score=calc_score
             )
         else:
             # Update task status to WA
             task_ref.update({'status': ApiTaskStatus.WA})
+            # Update dashboard within a transaction: pending--, wa++
+            snap = dash_ref.get()
+            if snap.exists:
+                dash = TeamDashboardDocument.model_validate(snap.to_dict())
+            else:
+                dash = TeamDashboardDocument(team_id=team_id, challenge_id=challenge_id, round_id=resolved_round_id, score=0, task_types=[])
+            found = False
+            for t in dash.task_types:
+                if t.task_type == task_type_doc.type:
+                    t.pending = max(0, t.pending - 1)
+                    t.wa += 1
+                    found = True
+                    break
+            if not found:
+                dash.task_types.append(TeamTaskDashboardDocument(task_type=task_type_doc.type, score=0, ac=0, wa=1, pending=0))
+            dash_ref.set(dash.model_dump())
             submission_doc = SubmissionDocument(
                 id=submission_id,
                 challenge_id=challenge_id,

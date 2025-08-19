@@ -26,6 +26,7 @@ backend_port = 8918
 @pytest.fixture(scope="session", autouse=True)
 def start_server() -> Iterator[None]:
     project_root = Path(__file__).resolve().parents[1]  # .../platform
+    print(f"Project root: {project_root}")
     os.chdir(project_root)  # make imports like 'back.*' work everywhere
     logging.basicConfig(
         level=logging.INFO,
@@ -38,7 +39,7 @@ def start_server() -> Iterator[None]:
     os.environ["FIRESTORE_EMULATOR_HOST"] = "127.0.0.1:8080"
     clear_firestore_data()
     create_test_firebase_data()
-    proc = subprocess.Popen(["uvicorn", "main:app", "--port", str(backend_port)], cwd="back", )
+    proc = subprocess.Popen(["uvicorn", "back.main:app", "--port", str(backend_port)])
     wait_endpoint_up(server_url, 1.0)
 
     yield
