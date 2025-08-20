@@ -1,3 +1,0 @@
--r requirements-base.txt
-psycopg2-binary>=2.9
-api-models @ file:../api_models
