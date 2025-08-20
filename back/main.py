@@ -3,7 +3,6 @@ import sys
 import uvicorn
 from fastapi import FastAPI
 from fastapi.responses import RedirectResponse
-from mangum import Mangum
 
 from back.api.boards_api import router as boards_router
 from back.api.challenges_api import router as challenges_router
@@ -32,9 +31,6 @@ app.include_router(task_gen_router, include_in_schema=False)
 @app.get("/", include_in_schema=False)
 def home() -> RedirectResponse:
     return RedirectResponse(url="/docs")
-
-
-handler = Mangum(app, lifespan="off")
 
 
 if __name__ == "__main__":
