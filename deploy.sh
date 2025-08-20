@@ -11,9 +11,9 @@ BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
 # Configuration
-PROJECT_ID=${PROJECT_ID:-"teamwork-platform"}
+PROJECT_ID=${PROJECT_ID:-"twchallenge-24d46"}
 REGION=${REGION:-"us-central1"}
-SERVICE_NAME="teamwork-platform-api"
+SERVICE_NAME="twchallenge-api"
 
 echo -e "${BLUE}🚀 Starting deployment to Firebase + Cloud Run${NC}"
 echo -e "${BLUE}Project ID: ${PROJECT_ID}${NC}"

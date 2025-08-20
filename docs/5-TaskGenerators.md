@@ -1,6 +1,6 @@
 # Task generators and validator API
 
-Task generator is a set of HTTP handlers published as AWS Lambda.
+Task generator is a set of HTTP handlers
 
 
 ## Authentication

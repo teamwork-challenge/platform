@@ -4,7 +4,7 @@ Audience: new contributors. Keep this handy. Commands are shown for Windows Powe
 
 ## Tech stack at a glance
 - Language: Python 3.11 (strict typing via mypy)
-- Backend: FastAPI + Uvicorn, SQLAlchemy ORM, Pydantic models (api_models package), Mangum (AWS Lambda adapter)
+- Backend: FastAPI + Uvicorn, Firebase
 - CLI: Typer + Rich + Requests
 - Tasks (generators): FastAPI-based microservices
 - Tests: pytest (CLI tests spin up the API locally)

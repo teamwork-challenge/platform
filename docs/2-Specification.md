@@ -137,19 +137,13 @@ identical tasks may occur only by statistical coincidence.
 
 - Python + FastAPI
 - OpenAPI and Swagger UI for API documentation.
-- Deployment: AWS Lambda (Magnum wrapper for FastAPI) + API Gateway.
+- Deployment: Firebase
 
 ## Command Line Interface
 
 - Python + Typer for commands and options handling
-- openapi-python-client for http client generation by OpenAPI spec.
 
 ## Task generators
 
-- Python + FastAPI + Magnum + AWS Lambda
+- Python + FastAPI
 
-## Data layer
-
-Serverless PostgreSQL (AWS Aurora Serverless v2) stores all the data.
-
-In case of performance issues, payload, answers and audit logs can be moved into S3.

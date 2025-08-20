@@ -1,0 +1,19 @@
+# ./back/.dockerignore
+# (Often identical to .gcloudignore)
+.git/
+__pycache__/
+.mypy_cache
+.pytest_cache
+.github
+.idea
+.junie
+.claude
+*.py[cod]
+venv/
+.venv/
+env/
+.env/
+node_modules/
+dist/
+build/
+...
