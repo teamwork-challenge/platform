@@ -64,7 +64,7 @@ class ConfigManager:
 
     def get_base_url(self) -> str:
         """Get base URL from a config or environment variable."""
-        return os.environ.get("CHALLENGE_API_URL", "http://127.0.0.1:8088") or self.get("base_url")
+        return self.get("base_url") or os.environ.get("CHALLENGE_API_URL", "http://127.0.0.1:8088")
 
     def save_base_url(self, base_url: str) -> None:
         """Save base URL to config."""

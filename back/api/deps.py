@@ -50,20 +50,12 @@ def authenticate_admin(
 
 # Helpers
 
-def ensure_has_access(
-    auth_data: AuthData,
-    challenge_id: str
-) -> None:
-    if auth_data.role != UserRole.ADMIN and challenge_id != auth_data.challenge_id:
-        raise HTTPException(status_code=404, detail="Challenge not found or access forbidden")
-
-
 def get_challenge_or_404(
     challenge_id: str,
     challenge_service: ChallengeService,
     auth_data: AuthData
 ) -> Challenge:
-    ensure_has_access(auth_data, challenge_id)
+    challenge_id = fix_challenge_id(auth_data, challenge_id)
     challenge = challenge_service.get_challenge(challenge_id)
     if challenge is None:
         raise HTTPException(status_code=404, detail="Challenge not found")
