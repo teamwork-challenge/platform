@@ -139,7 +139,7 @@ class Task(Base):
     input: Mapped[str] = mapped_column(nullable=True)
     checker_hint: Mapped[str] = mapped_column(nullable=True)
     statement: Mapped[str] = mapped_column(nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    claimed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     # Foreign key references
     challenge_id: Mapped[int] = mapped_column(
@@ -157,7 +157,7 @@ class Task(Base):
         nullable=False,
         index=True
     )
-    round_task_type_id: Mapped[int | None] = mapped_column(
+    round_task_type_id: Mapped[int] = mapped_column(
         ForeignKey("round_task_types.id", ondelete="CASCADE"),
         nullable=False,
         index=True
@@ -167,7 +167,7 @@ class Task(Base):
     challenge = relationship("Challenge")
     team = relationship("Team")
     round = relationship("Round")
-    round_task_type = relationship("RoundTaskType", back_populates="tasks")
+    round_task_type: Mapped["RoundTaskType"] = relationship("RoundTaskType", back_populates="tasks")
     submissions = relationship(
         "Submission",
         back_populates="task",
@@ -178,8 +178,8 @@ class Task(Base):
     # Computed property for backward compatibility
     @property
     def type(self) -> str:
-        # Safely return the type from the related RoundTaskType
-        return self.round_task_type.type if self.round_task_type is not None else ""
+        # Return the type from the related RoundTaskType
+        return self.round_task_type.type
 
 
 class Submission(Base):

@@ -1,3 +1,4 @@
+import logging
 from typing import Optional, Dict, Any
 
 import requests
@@ -46,14 +47,11 @@ class ApiClient:
         base_url = self.config_manager.get_base_url()
         url = f"{base_url}{endpoint}"
 
-        print(f"Making {method} request to {url} with data: {data}")
+        logging.info("Make request: %s %s. Data: %s", method, url, data)
         response = requests.request(method, url, headers=self._headers, json=data)
-        if 400 <= response.status_code < 500:
-            res = response.json()
-            if "detail" in res:
-                res = res["detail"]
-            else:
-                res = str(res)
+        res = response.text
+        logging.info("Received response: %s %s", response.status_code, res)
+        if 400 <= response.status_code <= 500:
             raise requests.HTTPError(f"{res} (status code: {response.status_code})")
         response.raise_for_status()
         return response.json()
@@ -65,7 +63,7 @@ class ApiClient:
 
     # Team-related methods
     def get_team_info(self) -> Team:
-        data = self._make_request("GET", "/team")
+        data: Any = self._make_request("GET", "/team")
         return Team.model_validate(data)
 
     def rename_team(self, new_name: str) -> Team:
@@ -179,7 +177,7 @@ class ApiClient:
     def create_round_task_type(self, task_type_data: RoundTaskTypeCreateRequest) -> RoundTaskType:
         data = self._make_request(
             "POST", 
-            "/task-types", 
+            "/task-types",
             task_type_data.model_dump(mode="json")
         )
         return RoundTaskType.model_validate(data)
@@ -188,7 +186,7 @@ class ApiClient:
                                task_type_data: RoundTaskTypeCreateRequest) -> RoundTaskType:
         data = self._make_request(
             "PUT", 
-            f"/task-types/{task_type_id}", 
+            f"/task-types/{task_type_id}",
             task_type_data.model_dump(mode="json")
         )
         return RoundTaskType.model_validate(data)
@@ -220,9 +218,23 @@ class ApiClient:
         data = self._make_request("GET", f"/submissions/{submit_id}")
         return Submission.model_validate(data)
 
-    def list_tasks(self) -> TaskList:
-        """List tasks."""
-        data = self._make_request("GET", "/tasks")
+    def list_tasks(self,
+                    status: Optional[str] = None,
+                    task_type: Optional[str] = None,
+                    round_id: Optional[int] = None,
+                    since: Optional[str] = None) -> TaskList:
+        """List tasks with optional filters."""
+        params = []
+        if status:
+            params.append(f"status={status}")
+        if task_type:
+            params.append(f"task_type={task_type}")
+        if round_id is not None:
+            params.append(f"round_id={round_id}")
+        if since:
+            params.append(f"since={since}")
+        query = ("?" + "&".join(params)) if params else ""
+        data = self._make_request("GET", f"/tasks/{query}")
         return TaskList.model_validate({"tasks": data})
 
     # Board-related methods

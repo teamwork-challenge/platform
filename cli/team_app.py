@@ -11,22 +11,18 @@ def team_show(as_json: bool = json_output_option) -> None:
     """Show team information."""
     ensure_logged_in()
 
-    try:
-        team = api_client.get_team_info()
+    team = api_client.get_team_info()
 
-        if as_json:
-            return print_as_json(team)
+    if as_json:
+        return print_as_json(team)
 
-        console.print("[bold]Team Information:[/bold]")
-        console.print(f"Team ID: {team.id}")
-        console.print(f"Team Name: {team.name}")
-        console.print(f"Members: {team.members}")
-        console.print(f"Challenge ID: {team.challenge_id}")
+    console.print("[bold]Team Information:[/bold]")
+    console.print(f"Team ID: {team.id}")
+    console.print(f"Team Name: {team.name}")
+    console.print(f"Members: {team.members}")
+    console.print(f"Challenge ID: {team.challenge_id}")
 
-        return None
-    except Exception as e:
-        console.print(f"[red]Error: {str(e)}[/red]")
-        raise typer.Exit(1)
+    return None
 
 
 # @team_app.command("rename") # Backend is not ready yet
@@ -34,15 +30,11 @@ def team_rename(new_name: str, as_json: bool = json_output_option) -> None:
     """Rename team (allowed until first submission)."""
     ensure_logged_in()
 
-    try:
-        team = api_client.rename_team(new_name)
+    team = api_client.rename_team(new_name)
 
-        if as_json:
-            return print_as_json(team)
+    if as_json:
+        return print_as_json(team)
 
-        console.print(f"[green]Team renamed to: {team.name}[/green]")
+    console.print(f"[green]Team renamed to: {team.name}[/green]")
 
-        return None
-    except Exception as e:
-        console.print(f"[red]Error: {str(e)}[/red]")
-        raise typer.Exit(1)
+    return None

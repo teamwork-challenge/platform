@@ -167,25 +167,24 @@ def create_test_data(engine: Engine | None = None) -> None:
             round_id=round1.id,
             type="a_plus_b",
             generator_url="http://127.0.0.1:8918/task_gen/a_plus_b",
-            generator_settings=None,
+            generator_settings="",
             generator_secret="twc",
-            max_tasks_per_team=3,
+            max_tasks_per_team=100,
             time_to_solve=30
         )
         round_task_type2 = RoundTaskType(
-            round_id=round2.id,
-            type="right_time",
-            generator_url="http://localhost:8000/right_time",
-            generator_settings="complication2:1,complication3:2,complication4:3",
-            generator_secret="twc",
+            round_id=round1.id,
+            type="test-type",
+            generator_url="no-generator",
+            generator_settings="",
+            generator_secret="",
             max_tasks_per_team=5,
             time_to_solve=45
         )
         session.add_all([round_task_type1, round_task_type2])
         session.flush()
 
-        # Create 2 Tasks
-        task1 = Task(
+        task0 = Task(
             title="Test Task 1",
             status=TaskStatus.PENDING,
             challenge_id=challenge1.id,
@@ -194,25 +193,52 @@ def create_test_data(engine: Engine | None = None) -> None:
             round_task_type_id=round_task_type1.id,
             input="1 2",
             statement_version="1.0",
+            claimed_at=now,
             score=100,
             statement="Given two integers a and b, find their sum a + b."
         )
-        task2 = Task(
-            title="Test Task 2",
-            status=TaskStatus.AC,
-            challenge_id=challenge2.id,
-            team_id=team2.id,
-            round_id=round2.id,
+        task1 = Task(
+            title="PENDING Task",
+            status=TaskStatus.PENDING,
+            challenge_id=challenge1.id,
+            team_id=team1.id,
+            round_id=round1.id,
             round_task_type_id=round_task_type2.id,
-            input="12:00",
+            input="This is some strange task input",
             statement_version="1.0",
-            score=200,
-            statement="Send the answer back exactly in the moment of time, specified in the task input."
+            claimed_at=now - timedelta(minutes=5),
+            score=0,
+            statement="You can't solve this task. It has no generator"
         )
-        session.add_all([task1, task2])
+        task2 = Task(
+            title="AC Task",
+            status=TaskStatus.AC,
+            challenge_id=challenge1.id,
+            team_id=team1.id,
+            round_id=round1.id,
+            round_task_type_id=round_task_type2.id,
+            input="This is some strange task input",
+            statement_version="1.0",
+            claimed_at=now - timedelta(minutes=10),
+            score=200,
+            statement="You can't solve this task. It has no generator"
+        )
+        task3 = Task(
+            title="WA Task",
+            status=TaskStatus.WA,
+            challenge_id=challenge1.id,
+            team_id=team1.id,
+            round_id=round1.id,
+            round_task_type_id=round_task_type2.id,
+            input="This is some strange task input",
+            statement_version="1.0",
+            claimed_at=now - timedelta(minutes=20),
+            score=0,
+            statement="You can't solve this task. It has no generator"
+        )
+        session.add_all([task0, task1, task2, task3])
 
         challenge1.current_round_id = round1.id
-        challenge2.current_round_id = round2.id
 
         session.commit()
 
