@@ -64,7 +64,7 @@ class TaskService:
         filtered = [s for s in snapshots if status_matches(s)]
         tasks = [to_api(s) for s in filtered]
         tasks.sort(key=lambda t: (t.claimed_at or datetime.min.replace(tzinfo=timezone.utc)), reverse=True)
-        return tasks[:20]
+        return tasks
 
 
     def get_task(self, task_id: str, challenge_id: str, round_id: str) -> TaskDocument | None:
