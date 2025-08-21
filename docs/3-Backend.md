@@ -2,61 +2,67 @@
 
 ## Authentication
 
-All API calls must include a valid API_KEY header.
-
+All API calls must include a valid X-API-Key header.
 Missing or invalid keys return 401 Unauthorized.
-Authentication determines roles: admin or player and a challenge.
+Authentication determines role (admin or player) and binds to a challenge/team context.
 
-## Endpoints for Players
+## Player endpoints
 
+Team and auth:
 ```
-GET | PUT /teams/me
-GET /rounds
-GET /tasks/{id} – Get full details of a specific task (Task)
-GET /tasks?round={id}[&type={type}&status={status}] – Get tasks filtered by type and status (Task List)
-GET /tasks?round={id} – Get all team tasks for a round (Dashboard)
-GET /rounds/{id}/leaderboard – Get leaderboard for a specific round (Leaderboard)
-POST /tasks?round={id}[&type={task-type}] – Claim Task
-POST /tasks/{id}/answer – Submit Solution
+GET  /auth                     # returns role ("ADMIN" or "PLAYER")
+GET  /team                     # current team info (derived from API key)
+PUT  /team                     # rename current team
 ```
 
-Note: teamId and challengeId is defined by authentication and filters and validators applied when it make sense.
-
-## Endpoints for Admin
-
+Challenges and rounds:
 ```
-GET|POST|DELETE /challenges
-GET|PUT /challenges/{id}
-GET|POST /rounds
-GET|PUT|DELETE /rounds/{id}
-GET|POST /task-types
-GET|PUT|DELETE /task-types/{id}
-POST /teams
-GET|PUT /teams
-GET /round/{id}/logs
-PUT /tasks/{id}/answer - override answer verdict, for incidents.
+GET  /challenges/{challenge_id}
+GET  /challenges/{challenge_id}/rounds
+GET  /challenges/{challenge_id}/rounds/{round_id}
 ```
+Note: the server accepts the literal value `current` for challenge_id/round_id
+in many places to resolve current context.
+
+Tasks (scoped to challenge and round):
+Base path: `/challenges/{challenge_id}/rounds/{round_id}`
+```
+GET  /challenges/{challenge_id}/rounds/{round_id}/tasks
+      ?status=<pending|wa|ac>&task_type=<type>&since=<ISO-datetime>
+POST /challenges/{challenge_id}/rounds/{round_id}/tasks         # claim a task
+GET  /challenges/{challenge_id}/rounds/{round_id}/tasks/{task_id}
+POST /challenges/{challenge_id}/rounds/{round_id}/submissions    # submit answer
+```
+
+## Admin endpoints
+
+Challenges and rounds:
+```
+GET  /challenges                                   # list all challenges
+PUT  /challenges/{challenge_id}                    # update a challenge
+PUT  /challenges/{challenge_id}/rounds/{round_id}  # create/update a round
+DELETE /challenges/{challenge_id}/rounds/{round_id}
+```
+
+Teams:
+```
+GET  /challenges/{challenge_id}/teams              # list teams in a challenge
+POST /teams                                        # batch-create teams
+```
+
+## Notes
+- Dashboard and leaderboard endpoints are not exposed in the current backend implementation.
+- Some endpoints require admin role; authorization is enforced by dependencies.
 
 ## Deadline handling
 
-Submissions after a task-specific deadline score 0 but are still evaluated for status. Claiming and submitting before round start or after round end returns 403 Forbidden.
+Submissions after a task-specific deadline score 0 but are still evaluated for status.
+Claiming and submitting before round start or after round end return 403 Forbidden.
 
 ## Logging
 
-Every task-related action — claim, submit, status update — is written to an immutable audit log with timestamp, team id, task id, status, and score.
+Every task-related action — claim, submit, status update — should be captured in logs (implementation details may vary).
 
-## Rate limits
+## Performance and rate limits
 
-The API must sustain at least 20 concurrent submissions and throttle a team to 30 requests per minute; excess requests return 429 Too Many Requests.
-
-## Performance requirements
-
-Any API request must return within 1 s at the 95-th percentile.
-
-6 task types ✕ 1000 tasks ✕ 20 teams ✕ 2 answers = 240_000 records per round in answers DB table.
-
-The platform must handle at least 20 concurrently active players who may poll, claim, and submit in a tight loop (≈50 req/s aggregate) without breaching the latency target.
-
-### Important!
-
-Dashboard and Leaderboard require optimizations: e.g. separate tables for dashboard and leaderboard entries with incremental updates on every claim / submit.
+Target latency: under 1 s at P95. Apply reasonable rate limiting and scaling as needed.
