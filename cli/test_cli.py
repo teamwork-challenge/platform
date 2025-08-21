@@ -303,6 +303,63 @@ def test_task_list_with_paging() -> None:
     assert "Attempt" not in result.output
 
 
+def test_submission_attempts_limit_and_time_decay() -> None:
+    """End-to-end: configure a_plus_b to n_attempts=1 and score decay enabled; verify:
+    - second submission rejected with clear message
+    - score decays linearly with time_to_solve when enabled
+    """
+    from back.services.db import get_firestore_db
+    from datetime import datetime, timezone, timedelta
+
+    login_team1()
+
+    # Adjust round_1 -> task_type a_plus_b settings in the DB for this test
+    db = get_firestore_db()
+    ch_ref = db.collection('challenges').document('challenge_1')
+    rd_ref = ch_ref.collection('rounds').document('round_1')
+    rd_doc = rd_ref.get()
+    assert rd_doc.exists
+    rd = rd_doc.to_dict()
+    # Update in-place: set n_attempts=1, enable decay and time_to_solve=1 minute
+    for tt in rd['task_types']:
+        if tt['type'] == 'a_plus_b':
+            tt['n_attempts'] = 1
+            tt['score_decay_with_time'] = True
+            tt['time_to_solve'] = 1
+            tt['score'] = 100
+    rd_ref.set(rd)
+
+    # Claim a fresh task for attempts test to avoid prior submissions
+    claim_attempts = run_ok('task', 'claim', '--type', 'a_plus_b')
+    task_id = extract_task_id(claim_attempts.output)
+    # First submission (wrong), should be accepted as an attempt
+    res1 = run_ok('task', 'submit', task_id, '2')
+    assert 'Status: SubmissionStatus.WA' in res1.output
+    # Second submission should be rejected due to attempts limit
+    result2 = runner.invoke(app, ['task', 'submit', task_id, '2'], catch_exceptions=True)
+    assert result2.exit_code != 0
+    assert 'Attempts limit exceeded' in str(result2.exception) or 'Attempts limit exceeded' in result2.output
+
+    # Now claim a fresh task to test score decay with a correct answer
+    claim_res = run_ok('task', 'claim', '--type', 'a_plus_b')
+    new_task_id = extract_task_id(claim_res.output)
+
+    # Manually move claimed_at 30 seconds into the past to simulate half of 1-minute window
+    t_ref = rd_ref.collection('tasks').document(new_task_id)
+    t_doc = t_ref.get()
+    assert t_doc.exists
+    t = t_doc.to_dict()
+    t['claimed_at'] = datetime.now(timezone.utc) - timedelta(seconds=30)
+    t_ref.set(t)
+
+    # Submit correct answer now
+    res_ok = run_ok('task', 'submit', new_task_id, '3', '--json')
+    import json
+    payload = json.loads(res_ok.output)
+    # Expect roughly half of 100 due to 30/60 elapsed; integer truncation
+    assert 45 <= int(payload['score']) <= 55
+
+
 
 # Board App Tests
 @pytest.mark.skip(reason="Board app is not yet implemented")

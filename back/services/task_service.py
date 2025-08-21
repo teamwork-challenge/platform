@@ -266,7 +266,6 @@ class TaskService:
         if not challenge_doc.exists:
             raise ValueError("Challenge not found")
 
-        task = None
         resolved_round_id: str
         rounds_ref = challenge_ref.collection('rounds')
 
@@ -288,6 +287,15 @@ class TaskService:
         if task_type_doc is None:
             raise ValueError("Task type not found")
 
+        # Check attempts limit for this task type
+        subs_ref = t_ref.collection('submissions')
+        # Use aggregation count to avoid loading all submissions
+        count_snapshot = subs_ref.count().get()
+        # Firestore Python returns a list of aggregation snapshots; take the first
+        existing_attempts = count_snapshot[0][0].value  # type: ignore[index]
+        if existing_attempts >= task_type_doc.n_attempts:
+            raise ValueError(f"Attempts limit exceeded. Maximum attempts: {task_type_doc.n_attempts}")
+
         # Check time limit
         current_time = datetime.now(timezone.utc)
         claimed_at = task.claimed_at
@@ -300,6 +308,7 @@ class TaskService:
         # Check the answer
         check_response = self.task_gen_client.check_answer(
             task_type_doc.generator_url,
+            task_type_doc.generator_secret,
             answer,
             task.checker_hint,
             task.input,
@@ -317,8 +326,14 @@ class TaskService:
         if check_result.status == CheckStatus.ACCEPTED:
             # Update task status in task document
             task_ref.update({'status': ApiTaskStatus.AC, 'solved_at': current_time})
-            # Calculate score
-            calc_score = int(float(task_type_doc.score) * check_result.score)
+            # Calculate score with optional linear time decay
+            base_score = float(task_type_doc.score) * check_result.score
+            if task_type_doc.score_decay_with_time:
+                elapsed = (current_time - claimed_at).total_seconds()
+                total = float(time_limit_minutes) * 60.0
+                factor = 0.0 if total <= 0 else max(0.0, 1.0 - (elapsed / total))
+                base_score *= factor
+            calc_score = int(base_score)
             # Update dashboard within a transaction: pending--, ac++, score+=
             snap = dash_ref.get()
             if snap.exists:

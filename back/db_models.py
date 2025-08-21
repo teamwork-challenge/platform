@@ -37,6 +37,8 @@ class TaskTypeDocument(BaseModel):
     generator_secret: str
     score: int
     time_to_solve: int
+    score_decay_with_time: bool
+    n_attempts: int
 
 
 class RoundDocument(BaseModel):
@@ -54,9 +56,6 @@ class RoundDocument(BaseModel):
             if tt.type == task_type:
                 return tt
         return None
-
-
-
 
 class TaskDocument(BaseModel):
     id: str

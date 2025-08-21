@@ -12,7 +12,9 @@ task_types: [
       generator_settings: ""
       generator_secret:  "secret"
       score: 100
-      time_to_solve: 30
+      time_to_solve: 30,
+      score_decay_with_time: false,
+      n_attempts: 100
     },
     {
       type: "sum_a_b"
@@ -22,5 +24,7 @@ task_types: [
       generator_secret:  "secret"
       score: 200
       time_to_solve: 30
+      score_decay_with_time: false,
+      n_attempts: 1
     }
 ]

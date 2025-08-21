@@ -115,18 +115,23 @@ def create_test_firebase_data() -> None:
         n_tasks=100,
         generator_url="http://127.0.0.1:8918/task_gen/a_plus_b",
         generator_settings="",
-        generator_secret="twc",
+        generator_secret="secret",
         score=100,
-        time_to_solve=30
+        time_to_solve=30,
+        score_decay_with_time=False,
+        n_attempts=100
+
     )
     task_type11 = TaskTypeDocument(
         type="sum_a_b",
         n_tasks=50,
         generator_url="http://127.0.0.1:8918/task_gen/a_plus_b",
         generator_settings="",
-        generator_secret="twc",
+        generator_secret="secret",
         score=200,
-        time_to_solve=30
+        time_to_solve=30,
+        score_decay_with_time=False,
+        n_attempts=100
     )
     task_type2 = TaskTypeDocument(
         type="test-type",
@@ -135,7 +140,9 @@ def create_test_firebase_data() -> None:
         generator_settings="",
         generator_secret="",
         score=100,
-        time_to_solve=45
+        time_to_solve=45,
+        score_decay_with_time=False,
+        n_attempts=100
     )
 
     round1 = RoundDocument(

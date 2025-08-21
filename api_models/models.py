@@ -120,6 +120,8 @@ class RoundTaskType(BaseModel):
     generator_secret: str
     score: int
     time_to_solve: int
+    score_decay_with_time: bool
+    n_attempts: int
 
 
 class Round(BaseModel):

@@ -1,12 +1,22 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
+from fastapi.params import Depends
+from fastapi.security import APIKeyHeader
 
 from api_models import GenRequest, GenResponse, CheckRequest, CheckResult, CheckStatus
 
 # Internal task generators for tests
 router = APIRouter(prefix="/task_gen", tags=["TaskGen"])  # hidden from OpenAPI via include_in_schema in main
 
+API_KEY_HEADER = APIKeyHeader(name="X-API-Key", auto_error=False)
 
-@router.post("/a_plus_b/gen")
+async def validate_api_key(x_api_key: str = Depends(API_KEY_HEADER)) -> str:
+    print(x_api_key)
+    if x_api_key != "secret":
+        raise HTTPException(status_code=403, detail="Invalid API key")
+    return x_api_key
+
+
+@router.post("/a_plus_b/gen", dependencies=[Depends(validate_api_key)])
 def a_plus_b_gen(req: GenRequest) -> GenResponse:
     a, b = 1, 2
     statement = "Given two integers a and b, output a + b."
@@ -20,7 +30,7 @@ def a_plus_b_gen(req: GenRequest) -> GenResponse:
     )
 
 
-@router.post("/a_plus_b/check")
+@router.post("/a_plus_b/check", dependencies=[Depends(validate_api_key)])
 def a_plus_b_check(req: CheckRequest) -> list[CheckResult]:
     parts = (req.input or "").strip().split()
     if len(parts) != 2:

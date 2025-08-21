@@ -14,7 +14,7 @@ class TaskGenClient:
         try:
             response = requests.post(
                 f"{generator_url}/gen",
-                headers={"Content-Type": "application/json", "X-API-KEY": generator_secret or ""},
+                headers={"Content-Type": "application/json", "X-API-Key": generator_secret or ""},
                 data=json.dumps(gen_request.model_dump())
             )
 
@@ -50,7 +50,7 @@ class TaskGenClient:
         except Exception as e:
             raise RuntimeError(f"Unexpected error generating task: {str(e)}")
 
-    def check_answer(self, generator_url: str, answer: str, checker_hint: str, input_text: str, task_id: str | None = None) -> CheckResponse:
+    def check_answer(self, generator_url: str, generator_secret: str, answer: str, checker_hint: str, input_text: str, task_id: str | None = None) -> CheckResponse:
         check_request = CheckRequest(
             input=input_text,
             answer=answer,
@@ -61,7 +61,7 @@ class TaskGenClient:
         try:
             response = requests.post(
                 f"{generator_url}/check",
-                headers={"Content-Type": "application/json"},
+                headers={"Content-Type": "application/json", "X-API-Key": generator_secret or ""},
                 data=json.dumps(check_request.model_dump())
             )
             response.raise_for_status()
