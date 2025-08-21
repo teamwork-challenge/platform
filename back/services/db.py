@@ -24,8 +24,8 @@ class FirebaseDatabase:
         if emulator_host:
             print(f"Using Firestore emulator at {emulator_host}")
             # For emulator, we don't need credentials
-            os.environ["GOOGLE_CLOUD_PROJECT"] = "test-project"
-            cls._db = gcs_firestore.Client(project="test-project")
+            os.environ["GOOGLE_CLOUD_PROJECT"] = "twchallenge-24d46"
+            cls._db = gcs_firestore.Client(project="twchallenge-24d46") # type: ignore[arg-type]
         else:
             print("Using Firestore production")
             # Initialize Firebase Admin SDK for production

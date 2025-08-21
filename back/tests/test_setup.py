@@ -12,7 +12,7 @@ from back.db_models import (
 def setup_firebase_emulator() -> None:
     """Set up environment for Firebase emulator"""
     os.environ["FIRESTORE_EMULATOR_HOST"] = "127.0.0.1:8080"
-    os.environ["GOOGLE_CLOUD_PROJECT"] = "test-project"
+    os.environ["GOOGLE_CLOUD_PROJECT"] = "twchallenge-24d46"
 
 
 def clear_firestore_data() -> None:

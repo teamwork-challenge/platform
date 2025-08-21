@@ -10,34 +10,12 @@ from api_models import Challenge
 from cli.typers.app_deps import api_client, console, ensure_logged_in, json_output_option
 from cli.formatter import print_as_json
 
-app = typer.Typer(help="Teamwork Challenge CLI", pretty_exceptions_short=True, pretty_exceptions_show_locals=False)
+# Root app is defined in cli.main; this module defines the 'challenge' sub-typer
+challenge_app = typer.Typer(help="Challenge management commands", pretty_exceptions_short=True, pretty_exceptions_show_locals=False, no_args_is_help=True)
 
 
-# Authentication commands
-@app.command()
-def login(api_key: str) -> None:
-    """Store an API key into the config file after successful login."""
-    # Save the API key and verify it's valid by calling /auth.
-    # If verification fails, remove the key and re-raise the error so tests can catch it.
-    api_client.save_api_key(api_key)
-    try:
-        role = api_client.auth()
-    except Exception:
-        # Revert saved invalid key
-        api_client.remove_api_key()
-        raise
-    console.print(f"[green]Successfully logged in with role {role} using API key: {api_key}[/green]")
-
-
-@app.command()
-def logout() -> None:
-    """Remove an API key from the config file."""
-    api_client.remove_api_key()
-    console.print("[green]Successfully logged out[/green]")
-
-
-@app.command("list")
-def list_challenges(as_json: bool = json_output_option) -> None:
+@challenge_app.command("list")
+def challenge_list(as_json: bool = json_output_option) -> None:
     """List all challenges."""
     ensure_logged_in()
     challenges = api_client.get_challenges()
@@ -57,7 +35,7 @@ def list_challenges(as_json: bool = json_output_option) -> None:
     return None
 
 
-@app.command("show")
+@challenge_app.command("show")
 def show(
     challenge_id: Optional[str] = typer.Option(None, "--challenge-id", "-c", help="Challenge ID"),
     as_json: bool = json_output_option
@@ -75,7 +53,7 @@ def show(
     return None
 
 
-@app.command("update")
+@challenge_app.command("update")
 def update(challenge_hjson_path: str = typer.Argument(..., help="Challenge HJSON file path")) -> None:
     """Update challenge information."""
     ensure_logged_in()
@@ -84,31 +62,6 @@ def update(challenge_hjson_path: str = typer.Argument(..., help="Challenge HJSON
     challenge = Challenge.model_validate(challenge_hjson)
     challenge = api_client.put_challenge(challenge)
     return print_as_json(challenge)
-
-
-@app.command("teams")
-def list_teams(
-    challenge_id: Optional[str] = typer.Option(None, "--challenge", "-c", help="Challenge ID"),
-    as_json: bool = json_output_option
-) -> None:
-    """List teams for the specified or current challenge."""
-    ensure_logged_in()
-    teams = api_client.get_teams(challenge_id)
-
-    if as_json:
-        return print_as_json(teams)
-
-    table = Table(title=f"Teams for challenge '{challenge_id or 'current'}'")
-    table.add_column("ID", style="cyan")
-    table.add_column("Name", style="green")
-    table.add_column("Members")
-    table.add_column("Captain Contact")
-
-    for t in teams:
-        table.add_row(str(t.id), str(t.name), str(t.members), str(t.captain_contact))
-
-    console.print(table)
-    return None
 
 
 def print_challenge(challenge: Challenge) -> None:

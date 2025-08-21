@@ -1,10 +1,12 @@
 import csv
 import typer
-from api_models import TeamsImportRequest
+from rich.table import Table
+
+from api_models import TeamsImportRequest, Team
 from cli.typers.app_deps import api_client, json_output_option, console, ensure_logged_in
 from cli.formatter import print_as_json
 
-team_app = typer.Typer(help="Team management commands")
+team_app = typer.Typer(help="Team management commands", no_args_is_help=True)
 
 
 # Team commands
@@ -40,6 +42,33 @@ def team_rename(new_name: str = typer.Argument(..., help="New team name"),
 
     console.print(f"[green]Team renamed to: {team.name}[/green]")
 
+    return None
+
+
+@team_app.command("list")
+
+def team_list(
+    challenge_id: str = typer.Argument(None, help="Challenge ID"),
+    as_json: bool = json_output_option
+) -> None:
+    """List teams for the specified or current challenge."""
+    ensure_logged_in()
+    teams = api_client.get_teams(challenge_id)
+
+    if as_json:
+        return print_as_json(teams)
+
+    table = Table(title=f"Teams for challenge '{challenge_id or 'current'}'")
+    table.add_column("ID", style="cyan")
+    table.add_column("Name", style="green")
+    table.add_column("Members")
+    table.add_column("Captain Contact")
+    table.add_column("API Key", style="magenta")
+
+    for t in teams:
+        table.add_row(str(t.id), str(t.name), str(t.members), str(t.captain_contact), str(t.api_key))
+
+    console.print(table)
     return None
 
 

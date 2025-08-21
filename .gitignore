@@ -33,3 +33,5 @@ venv
 .DS_Store
 Thumbs.db
 /.idea/inspectionProfiles/Project_Default.xml
+/firebase-debug.log
+/firestore-debug.log

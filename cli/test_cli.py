@@ -35,16 +35,44 @@ def start_server() -> Iterator[None]:
         force=True,  # nuke prior handlers so this actually applies
     )
     server_url = "http://127.0.0.1:" + str(backend_port)
-    os.environ["CHALLENGE_API_URL"] = server_url  # make CLI use the same port
+    # Backup existing config to restore later (before we modify it)
+    from cli.typers.app_deps import CONFIG_PATH  # imported late to use correct home
+    backup_path = CONFIG_PATH.with_suffix(".test.bak")
+    if CONFIG_PATH.exists():
+        try:
+            import shutil
+            shutil.copy2(CONFIG_PATH, backup_path)
+        except Exception:
+            pass
+    # Persist API URL in CLI config so ApiClient reads it via ConfigManager
+    try:
+        runner.invoke(app, ["config", "api-url", server_url], catch_exceptions=False)
+    except Exception:
+        # Fallback to env var to be extra safe
+        os.environ["CHALLENGE_API_URL"] = server_url
     os.environ["FIRESTORE_EMULATOR_HOST"] = "127.0.0.1:8080"
     clear_firestore_data()
     create_test_firebase_data()
     proc = subprocess.Popen(["uvicorn", "back.main:app", "--port", str(backend_port)])
     wait_endpoint_up(server_url, 1.0)
 
-    yield
-    proc.terminate()
-    proc.wait()
+    try:
+        yield
+    finally:
+        # Restore previous config
+        try:
+            import shutil
+            if backup_path.exists():
+                shutil.copy2(backup_path, CONFIG_PATH)
+                backup_path.unlink(missing_ok=True)
+            else:
+                # No previous config; remove test config if created
+                if CONFIG_PATH.exists():
+                    CONFIG_PATH.unlink()
+        except Exception:
+            pass
+        proc.terminate()
+        proc.wait()
 
 
 def wait_endpoint_up(server_url: str, max_wait_time: float) -> None:
@@ -85,13 +113,13 @@ def test_logout() -> None:
 
 def test_challenge_show_ok() -> None:
     login_team1()
-    result = run_ok("show", "-c", "challenge_1")
+    result = run_ok("challenge", "show", "-c", "challenge_1")
     assert "Challenge" in result.output
 
 
 def test_challenge_update() -> None:
     login_admin()
-    result = run_ok("update", "cli/test_data/challenge1.hjson")
+    result = run_ok("challenge", "update", "cli/test_data/challenge1.hjson")
     assert "Temporary Challenge" in result.output
 
 
@@ -338,7 +366,7 @@ def test_team_rename() -> None:
 
 def test_get_challenges_admin() -> None:
     login_admin()
-    result = run_ok("list")
+    result = run_ok("challenge", "list")
     assert "challenge_1" in result.output
     assert "challenge_2" in result.output
 
@@ -366,9 +394,71 @@ def test_team_create_batch() -> None:
         os.unlink(temp_file)
 
 
-def test_challenge_teams_list_admin() -> None:
+def test_team_list() -> None:
     # Admin can list teams for a specific challenge using top-level `teams` command
     login_admin()
-    result = run_ok("teams", "-c", "challenge_1")
+    result = run_ok("team", "list", "challenge_1")
     # Expect to see at least team_1 from seed data
     assert "team_1" in result.output
+
+
+def test_config_api_url_and_persist() -> None:
+    # Set API URL via CLI and ensure it's persisted
+    server_url = f"http://127.0.0.1:{backend_port}"
+    result = run_ok("config", "api-url", server_url)
+    assert f"API URL set to {server_url}" in result.output
+    # Verify ConfigManager reads it back
+    from cli.typers.app_deps import config_manager
+    assert config_manager.get_base_url() == server_url
+
+
+def test_config_log_level_validation_and_persist() -> None:
+    # Invalid destination
+    res = runner.invoke(app, ["config", "log-level", "screen", "INFO"], catch_exceptions=False)
+    assert res.exit_code == 2
+    assert "Invalid destination" in res.output
+    # Invalid level
+    res = runner.invoke(app, ["config", "log-level", "console", "NONE"], catch_exceptions=False)
+    assert res.exit_code == 2
+    assert "Invalid level" in res.output
+    # Valid settings persist
+    ok = run_ok("config", "log-level", "console", "WARNING")
+    assert "Set console log level to WARNING" in ok.output
+    ok = run_ok("config", "log-level", "file", "ERROR")
+    assert "Set file log level to ERROR" in ok.output
+    from cli.typers.app_deps import config_manager as _cfg
+    levels = _cfg.get("log_levels") or {}
+    # Defaults preserved for unspecified, values updated for specified
+    assert levels.get("console") == "WARNING"
+    assert levels.get("file") == "ERROR"
+
+
+def test_team_list_admin_includes_api_key() -> None:
+    # team list is under team app and requires admin; output should include API Key
+    login_admin()
+    res = run_ok("team", "list", "challenge_1")
+    assert "API Key" in res.output
+    assert "team1" in res.output
+
+
+def test_help_on_invalid_command_shows_help() -> None:
+    # Invalid/malformed command should show help immediately
+    res = runner.invoke(app, ["teem"], catch_exceptions=False)
+    assert res.exit_code != 0
+    # Typer shows usage/help content
+    assert "Usage" in res.output or "Commands" in res.output
+
+
+def test_logging_console_level_controls_output() -> None:
+    # Ensure logged-in and server URL are set
+    login_team1()
+    # First set to CRITICAL and verify logs are suppressed
+    run_ok("config", "log-level", "console", "CRITICAL")
+    out = subprocess.run([sys.executable, "-m", "cli.main", "team", "show"], capture_output=True, text=True)
+    assert out.returncode == 0
+    assert "Make request:" not in out.stdout
+    # Now set to DEBUG and verify logs are shown
+    run_ok("config", "log-level", "console", "DEBUG")
+    out2 = subprocess.run([sys.executable, "-m", "cli.main", "team", "show"], capture_output=True, text=True)
+    assert out2.returncode == 0
+    assert "Make request:" in out2.stdout
