@@ -3,7 +3,7 @@ import concurrent.futures
 import time
 import random
 from time import sleep
-from typing import List, Tuple
+from typing import List, Tuple, Iterator
 import pytest
 from pathlib import Path
 import subprocess
@@ -30,7 +30,7 @@ def _wait_endpoint_up(server_url: str, max_wait_time: float = 2.0) -> None:
 
 
 @pytest.fixture(scope="module", autouse=True)
-def stress_server():
+def stress_server() -> Iterator[None]:
     # ensure project root cwd
     project_root = Path(__file__).resolve().parents[1]
     os.chdir(project_root)
@@ -49,7 +49,7 @@ def stress_server():
 
 
 @pytest.mark.timeout(15)
-def test_stress_claim():
+def test_stress_claim() -> None:
     # two teams work in parallel in the same round, claiming tasks and submitting the answers.
     # Use ApiClient to interact with back. Each team has its own client.
     # 1) Create two teams in challenge_1 via admin API to ensure same round
@@ -105,9 +105,13 @@ def test_stress_claim():
         ids_a = fut_a.result(timeout=20)
         ids_b = fut_b.result(timeout=20)
 
+    print("Successfully solved tasks for Team A: ", len(ids_a))
+    print("Successfully solved tasks for Team B: ", len(ids_b))
+
     # 5) Verify each team has exactly N AC tasks in the current round
     tasks_a_ac = client_a.list_tasks(status='ac').tasks
     tasks_b_ac = client_b.list_tasks(status='ac').tasks
+
 
     # For brand-new teams, AC count should match N exactly
     assert len(tasks_a_ac) == N
@@ -123,7 +127,7 @@ def test_stress_claim():
 
 
 @pytest.mark.timeout(15)
-def test_stress_claim_3workers():
+def test_stress_claim_3workers() -> None:
     # three workers: Team A single worker; Team B two workers in parallel (may cause transaction conflicts)
     # Goal: Team A should not be impacted by Team B conflicts; everyone solves their quota.
     cache_dir = Path('.pytest_cache')
@@ -176,7 +180,7 @@ def test_stress_claim_3workers():
             ids.append(task.id)
         return ids
 
-    def solve_tasks_with_retry(client: ApiClient, n: int, max_tries: int = 20) -> list[str]:
+    def solve_tasks_with_retry(client: ApiClient, n: int, max_tries: int = 20) -> int:
         ids: list[str] = []
         attempts = 0
         while len(ids) < n:
@@ -210,10 +214,11 @@ def test_stress_claim_3workers():
         att1 = fut_b1.result(timeout=30)
         att2 = fut_b2.result(timeout=30)
         att3 = fut_b3.result(timeout=30)
-        print(att1, att2, att3)
+        durationB = time.time() - start
 
     assert len(ids_a) == N
-    print(duration)
+    print(f"Team A solved {N} tasks in {duration} seconds")
+    print(f"Concurrent Team B worked in parallel and had {att1}, {att2} and {att3} retries because of conflicts, but still solved all tasks in {durationB} seconds")
     assert duration < 10
     # Validate Team A completeness and isolation
     tasks_a_ac = client_a.list_tasks(status='ac').tasks

@@ -152,7 +152,8 @@ class TaskService:
 
         from google.cloud import firestore as gcs_firestore
         db_client = self.db
-        @gcs_firestore.transactional
+
+        @gcs_firestore.transactional # type: ignore[misc]
         def _do_create(tx: Any) -> None:
             snap = dash_ref.get(transaction=tx)
             if snap.exists:
