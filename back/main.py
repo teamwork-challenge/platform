@@ -8,6 +8,7 @@ from back.api.boards_api import router as boards_router
 from back.api.challenges_api import router as challenges_router
 from back.api.taskgen_api import router as task_gen_router
 from back.api.tasks_api import router as tasks_router
+from back.api.submissions_api import router as submissions_router
 # Routers split by domain
 from back.api.teams_api import router as team_router
 from back.tests.test_setup import setup_firebase_emulator, create_test_firebase_data
@@ -21,6 +22,7 @@ app = FastAPI(title="Teamwork Challenge API",
 app.include_router(team_router)
 app.include_router(challenges_router)
 app.include_router(tasks_router)
+app.include_router(submissions_router)
 app.include_router(boards_router)
 
 

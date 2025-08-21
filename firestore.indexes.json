@@ -16,6 +16,46 @@
         { "fieldPath": "challenge_id", "order": "ASCENDING" },
         { "fieldPath": "team_id", "order": "ASCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "submissions",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "challenge_id", "order": "ASCENDING" },
+        { "fieldPath": "round_id", "order": "ASCENDING" },
+        { "fieldPath": "team_id", "order": "ASCENDING" },
+        { "fieldPath": "submitted_at", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "submissions",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "challenge_id", "order": "ASCENDING" },
+        { "fieldPath": "round_id", "order": "ASCENDING" },
+        { "fieldPath": "team_id", "order": "ASCENDING" },
+        { "fieldPath": "task_id", "order": "ASCENDING" },
+        { "fieldPath": "submitted_at", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "submissions",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "challenge_id", "order": "ASCENDING" },
+        { "fieldPath": "round_id", "order": "ASCENDING" },
+        { "fieldPath": "task_id", "order": "ASCENDING" },
+        { "fieldPath": "submitted_at", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "submissions",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "challenge_id", "order": "ASCENDING" },
+        { "fieldPath": "round_id", "order": "ASCENDING" },
+        { "fieldPath": "submitted_at", "order": "DESCENDING" }
+      ]
     }
   ],
   "fieldOverrides": []

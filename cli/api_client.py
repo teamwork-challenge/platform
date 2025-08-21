@@ -146,6 +146,22 @@ class ApiClient:
         data = self._make_request("GET", _build_round_path(challenge_id, round_id, f"/submissions/{submission_id}"))
         return Submission.model_validate(data)
 
+    # Submission-related methods
+    def list_task_submissions(self, task_id: str, challenge_id: Optional[str] = None, round_id: Optional[str] = None) -> list[Submission]:
+        query = f"/submissions?task_id={task_id}"
+        data = self._make_request("GET", _build_round_path(challenge_id, round_id, query))
+        return [Submission.model_validate(d) for d in data]
+
+    def last_submission_for_team(self, team_id: str, challenge_id: Optional[str] = None, round_id: Optional[str] = None) -> Submission:
+        query = f"/submissions?team_id={team_id}"
+        data = self._make_request("GET", _build_round_path(challenge_id, round_id, query))
+        return Submission.model_validate(data)
+
+    def last_submission_for_all_teams(self, challenge_id: Optional[str] = None, round_id: Optional[str] = None) -> list[dict[str, Any]]:
+        data = self._make_request("GET", _build_round_path(challenge_id, round_id, f"/submissions"))
+        assert isinstance(data, list)
+        return data
+
     def list_tasks(self,
                     status: Optional[str] = None,
                     task_type: Optional[str] = None,

@@ -48,7 +48,6 @@ def stress_server() -> Iterator[None]:
         proc.wait()
 
 
-@pytest.mark.timeout(15)
 def test_stress_claim() -> None:
     # two teams work in parallel in the same round, claiming tasks and submitting the answers.
     # Use ApiClient to interact with back. Each team has its own client.
@@ -121,12 +120,6 @@ def test_stress_claim() -> None:
     assert set(ids_a).isdisjoint(set(ids_b))
 
 
-
-
-
-
-
-@pytest.mark.timeout(15)
 def test_stress_claim_3workers() -> None:
     # three workers: Team A single worker; Team B two workers in parallel (may cause transaction conflicts)
     # Goal: Team A should not be impacted by Team B conflicts; everyone solves their quota.

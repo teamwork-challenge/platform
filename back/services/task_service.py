@@ -12,6 +12,7 @@ from api_models import (
 from back.services.db import get_firestore_db
 from back.db_models import TaskDocument, SubmissionDocument, RoundDocument, TaskTypeDocument, TeamDashboardDocument, TeamTaskDashboardDocument
 from back.services.taskgen_client import TaskGenClient
+from google.cloud import firestore as gcs_firestore
 
 
 class TaskService:
@@ -393,6 +394,74 @@ class TaskService:
             checker_output=submission_doc.checker_output,
             score=submission_doc.score
         )
+
+    def list_submissions_for_task(self, challenge_id: str, round_id: str, task_id: str) -> list[ApiSubmission]:
+        """List submissions for a specific task (ordered by submitted_at desc)."""
+        task_ref = (self.db.collection('challenges').document(challenge_id)
+                    .collection('rounds').document(round_id)
+                    .collection('tasks').document(task_id))
+        t_doc = task_ref.get()
+        if not t_doc.exists:
+            return []
+        subs = list(task_ref.collection('submissions').order_by('submitted_at', direction=gcs_firestore.Query.DESCENDING).stream())
+        result: list[ApiSubmission] = []
+        for s in subs:
+            d = SubmissionDocument.model_validate(s.to_dict())
+            result.append(ApiSubmission(
+                id=d.id,
+                status=d.status,
+                submitted_at=d.submitted_at,
+                task_id=d.task_id,
+                answer=d.answer,
+                checker_output=d.checker_output,
+                score=d.score
+            ))
+        return result
+
+    def get_last_submission_for_team(self, challenge_id: str, round_id: str, team_id: str) -> ApiSubmission | None:
+        """Get the most recent submission for a specific team within a round."""
+        q = (self.db.collection_group('submissions')
+             .where('challenge_id', '==', challenge_id)
+             .where('round_id', '==', round_id)
+             .where('team_id', '==', team_id)
+             .order_by('submitted_at', direction=gcs_firestore.Query.DESCENDING)
+             .limit(1))
+        docs = list(q.stream())
+        if not docs:
+            return None
+        d = SubmissionDocument.model_validate(docs[0].to_dict())
+        return ApiSubmission(
+            id=d.id,
+            status=d.status,
+            submitted_at=d.submitted_at,
+            task_id=d.task_id,
+            answer=d.answer,
+            checker_output=d.checker_output,
+            score=d.score
+        )
+
+    def get_last_submission_for_all_teams(self, challenge_id: str, round_id: str) -> dict[str, ApiSubmission]:
+        """Get the most recent submission per team within a round (admin only)."""
+        # Fetch recent submissions and fold by team_id keeping latest
+        q = (self.db.collection_group('submissions')
+             .where('challenge_id', '==', challenge_id)
+             .where('round_id', '==', round_id)
+             .order_by('submitted_at', direction=gcs_firestore.Query.DESCENDING)
+             .limit(1000))
+        latest: dict[str, ApiSubmission] = {}
+        for doc in q.stream():
+            d = SubmissionDocument.model_validate(doc.to_dict())
+            if d.team_id not in latest:
+                latest[d.team_id] = ApiSubmission(
+                    id=d.id,
+                    status=d.status,
+                    submitted_at=d.submitted_at,
+                    task_id=d.task_id,
+                    answer=d.answer,
+                    checker_output=d.checker_output,
+                    score=d.score
+                )
+        return latest
 
 
 # Backward‑compat alias for tests that import FirebaseTaskService

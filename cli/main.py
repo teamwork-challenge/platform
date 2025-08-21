@@ -9,6 +9,7 @@ from cli.typers.task_app import task_app
 from cli.typers.team_app import team_app
 from cli.typers.challenge_app import challenge_app
 from cli.typers.config_app import config_app
+from cli.typers.submission_app import submission_app
 import typer
 from cli.typers.app_deps import api_client, console, ensure_logged_in, json_output_option
 
@@ -39,6 +40,7 @@ app.add_typer(team_app, name="team")
 app.add_typer(round_app, name="round")
 app.add_typer(task_app, name="task")
 app.add_typer(board_app, name="board")
+app.add_typer(submission_app, name="submission")
 app.add_typer(config_app, name="config")
 
 if __name__ == "__main__":

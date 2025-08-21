@@ -185,7 +185,8 @@ def test_task_claim_json() -> None:
     import json
     payload = json.loads(result.output)
     assert isinstance(payload, dict)
-    assert isinstance(payload.get("id"), str) and payload.get("id").startswith("task_")
+    id_val = payload.get("id")
+    assert isinstance(id_val, str) and id_val.startswith("task_")
     assert payload.get("type") == "a_plus_b"
 
 
