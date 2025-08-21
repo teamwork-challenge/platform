@@ -178,6 +178,17 @@ def test_task_claim() -> None:
     assert "Task ID:" in result.output
 
 
+def test_task_claim_json() -> None:
+    login_team1()
+    result = run_ok("task", "claim", "--type", "a_plus_b", "--json")
+    # Should be valid JSON; parse and check keys
+    import json
+    payload = json.loads(result.output)
+    assert isinstance(payload, dict)
+    assert isinstance(payload.get("id"), str) and payload.get("id").startswith("task_")
+    assert payload.get("type") == "a_plus_b"
+
+
 def test_task_show() -> None:
     login_team1()
     task_id = get_task_id()
@@ -190,12 +201,35 @@ def test_task_show() -> None:
     assert "1 2" in result.output
 
 
+def test_task_show_json() -> None:
+    login_team1()
+    task_id = get_task_id()
+    result = run_ok("task", "show", task_id, "--json")
+    import json
+    payload = json.loads(result.output)
+    assert isinstance(payload, dict)
+    assert payload.get("id") == task_id
+    assert payload.get("type") == "a_plus_b"
+    # Should include submissions array
+    assert isinstance(payload.get("submissions"), list)
+
+
 def test_task_show_input() -> None:
     login_team1()
     task_id = get_task_id()
 
     result = run_ok("task", "show-input", task_id)
     assert "1 2" in result.output
+
+
+def test_task_show_input_json() -> None:
+    login_team1()
+    task_id = get_task_id()
+    result = run_ok("task", "show-input", task_id, "--json")
+    import json
+    payload = json.loads(result.output)
+    # For a_plus_b, input is a simple JSON string
+    assert payload == "1 2"
 
 
 def test_task_submit_file() -> None:
@@ -221,6 +255,19 @@ def test_task_submit_correct_answer() -> None:
     result = run_ok("task", "submit", task_id, "3")
     assert "Successfully submitted answer for task 1" in result.output
     assert "Status: SubmissionStatus.AC" in result.output
+
+
+def test_task_submit_correct_answer_json() -> None:
+    login_team1()
+    task_id = get_task_id()
+    result = run_ok("task", "submit", task_id, "3", "--json")
+    import json
+    payload = json.loads(result.output)
+    assert payload.get("task_id") == task_id
+    assert payload.get("status") == "ac"
+    # Should include submission id and score
+    assert payload.get("id")
+    assert isinstance(payload.get("score"), int)
 
 
 def test_task_submit_without_file_or_answer() -> None:
