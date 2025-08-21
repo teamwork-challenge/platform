@@ -61,7 +61,8 @@ class TestFirebaseTeamService:
         assert team.name == "Test Team 1"
         assert team.members == "Member 1, Member 2"
         assert team.captain_contact == "@xoposhiy"
-        assert team.api_key == ""  # Should not expose API key
+        assert isinstance(team.api_key, str)
+        assert len(team.api_key) > 0  # Should expose API key for admin listings
     
     def test_get_teams_by_invalid_challenge(self):
         """Test getting teams for non-existent challenge"""

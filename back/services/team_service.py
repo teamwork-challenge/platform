@@ -69,13 +69,26 @@ class TeamService:
         return created_teams
 
     def get_teams_by_challenge(self, challenge_id: str) -> List[APITeam]:
-        """Get all teams for a specific challenge from the teams subcollection"""
+        """Get all teams for a specific challenge from the teams subcollection, including api_keys."""
         challenge_ref = self.db.collection('challenges').document(challenge_id)
         if not challenge_ref.get().exists:
             return []
         teams: List[APITeam] = []
+        # Build a mapping from team_id -> api_key for this challenge to include keys in the response
+        keys_ref = self.db.collection('keys')
+        team_keys: dict[str, str] = {}
+        for key_doc in keys_ref.where('challenge_id', '==', challenge_id).stream():
+            data = key_doc.to_dict()
+            team_id = data.get('team_id')
+            key = data.get('key') or key_doc.id
+            if team_id:
+                team_keys[str(team_id)] = str(key)
         for team_doc in challenge_ref.collection('teams').stream():
-            api_team = APITeam.model_validate(team_doc.to_dict())
+            team_data = team_doc.to_dict()
+            api_team = APITeam.model_validate(team_data)
+            # Attach api_key if known
+            api_key = team_keys.get(str(api_team.id), "")
+            api_team.api_key = api_key
             teams.append(api_team)
         return teams
 
