@@ -5,14 +5,16 @@ import uuid
 from datetime import datetime, timezone, timedelta
 from typing import cast, Any
 
+from google.cloud import firestore as gcs_firestore
+
 from api_models import (
     GenRequest, GenResponse, TaskProgress, CheckStatus, Task as APITask, Submission as ApiSubmission, SubmissionStatus,
-    TaskStatus as ApiTaskStatus, Round, RoundTaskType
+    TaskStatus as ApiTaskStatus, Round
 )
+from back.db_models import TaskDocument, SubmissionDocument, RoundDocument, TaskTypeDocument, TeamDashboardDocument, \
+    TeamTaskDashboardDocument
 from back.services.db import get_firestore_db
-from back.db_models import TaskDocument, SubmissionDocument, RoundDocument, TaskTypeDocument, TeamDashboardDocument, TeamTaskDashboardDocument
 from back.services.taskgen_client import TaskGenClient
-from google.cloud import firestore as gcs_firestore
 
 
 class TaskService:
@@ -292,7 +294,7 @@ class TaskService:
         # Use aggregation count to avoid loading all submissions
         count_snapshot = subs_ref.count().get()
         # Firestore Python returns a list of aggregation snapshots; take the first
-        existing_attempts = count_snapshot[0][0].value  # type: ignore[index]
+        existing_attempts = count_snapshot[0][0].value
         if existing_attempts >= task_type_doc.n_attempts:
             raise ValueError(f"Attempts limit exceeded. Maximum attempts: {task_type_doc.n_attempts}")
 

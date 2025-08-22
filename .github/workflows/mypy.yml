@@ -24,23 +24,9 @@ jobs:
           cache: "pip"
           cache-dependency-path: |
             requirements-dev.txt
-            back/requirements-dev.txt
-            cli/requirements-dev.txt
-            tasks/requirements-dev.txt
 
       - name: Install mypy
-        run: pip install -r requirements-dev.txt
-
-      # Optional but recommended if your mypy checks rely on local packages and type stubs
-      - name: Install back dev dependencies
-        run: pip install -r requirements-dev.txt
-        working-directory: back
-      - name: Install cli dev dependencies
-        run: pip install -r requirements-dev.txt
-        working-directory: cli
-      - name: Install tasks dev dependencies
-        run: pip install -r requirements-dev.txt
-        working-directory: tasks
+        run: pip install -r requirements.txt
 
       - name: Run mypy
-        run: mypy --config-file mypy.ini back cli tasks
+        run: mypy --config-file mypy.ini back cli

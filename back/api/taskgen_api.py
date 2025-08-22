@@ -1,5 +1,6 @@
-from fastapi import APIRouter, HTTPException
-from fastapi.params import Depends
+from typing import Annotated
+
+from fastapi import APIRouter, HTTPException, Depends
 from fastapi.security import APIKeyHeader
 
 from api_models import GenRequest, GenResponse, CheckRequest, CheckResult, CheckStatus
@@ -9,11 +10,11 @@ router = APIRouter(prefix="/task_gen", tags=["TaskGen"])  # hidden from OpenAPI 
 
 API_KEY_HEADER = APIKeyHeader(name="X-API-Key", auto_error=False)
 
-async def validate_api_key(x_api_key: str = Depends(API_KEY_HEADER)) -> str:
-    print(x_api_key)
-    if x_api_key != "secret":
+def validate_api_key(api_key: Annotated[str, Depends(API_KEY_HEADER)]) -> str:
+    if api_key != "secret":
         raise HTTPException(status_code=403, detail="Invalid API key")
-    return x_api_key
+    # mypy: api_key is str | None; reaching here implies api_key == "secret" and thus not None.
+    return api_key or "secret"
 
 
 @router.post("/a_plus_b/gen", dependencies=[Depends(validate_api_key)])
