@@ -3,29 +3,29 @@ import pytest
 from api_models import TeamCreateRequest, UserRole
 from back.services.db import FirebaseDatabase
 from back.services.team_service import TeamService
-from test_setup import setup_firebase_emulator, clear_firestore_data, create_test_firebase_data
+from back.tests.test_setup import setup_firebase_emulator, clear_firestore_data, create_test_firebase_data
 
 
 class TestFirebaseTeamService:
     @classmethod
-    def setup_class(cls):
+    def setup_class(cls) -> None:
         """Set up Firebase emulator for all tests"""
         setup_firebase_emulator()
         FirebaseDatabase.reset_connection()
     
     @classmethod
-    def teardown_class(cls):
+    def teardown_class(cls) -> None:
         """Clean up after all tests"""
         clear_firestore_data()
         FirebaseDatabase.reset_connection()
     
-    def setup_method(self):
+    def setup_method(self) -> None:
         """Set up each test method"""
         clear_firestore_data()
         create_test_firebase_data()
         self.service = TeamService()
     
-    def test_get_auth_data_admin_key(self):
+    def test_get_auth_data_admin_key(self) -> None:
         """Test getting auth data for admin API key"""
         auth_data = self.service.get_auth_data("admin1")
         
@@ -35,7 +35,7 @@ class TestFirebaseTeamService:
         assert auth_data.team_id is None
         assert auth_data.challenge_id is None
     
-    def test_get_auth_data_team_key(self):
+    def test_get_auth_data_team_key(self) -> None:
         """Test getting auth data for team API key"""
         auth_data = self.service.get_auth_data("team1")
         
@@ -47,12 +47,12 @@ class TestFirebaseTeamService:
         # Should have current round ID if round is published
         assert auth_data.round_id is not None
     
-    def test_get_auth_data_invalid_key(self):
+    def test_get_auth_data_invalid_key(self) -> None:
         """Test getting auth data for invalid API key"""
         auth_data = self.service.get_auth_data("invalid_key")
         assert auth_data is None
     
-    def test_get_teams_by_challenge(self):
+    def test_get_teams_by_challenge(self) -> None:
         """Test getting all teams for a specific challenge"""
         teams = self.service.get_teams_by_challenge("challenge_1")
         
@@ -64,13 +64,13 @@ class TestFirebaseTeamService:
         assert isinstance(team.api_key, str)
         assert len(team.api_key) > 0  # Should expose API key for admin listings
     
-    def test_get_teams_by_invalid_challenge(self):
+    def test_get_teams_by_invalid_challenge(self) -> None:
         """Test getting teams for non-existent challenge"""
         teams = self.service.get_teams_by_challenge("invalid_challenge")
         assert len(teams) == 0
 
     
-    def test_create_teams(self):
+    def test_create_teams(self) -> None:
         """Test creating new teams"""
         new_teams = [
             TeamCreateRequest(
@@ -104,7 +104,7 @@ class TestFirebaseTeamService:
             assert auth_data is not None
             assert auth_data.role == UserRole.PLAYER
     
-    def test_create_teams_invalid_challenge(self):
+    def test_create_teams_invalid_challenge(self) -> None:
         """Test creating teams for non-existent challenge"""
         new_teams = [
             TeamCreateRequest(

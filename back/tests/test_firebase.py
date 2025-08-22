@@ -3,27 +3,27 @@ from datetime import datetime, timezone
 import pytest
 
 from back.services.db import FirebaseDatabase, get_firestore_db
-from test_setup import setup_firebase_emulator, clear_firestore_data, create_test_firebase_data
+from back.tests.test_setup import setup_firebase_emulator, clear_firestore_data, create_test_firebase_data
 
 
 class TestFirebaseSetup:
     @classmethod
-    def setup_class(cls):
+    def setup_class(cls) -> None:
         """Set up Firebase emulator for all tests"""
         setup_firebase_emulator()
         FirebaseDatabase.reset_connection()
     
     @classmethod
-    def teardown_class(cls):
+    def teardown_class(cls) -> None:
         """Clean up after all tests"""
         clear_firestore_data()
         FirebaseDatabase.reset_connection()
     
-    def setup_method(self):
+    def setup_method(self) -> None:
         """Set up each test method"""
         clear_firestore_data()
     
-    def test_firebase_connection(self):
+    def test_firebase_connection(self) -> None:
         """Test basic Firebase connection and CRUD operations"""
         db = get_firestore_db()
         
@@ -51,7 +51,7 @@ class TestFirebaseSetup:
         deleted_doc = doc_ref.get()
         assert not deleted_doc.exists
     
-    def test_create_test_data(self):
+    def test_create_test_data(self) -> None:
         """Test creation of test data structure"""
         create_test_firebase_data()
         
@@ -87,7 +87,7 @@ class TestFirebaseSetup:
         assert team_key_data['team_id'] == 'team_1'
     
 
-    def test_api_key_lookup(self):
+    def test_api_key_lookup(self) -> None:
         """Test API key document structure for auth lookups"""
         create_test_firebase_data()
         

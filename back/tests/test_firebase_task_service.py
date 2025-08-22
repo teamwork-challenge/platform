@@ -1,4 +1,5 @@
 from unittest.mock import patch
+from typing import Any
 
 import pytest
 
@@ -10,24 +11,24 @@ from back.tests.test_setup import setup_firebase_emulator, clear_firestore_data,
 
 class TestFirebaseTaskService:
     @classmethod
-    def setup_class(cls):
+    def setup_class(cls) -> None:
         """Set up Firebase emulator for all tests"""
         setup_firebase_emulator()
         FirebaseDatabase.reset_connection()
     
     @classmethod
-    def teardown_class(cls):
+    def teardown_class(cls) -> None:
         """Clean up after all tests"""
         clear_firestore_data()
         FirebaseDatabase.reset_connection()
     
-    def setup_method(self):
+    def setup_method(self) -> None:
         """Set up each test method"""
         clear_firestore_data()
         create_test_firebase_data()
         self.service = FirebaseTaskService()
     
-    def test_list_tasks_for_team(self):
+    def test_list_tasks_for_team(self) -> None:
         """Test listing tasks for a team"""
         tasks = self.service.list_tasks_for_team("team_1", "challenge_1", round_id="round_1")
         
@@ -44,12 +45,12 @@ class TestFirebaseTaskService:
         ac_tasks = self.service.list_tasks_for_team("team_1", "challenge_1", status=TaskStatus.AC, round_id="round_1")
         assert len(ac_tasks) == 1  # 1 AC task in test data
     
-    def test_list_tasks_for_invalid_team(self):
+    def test_list_tasks_for_invalid_team(self) -> None:
         """Test listing tasks for non-existent team"""
         tasks = self.service.list_tasks_for_team("invalid_team", "challenge_1", round_id="round_1")
         assert len(tasks) == 0
     
-    def test_get_task(self):
+    def test_get_task(self) -> None:
         """Test getting a specific task"""
         # We know from test data that task_1 exists
         task = self.service.get_task("task_1", "challenge_1", "round_1")
@@ -58,13 +59,13 @@ class TestFirebaseTaskService:
         assert task.status == TaskStatus.PENDING
         assert "Given two integers a and b, find their sum a + b." in task.statement
     
-    def test_get_task_invalid(self):
+    def test_get_task_invalid(self) -> None:
         """Test getting non-existent task"""
         task = self.service.get_task("invalid_task", "challenge_1", "round_1")
         assert task is None
     
     @patch('back.services.task_service.TaskGenClient.generate_task')
-    def test_create_task(self, mock_generate_task):
+    def test_create_task(self, mock_generate_task: Any) -> None:
         """Test creating a new task"""
         # Mock the task generator response
         mock_gen_response = GenResponse(
@@ -91,18 +92,18 @@ class TestFirebaseTaskService:
         tasks = self.service.list_tasks_for_team("team_1", "challenge_1", round_id="round_1")
         assert len(tasks) > 4  # 4 existing + 1 new
     
-    def test_create_task_invalid_challenge(self):
+    def test_create_task_invalid_challenge(self) -> None:
         """Test creating task for non-existent challenge"""
         with pytest.raises(ValueError, match="Challenge not found"):
             self.service.create_task("invalid_challenge", "round_1", "team_1", "a_plus_b")
     
-    def test_create_task_invalid_task_type(self):
+    def test_create_task_invalid_task_type(self) -> None:
         """Test creating task with invalid task type"""
         with pytest.raises(ValueError, match="No task type found"):
             self.service.create_task("challenge_1", "round_1", "team_1", "invalid_type")
 
     @patch('back.services.task_service.TaskGenClient.check_answer')
-    def test_submit_task_answer_accepted(self, mock_check_answer):
+    def test_submit_task_answer_accepted(self, mock_check_answer: Any) -> None:
         """Test submitting a correct answer"""
         # Mock the checker response
         mock_check_result = CheckResult(
@@ -127,10 +128,11 @@ class TestFirebaseTaskService:
         
         # Verify task status was updated
         updated_task = self.service.get_task("task_1", "challenge_1", "round_1")
+        assert updated_task is not None
         assert updated_task.status == TaskStatus.AC
     
     @patch('back.services.task_service.TaskGenClient.check_answer')
-    def test_submit_task_answer_wrong_answer(self, mock_check_answer):
+    def test_submit_task_answer_wrong_answer(self, mock_check_answer: Any) -> None:
         """Test submitting a wrong answer"""
         # Mock the checker response
         mock_check_result = CheckResult(
@@ -153,14 +155,15 @@ class TestFirebaseTaskService:
         
         # Verify task status was updated
         updated_task = self.service.get_task("task_2", "challenge_1", "round_1")
+        assert updated_task is not None
         assert updated_task.status == TaskStatus.WA
     
-    def test_submit_task_answer_invalid_task(self):
+    def test_submit_task_answer_invalid_task(self) -> None:
         """Test submitting answer for non-existent task"""
         with pytest.raises(ValueError, match="Task not found"):
             self.service.submit_task_answer("invalid_task", "team_1", "challenge_1", "round_1", "answer")
     
-    def test_submit_task_answer_wrong_team(self):
+    def test_submit_task_answer_wrong_team(self) -> None:
         """Test submitting answer for task that doesn't belong to team"""
         with pytest.raises(ValueError, match="Task does not belong to this team"):
             self.service.submit_task_answer("task_1", "team_2", "challenge_1", "round_1", "answer")

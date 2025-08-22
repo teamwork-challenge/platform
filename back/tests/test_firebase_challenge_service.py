@@ -8,24 +8,24 @@ from back.tests.test_setup import setup_firebase_emulator, clear_firestore_data,
 
 class TestFirebaseChallengeService:
     @classmethod
-    def setup_class(cls):
+    def setup_class(cls) -> None:
         """Set up Firebase emulator for all tests"""
         setup_firebase_emulator()
         FirebaseDatabase.reset_connection()
     
     @classmethod
-    def teardown_class(cls):
+    def teardown_class(cls) -> None:
         """Clean up after all tests"""
         clear_firestore_data()
         FirebaseDatabase.reset_connection()
     
-    def setup_method(self):
+    def setup_method(self) -> None:
         """Set up each test method"""
         clear_firestore_data()
         create_test_firebase_data()
         self.service = ChallengeService()
     
-    def test_get_challenge(self):
+    def test_get_challenge(self) -> None:
         """Test getting a challenge by ID"""
         challenge = self.service.get_challenge("challenge_1")
         
@@ -34,12 +34,12 @@ class TestFirebaseChallengeService:
         assert challenge.description == "Description for test challenge 1"
         assert challenge.current_round_id is not None  # Should have published round
     
-    def test_get_challenge_invalid(self):
+    def test_get_challenge_invalid(self) -> None:
         """Test getting non-existent challenge"""
         challenge = self.service.get_challenge("invalid_challenge")
         assert challenge is None
     
-    def test_get_all_challenges(self):
+    def test_get_all_challenges(self) -> None:
         """Test getting all challenges"""
         challenges = self.service.get_all_challenges()
         
@@ -48,7 +48,7 @@ class TestFirebaseChallengeService:
         assert "Test Challenge 1" in challenge_titles
         assert "Test Challenge 2" in challenge_titles
     
-    def test_create_challenge(self):
+    def test_create_challenge(self) -> None:
         """Test creating a new challenge"""
         new_challenge = self.service.create_challenge(
             title="New Test Challenge",
@@ -64,7 +64,7 @@ class TestFirebaseChallengeService:
         all_challenges = self.service.get_all_challenges()
         assert len(all_challenges) == 3  # 2 existing + 1 new
     
-    def test_update_challenge(self):
+    def test_update_challenge(self) -> None:
         """Test updating a challenge"""
         update_data = Challenge(
             id = "challenge_42",
@@ -81,10 +81,11 @@ class TestFirebaseChallengeService:
         
         # Verify the update persisted
         retrieved_challenge = self.service.get_challenge("challenge_1")
+        assert retrieved_challenge is not None
         assert retrieved_challenge.title == "Updated Challenge Title"
 
     
-    def test_get_rounds_by_challenge(self):
+    def test_get_rounds_by_challenge(self) -> None:
         """Test getting rounds for a challenge"""
         rounds = self.service.get_rounds_by_challenge("challenge_2")
         
@@ -93,7 +94,7 @@ class TestFirebaseChallengeService:
         assert round.claim_by_type is False
         assert round.published is False
     
-    def test_get_rounds_by_invalid_challenge(self):
+    def test_get_rounds_by_invalid_challenge(self) -> None:
         """Test getting rounds for non-existent challenge"""
         rounds = self.service.get_rounds_by_challenge("invalid_challenge")
         assert len(rounds) == 0
