@@ -6,3 +6,6 @@ google-cloud-firestore>=2.0.0
 pytest
 types-requests
 mypy
+typer>=0.16.1
+rich>=13.0.0
+requests>=2.32.5
