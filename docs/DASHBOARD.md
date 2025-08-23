@@ -5,7 +5,6 @@
 Что отображает:
 - для каждого типа задач: ac (решено), wa (неверно), pending (ожидает/на проверке), remaining (еще можно взять);
 
-
 Основные сущности:
 - Challenge
   - Team
@@ -15,42 +14,57 @@
         - Submission
 
 Нужные поля и связи:
-- из Submission — статус (AC/WA/PENDING) и task_id;
-- по task_id получаем Task, из Task — round_task_type_id, round_id, team_id, challenge_id;
+- из Submission — статус последнего сабмита (AC/WA) и task_id;
+- по task_id получаем Task, из Task — round_task_type_id, round_id, team_id, challenge_id, текущий Task.status;
 - по round_task_type_id известны ограничения (max_tasks_per_team), используемые для вычисления remaining.
 
 Параметры:
-- round_id (опционально) — если не передан, берется текущий активный раунд команды.
+- round_id (опционально) — если не передан, берется текущий активный раунд команды; если отсутствует — 400 Bad Request.
 
 CLI:
-- dashboard [-r ROUND_ID] 
-  - пример: dashboard -r 12
-
+- board dashboard [-r ROUND_ID]
+  - пример: board dashboard -r 12
 
 API:
 - GET /dashboard?round_id={id?}
 
-Алгоритм агрегации:
-1. Для выбранного раунда отобрать все задачи команды и сгруппировать по типам (RoundTaskType.type).
-2. Для каждой задачи определить текущий статус как статус последнего сабмита: взять Submission с максимальным submitted_at по task_id.
-3. Подсчитать по типу: ac, wa, pending. total = ac + wa + pending.
-4. remaining = max(0, max_tasks_per_team - total). Если max_tasks_per_team отсутствует, remaining определяется бизнес-правилом бэкенда (кол-во доступных для выдачи задач).
-Примечание: для производительности допустимо поддерживать денормализованную таблицу «последний статус задачи», обновляемую при каждом сабмите.
+Правила агрегации:
+1. Берем все задачи команды выбранного раунда и группируем по типам (RoundTaskType.type).
+2. Статус задачи — по последнему сабмиту/текущему Task.status. Каждая задача учитывается ровно в одном счетчике: pending, ac или wa.
+3. Для каждого типа считаем: total = ac + wa + pending; далее считаем remaining.
+4. Формула remaining: remaining = max(0, max_tasks_per_team - total). Если max_tasks_per_team отсутствует — remaining считаем 0.
+5. Порядок типов в ответе — по дате добавления типа (например, по возрастанию round_task_type_id).
 
-Формат ответа (соответствует api_models.models.Dashboard и TypeStats):
+Пример ответа:
 ```json
 {
   "round_id": 12,
   "stats": {
-    "type1": { "total": 6, "pending": 2, "ac": 1, "wa": 3, "remaining": 4 },
-    "type2": { "total": 7, "pending": 2, "ac": 4, "wa": 1, "remaining": 3 },
-    "total": { "total": 13, "pending": 4, "ac": 5, "wa": 4, "remaining": 7 }
+    "sql": { "ac": 1, "wa": 3, "pending": 2, "remaining": 4 },
+    "ml":  { "ac": 4, "wa": 1, "pending": 2, "remaining": 3 }
   }
 }
 ```
+Здесь ключи словаря stats — это значение RoundTaskType.type (например, "sql", "ml"). Агрегат по всем типам (total) в ответе не возвращается — он используется только внутренне для вычисления remaining.
 
 Сценарий:
-1. Пользователь вызывает CLI: challenge board dashboard [-r ROUND_ID].
+1. Пользователь вызывает CLI: board dashboard [-r ROUND_ID].
 2. CLI отправляет GET /dashboard[?round_id=...] с авторизацией игрока.
-3. Бэкенд агрегирует данные по алгоритму выше и возвращает JSON в указанном формате.
-4. CLI форматирует ответ и выводит в терминал (или в JSON при флаге --json).
+3. Бэкенд агрегирует данные по правилам выше и возвращает JSON в указанном формате. Ошибки: 401 — нет/неверный API-ключ; 403 — нет доступа к команде/раунду; 400 — активный раунд не найден (если round_id не указан).
+4. CLI форматирует ответ и выводит в терминал (или JSON при флаге --json).
+
+Реализация (денормализация для производительности):
+- Таблица dashboard 
+  - Поля: round_id, round_task_type_id, team_id, type (RoundTaskType.type), pending, ac, wa, remaining, updated_at.
+  - Уникальный ключ: (round_id, team_id, round_task_type_id).
+  - Создание строк выполняется, когда команда берет новую задачу.
+  - Обновления счетчиков не допускают отрицательных значений; если remaining = 0, задача не выдается.
+
+Переходы состояний:
+- Генерация задачи команде: remaining → pending (pending += 1; remaining = max(0, remaining - 1)).
+- Сабмит решения:
+  - pending → AC: pending -= 1; ac += 1
+  - pending → WA: pending -= 1; wa += 1
+  - WA → AC: wa -= 1; ac += 1
+  - WA → WA: счетчики не меняются
+  - AC -> AC: счетчики не меняются

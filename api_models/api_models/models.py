@@ -181,6 +181,7 @@ class RoundTaskTypeCreateRequest(BaseModel):
     score: Optional[int] = 100
     time_to_solve: int
 
+
 class RoundTaskTypeUpdateRequest(BaseModel):
     round_id: int
     type: str
@@ -193,8 +194,6 @@ class RoundTaskTypeUpdateRequest(BaseModel):
 
 
 class TypeStats(BaseModel):
-    """Statistics for a task type."""
-    total: int
     pending: int
     ac: int
     wa: int
@@ -202,12 +201,10 @@ class TypeStats(BaseModel):
 
 
 class Dashboard(BaseModel):
-    """Dashboard with task statistics."""
     round_id: int
     stats: Dict[str, TypeStats]
 
 
 class Leaderboard(BaseModel):
-    """Leaderboard with team scores."""
     round_id: int
     teams: List[TeamScore]

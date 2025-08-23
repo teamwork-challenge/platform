@@ -28,33 +28,18 @@ def board_dashboard(
     # Otherwise, format the data for human-readable output
     table = Table(title=f"Dashboard for Round {dashboard.round_id}")
     table.add_column("Task Type", style="cyan")
-    table.add_column("Total", justify="right")
     table.add_column("PENDING", justify="right")
     table.add_column("AC", justify="right")
     table.add_column("WA", justify="right")
     table.add_column("Remaining", justify="right")
 
     for task_type, type_stats in dashboard.stats.items():
-        if task_type != 'total':  # Handle total separately
-            table.add_row(
-                task_type,
-                str(type_stats.total),
-                str(type_stats.pending),
-                str(type_stats.ac),
-                str(type_stats.wa),
-                str(type_stats.remaining)
-            )
-
-    # Add a total row if available
-    if 'total' in dashboard.stats:
-        total_stats = dashboard.stats['total']
         table.add_row(
-            "Total",
-            str(total_stats.total),
-            str(total_stats.pending),
-            str(total_stats.ac),
-            str(total_stats.wa),
-            str(total_stats.remaining)
+            task_type,
+            str(type_stats.pending),
+            str(type_stats.ac),
+            str(type_stats.wa),
+            str(type_stats.remaining)
         )
 
     console.print(table)
