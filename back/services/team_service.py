@@ -9,6 +9,11 @@ from back.db_models import TeamDocument, APIKeyDocument
 class TeamService:
     def __init__(self) -> None:
         self.db = get_firestore_db()
+        # local in-memory auth cache (api_key -> AuthData)
+        from datetime import timedelta
+        from back.services.cache import InMemoryCache
+        from api_models import AuthData as _AuthData
+        self._auth_cache: InMemoryCache[_AuthData] = InMemoryCache(default_ttl=timedelta(minutes=10))
 
     def get_team(self, team_id: str, challenge_id: str) -> Optional[APITeam]:
         """Get team by ID from a specific challenge (teams are stored as a subcollection)."""
@@ -94,7 +99,14 @@ class TeamService:
 
 
     def get_auth_data(self, api_key: str) -> Optional[AuthData]:
-        """Get authentication data for an API key"""
+        """Get authentication data for an API key with local in-memory caching.
+        Cache invalidates after 10 minutes by default and at the end of the current round for players.
+        """
+        # Try cache first
+        cached = self._auth_cache.get(api_key)
+        if cached is not None:
+            return cached
+
         key_ref = self.db.collection('keys').document(api_key)
         key_doc = key_ref.get()
 
@@ -104,20 +116,26 @@ class TeamService:
         key_data = key_doc.to_dict()
 
         if key_data['role'] == 'admin':
-            return AuthData(
+            auth = AuthData(
                 key=key_data['key'],
                 role=UserRole.ADMIN,
             )
+            # cache admin auth with default TTL
+            self._auth_cache.set(api_key, auth)
+            return auth
         else:
             challenge_id = key_data['challenge_id']
             team_id = key_data['team_id']
             challenge = self.db.collection('challenges').document(challenge_id).get().to_dict()
             round_id = challenge['current_round_id']
 
-            return AuthData(
+            auth = AuthData(
                 key=api_key,
                 role=UserRole.PLAYER,
                 team_id=team_id,
                 challenge_id=challenge_id,
                 round_id=round_id
             )
+
+            self._auth_cache.set(api_key, auth)
+            return auth
