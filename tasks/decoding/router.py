@@ -104,7 +104,7 @@ def huffman_bit_length(sentence: str) -> int:
 
 
 def add_hint_sentence(sentence: str) -> str:
-    #TODO Maybe make hint less subtle?
+    # TODO Maybe make hint less subtle?
     hint_words = ['reverse', 'and', 'swap', 'adjacent', 'characters']
     sentence_words = sentence.split()
     result = []
@@ -192,7 +192,8 @@ def get_difficulty(request: GenRequest) -> int:
     # Cap at maximum level 8
     return min(level, 8)
 
-#TODO: Huffman looks strange in this task. It is not deciphering, but encoding.
+
+# TODO: Huffman looks strange in this task. It is not deciphering, but encoding.
 def generate_input(level: int, sentence: str):
     if level == 1:
         return generate_caesar_cipher(sentence, 1), sentence
@@ -243,33 +244,25 @@ async def get_statements():
 
 @router.post("/check", response_model=CheckResult)
 async def check_answer(request: CheckRequest) -> CheckResult:
-    """Check the answer for a task"""
-    try:
-        # Get the expected answer from the checker hint
-        expected_answer = request.checker_hint.strip()
-        # Check if the answer is correct
-        if expected_answer.isnumeric():
-            answer_data, error_data = check_student_answer_huffman(int(expected_answer), request.answer.strip())
-            if answer_data:
-                return CheckResult(status="AC", score=1.0) # TODO: Use Enums for status
-            else:
-                return CheckResult(
-                    status="WA",
-                    score=0.0,
-                    error=error_data
-                )
+    # Get the expected answer from the checker hint
+    expected_answer = request.checker_hint.strip()
+    # Check if the answer is correct
+    if expected_answer.isnumeric():
+        answer_data, error_data = check_student_answer_huffman(int(expected_answer), request.answer.strip())
+        if answer_data:
+            return CheckResult(status="AC", score=1.0)  # TODO: Use Enums for status
         else:
-            if request.answer.strip() == expected_answer:
-                return CheckResult(status="AC", score=1.0)
-            else:
-                return CheckResult(
-                    status="WA",
-                    score=0.0,
-                    error=f"Expected {expected_answer}, got {request.answer.strip()}"
-                )
-    except Exception as e:
-        return CheckResult(
-            status="WA",
-            score=0.0,
-            error=f"Error processing answer: {str(e)}"
-        )
+            return CheckResult(
+                status="WA",
+                score=0.0,
+                error=error_data
+            )
+    else:
+        if request.answer.strip() == expected_answer:
+            return CheckResult(status="AC", score=1.0)
+        else:
+            return CheckResult(
+                status="WA",
+                score=0.0,
+                error=f"Expected {expected_answer}, got {request.answer.strip()}"
+            )
