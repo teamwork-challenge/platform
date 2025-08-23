@@ -1,19 +1,16 @@
 import uuid
 from typing import List, Optional
-
+from datetime import timedelta
+from back.services.cache import InMemoryCache
 from api_models import TeamCreateRequest, AuthData, UserRole, Team as APITeam
 from back.services.db import get_firestore_db
 from back.db_models import TeamDocument, APIKeyDocument
 
+_auth_cache: InMemoryCache[AuthData] = InMemoryCache(default_ttl=timedelta(minutes=10))
 
 class TeamService:
     def __init__(self) -> None:
         self.db = get_firestore_db()
-        # local in-memory auth cache (api_key -> AuthData)
-        from datetime import timedelta
-        from back.services.cache import InMemoryCache
-        from api_models import AuthData as _AuthData
-        self._auth_cache: InMemoryCache[_AuthData] = InMemoryCache(default_ttl=timedelta(minutes=10))
 
     def get_team(self, team_id: str, challenge_id: str) -> Optional[APITeam]:
         """Get team by ID from a specific challenge (teams are stored as a subcollection)."""
@@ -103,7 +100,7 @@ class TeamService:
         Cache invalidates after 10 minutes by default and at the end of the current round for players.
         """
         # Try cache first
-        cached = self._auth_cache.get(api_key)
+        cached = _auth_cache.get(api_key)
         if cached is not None:
             return cached
 
@@ -121,7 +118,7 @@ class TeamService:
                 role=UserRole.ADMIN,
             )
             # cache admin auth with default TTL
-            self._auth_cache.set(api_key, auth)
+            _auth_cache.set(api_key, auth)
             return auth
         else:
             challenge_id = key_data['challenge_id']
@@ -137,5 +134,5 @@ class TeamService:
                 round_id=round_id
             )
 
-            self._auth_cache.set(api_key, auth)
+            _auth_cache.set(api_key, auth)
             return auth
