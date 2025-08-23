@@ -1,1 +1,0 @@
-# Teamwork Challenge Task Generators package

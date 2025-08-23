@@ -1,2 +1,0 @@
--r requirements-base.txt
-api-models @ file:../api_models
