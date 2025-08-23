@@ -57,7 +57,8 @@ class ApiClient:
         logging.info("Make request: %s %s. Data: %s", method, url, data)
         response = requests.request(method, url, headers=self._headers, data=data)
         res = response.text
-        logging.info("Received response: %s %s", response.status_code, res)
+        elapsed_time = response.elapsed.total_seconds()
+        logging.info("Received response: %s %s %s", response.status_code, elapsed_time, res)
         if 400 <= response.status_code <= 500:
             raise requests.HTTPError(f"{res} (status code: {response.status_code})")
         response.raise_for_status()
