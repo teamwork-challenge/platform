@@ -1,4 +1,6 @@
 import re
+import sys
+
 
 # --- Tokenizer ---
 def tokenize(code_line):
@@ -112,7 +114,7 @@ class Parser:
                         if_body.append(stmt)
                 return "if", condition, if_body, else_body
 
-            # assignment
+            # --- Assignment handling ---
             name = tok[1]
             if (self.pos + 1 < len(self.tokens)) and self.tokens[self.pos + 1][1] == "=":
                 self.eat("VARIABLE")
@@ -120,7 +122,7 @@ class Parser:
                 expr = self.parse_logic()
                 return "assign", name, expr
 
-        # expression
+        # --- Fallback to expression ---
         return self.parse_logic()
 
     # --- Logical expressions with correct precedence ---
@@ -327,14 +329,8 @@ def executor(source_code, table=None):
 
 
 # --- Example usage ---
-lines = [
-    "x = 1",
-    "y = 1",
-    "z = 0",
-    "wenn x == 1 oder y == 1 und z == 1",
-    "    ausgeben{x}",
-    "ende"
-]
+lines = [line.strip() for line in sys.stdin if line.strip()]
+# lines = [line.rstrip('\n') for line in sys.stdin]
 
 env = executor(lines)
 print("Final Env:", env)
