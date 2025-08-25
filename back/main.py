@@ -6,6 +6,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import RedirectResponse
 from mangum import Mangum
 from starlette.responses import PlainTextResponse
+from back.rate_limiter import setup_rate_limiter
 
 # Routers split by domain
 from back.api_teams import router as team_router
@@ -29,6 +30,9 @@ app.include_router(boards_router)
 
 # Hide task generators from OpenAPI
 app.include_router(task_gen_router, include_in_schema=False)
+
+# Optional rate limiter (disabled by default via env)
+setup_rate_limiter(app)
 
 
 @app.get("/", include_in_schema=False)

@@ -1,4 +1,7 @@
 import logging
+import os
+import random
+import time
 from typing import Optional, Dict, Any
 
 import requests
@@ -43,18 +46,65 @@ class ApiClient:
         return self.config_manager.get_api_key() is not None
 
     def _make_request(self, method: str, endpoint: str, data: Dict[str, Any] | None = None) -> Any:
-        """Make a request to the API."""
+        """Make a request to the API with polite backoff on HTTP 429.
+
+        Respects Retry-After if provided by the server. Retries are limited by
+        CH_CLI_MAX_RETRIES (env var, default 2). Adds small jitter (CH_CLI_RETRY_JITTER_MS, default 200ms).
+        """
         base_url = self.config_manager.get_base_url()
         url = f"{base_url}{endpoint}"
 
-        logging.info("Make request: %s %s. Data: %s", method, url, data)
-        response = requests.request(method, url, headers=self._headers, json=data)
-        res = response.text
-        logging.info("Received response: %s %s", response.status_code, res)
-        if 400 <= response.status_code <= 500:
-            raise requests.HTTPError(f"{res} (status code: {response.status_code})")
-        response.raise_for_status()
-        return response.json()
+        max_retries_str = os.environ.get("CH_CLI_MAX_RETRIES", "2")
+        jitter_ms_str = os.environ.get("CH_CLI_RETRY_JITTER_MS", "200")
+        try:
+            max_retries = max(0, int(max_retries_str))
+        except ValueError:
+            max_retries = 2
+        try:
+            jitter_ms = max(0, int(jitter_ms_str))
+        except ValueError:
+            jitter_ms = 200
+
+        attempt = 0
+        last_response: requests.Response | None = None
+        while True:
+            logging.info("Make request: %s %s. Data: %s (attempt %s)", method, url, data, attempt + 1)
+            response = requests.request(method, url, headers=self._headers, json=data)
+            last_response = response
+            res_text = response.text
+            logging.info("Received response: %s %s", response.status_code, res_text)
+
+            if response.status_code != 429:
+                if 400 <= response.status_code <= 500:
+                    # Preserve existing behavior and error transparency
+                    raise requests.HTTPError(f"{res_text} (status code: {response.status_code})")
+                response.raise_for_status()
+                return response.json()
+
+            if attempt >= max_retries:
+                raise requests.HTTPError(f"{res_text} (status code: {response.status_code})")
+
+            retry_after_hdr = response.headers.get("Retry-After")
+            wait_secs: float
+            if retry_after_hdr is not None:
+                try:
+                    wait_secs = float(retry_after_hdr)
+                except ValueError:
+                    wait_secs = 1.0
+            else:
+                # Fallback to X-RateLimit-Reset if present (seconds until reset)
+                reset_hdr = response.headers.get("X-RateLimit-Reset")
+                try:
+                    wait_secs = float(reset_hdr) if reset_hdr is not None else 1.0
+                except ValueError:
+                    wait_secs = 1.0
+
+            jitter = random.uniform(0, jitter_ms / 1000.0)
+            sleep_time = max(0.0, wait_secs) + jitter
+            logging.info("HTTP 429 received. Sleeping for %.3f seconds before retrying...", sleep_time)
+            time.sleep(sleep_time)
+
+            attempt += 1
 
     # Team-related methods
     def auth(self) -> str:
