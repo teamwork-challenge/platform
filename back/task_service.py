@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from sqlalchemy import select
+from sqlalchemy import select, func
 from sqlalchemy.orm import Session
 from datetime import datetime, timezone, timedelta
 import requests
@@ -14,6 +14,7 @@ from api_models import (
 )
 from api_models import Submission as ApiSubmission, SubmissionStatus, TaskStatus as ApiTaskStatus
 from back.db_models import Team, Task, Round, RoundTaskType, Submission
+from back.boards_service import BoardsService
 
 
 class TaskGenClient:
@@ -125,6 +126,12 @@ class TaskService:
         task.checker_hint = gen_response.checker_hint
         task.statement = gen_response.statement
 
+        # Flush to persist the task and generated fields before dashboard update
+        self.db.flush()
+
+        # Update dashboard counters for a newly created task
+        BoardsService(self.db).add_task_to_dashboard(task, round_task_type)
+
         self.db.commit()
         self.db.refresh(task)
 
@@ -210,41 +217,65 @@ class TaskService:
     def check_answer(self, answer: str, checker_hint: str, generator_url: str, input_text: str) -> CheckResponse:
         return self.task_gen_client.check_answer(generator_url, answer, checker_hint, input_text)
 
+    def update_team_score(
+            self, task: Task, team_id: int, check_result: CheckResult, new_status: ApiTaskStatus
+    ) -> Optional[int]:
+        """Calculate and update the team's score for a new submission.
+        Returns the final score for the submission, or None if not accepted.
+        """
+        if new_status != ApiTaskStatus.AC:
+            return None
+
+        team = self.db.execute(select(Team).where(Team.id == team_id)).scalar_one()
+        score = int(float(task.score or 0) * check_result.score)
+
+        # Only add the difference compared to the best previously accepted score
+        prev_best = (
+                self.db.execute(
+                    select(func.max(Submission.score))
+                    .where((Submission.task_id == task.id) & (Submission.status == SubmissionStatus.AC))
+                ).scalar_one()
+                or 0
+        )
+
+        delta = score - prev_best
+        if delta > 0:
+            team.total_score += delta
+
+        return score
+
     def create_submission(self, task_id: int, team_id: int, answer: str,
                            check_result: CheckResult, task: Task) -> ApiSubmission:
         submitted_at = datetime.now(timezone.utc)
 
-        if check_result.status == CheckStatus.ACCEPTED:
-            task.status = ApiTaskStatus.AC
+        # Determine status transition: previous -> desired -> final
+        prev_status = task.status
+        desired_status = ApiTaskStatus.AC if check_result.status == CheckStatus.ACCEPTED else ApiTaskStatus.WA
+        new_status = ApiTaskStatus.AC if prev_status == ApiTaskStatus.AC else desired_status
 
-            stmt = select(Team).where(Team.id == team_id)
-            team = self.db.execute(stmt).scalar_one()
+        # Update score if accepted
+        score = self.update_team_score(task, team_id, check_result, new_status)
 
-            score = int(float(task.score or 0) * check_result.score)
-            team.total_score += score
-
-            # Create Submission
-            db_submission = Submission(
-                status=SubmissionStatus.AC,
-                submitted_at=submitted_at,
-                task_id=task_id,
-                answer=answer,
-                score=score
-            )
-        else:
-            task.status = ApiTaskStatus.WA
-
-            db_submission = Submission(
-                status=SubmissionStatus.WA,
-                submitted_at=submitted_at,
-                task_id=task_id,
-                answer=answer,
-                explanation=check_result.error
-            )
+        # Persist submission
+        db_submission = Submission(
+            status=SubmissionStatus.AC if new_status == ApiTaskStatus.AC else SubmissionStatus.WA,
+            submitted_at=submitted_at,
+            task_id=task_id,
+            answer=answer,
+            explanation=None if new_status == ApiTaskStatus.AC else check_result.error,
+            score=score
+        )
+        # Update task status
+        task.status = new_status
 
         self.db.add(db_submission)
+        self.db.flush()
+
+        # Update dashboard counters according to transition rules
+        BoardsService(self.db).update_dashboard(task, prev_status, new_status)
+
         self.db.commit()
-        
+
         # Convert to Pydantic
         api_submission = ApiSubmission(
             id=db_submission.id,

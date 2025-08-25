@@ -326,7 +326,6 @@ def test_task_type_delete() -> None:
 
 
 # Board App Tests
-@pytest.mark.skip(reason="Board app is not yet implemented")
 def test_board_dashboard() -> None:
     login_team1()
     result = run_ok("board", "dashboard")

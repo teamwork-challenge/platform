@@ -1,4 +1,4 @@
-from sqlalchemy import DateTime, ForeignKey, Enum
+from sqlalchemy import DateTime, ForeignKey, Enum, Index
 from sqlalchemy.orm import DeclarativeBase, relationship
 from sqlalchemy.sql import func
 from sqlalchemy.orm import Mapped, mapped_column
@@ -200,3 +200,43 @@ class Submission(Base):
     )
     # Relationships
     task = relationship("Task", back_populates="submissions")
+
+
+class Dashboard(Base):
+    __tablename__ = "dashboard_rows"
+    __table_args__ = (
+        Index("ix_dashboard_round_team_type", "round_id", "team_id", "round_task_type_id"),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    type: Mapped[str] = mapped_column(nullable=False)
+    pending: Mapped[int] = mapped_column(nullable=False, default=0)
+    ac: Mapped[int] = mapped_column(nullable=False, default=0)
+    wa: Mapped[int] = mapped_column(nullable=False, default=0)
+    remaining: Mapped[int] = mapped_column(nullable=False, default=0)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now()
+    )
+
+    # Foreign keys
+    round_id: Mapped[int] = mapped_column(
+        ForeignKey("rounds.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True
+    )
+    team_id: Mapped[int] = mapped_column(
+        ForeignKey("teams.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True
+    )
+    round_task_type_id: Mapped[int] = mapped_column(
+        ForeignKey("round_task_types.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True
+    )
+
+    # Relationships
+    round = relationship("Round")
+    team = relationship("Team")
+    round_task_type = relationship("RoundTaskType")

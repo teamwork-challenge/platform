@@ -11,8 +11,9 @@ from back.db_models import Challenge as DbChallenge, Round as DbRound, RoundTask
     Task as DbTask
 from back.task_service import TaskService
 from back.team_service import TeamService
-
+from back.boards_service import BoardsService
 # Services providers
+
 
 def get_challenge_service(db: Session = Depends(get_db_session)) -> ChallengeService:
     return ChallengeService(db)
@@ -24,6 +25,10 @@ def get_task_service(db: Session = Depends(get_db_session)) -> TaskService:
 
 def get_team_service(db: Session = Depends(get_db_session)) -> TeamService:
     return TeamService(db)
+
+
+def get_boards_service(db: Session = Depends(get_db_session)) -> BoardsService:
+    return BoardsService(db)
 
 
 def get_auth_service(db: Session = Depends(get_db_session)) -> AuthService:
