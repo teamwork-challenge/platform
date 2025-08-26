@@ -125,39 +125,28 @@ def _env_flag(name: str, default: bool = False) -> bool:
 
 
 def setup_rate_limiter(app: FastAPI) -> None:
-    """Attach RateLimiterMiddleware if CH_RATE_LIMIT_ENABLED is truthy.
-
-    Env vars:
-      - CH_RATE_LIMIT_ENABLED: 0/1 (default 0)
-      - CH_RATE_PER_MINUTE: int (default 60)
-      - CH_WINDOW_SECONDS: int (default 60)
-      - CH_EXEMPT_PATHS: comma-separated paths (defaults to '/', '/docs', '/openapi.json', '/redoc')
-    """
     if not _env_flag("CH_RATE_LIMIT_ENABLED", default=False):
         return
 
-    # Determine limits; prefer per-minute, but allow explicit window override
-    limit_per_min_str = os.environ.get("CH_RATE_PER_MINUTE", "60")
-    window_seconds_str = os.environ.get("CH_WINDOW_SECONDS", "60")
-    try:
-        limit = max(1, int(limit_per_min_str))
-    except ValueError:
-        limit = 60
-    try:
-        window_seconds = max(1, int(window_seconds_str))
-    except ValueError:
-        window_seconds = 60
+    kwargs: dict[str, Any] = {}
+
+    if "CH_RATE_PER_MINUTE" in os.environ:
+        try:
+            kwargs["limit_per_window"] = int(os.environ["CH_RATE_PER_MINUTE"])
+        except ValueError:
+            pass
+
+    if "CH_WINDOW_SECONDS" in os.environ:
+        try:
+            kwargs["window_seconds"] = int(os.environ["CH_WINDOW_SECONDS"])
+        except ValueError:
+            pass
 
     exempt_env = os.environ.get("CH_EXEMPT_PATHS")
     if exempt_env:
-        exempt_paths = [p.strip() for p in exempt_env.split(",") if p.strip()]
-    else:
-        exempt_paths = ["/", "/docs", "/openapi.json", "/redoc"]
+        kwargs["exempt_paths"] = [p.strip() for p in exempt_env.split(",") if p.strip()]
 
-    # mypy: Starlette expects a middleware factory protocol; casting for typing compatibility
     app.add_middleware(
         cast(Any, RateLimiterMiddleware),
-        limit_per_window=limit,
-        window_seconds=window_seconds,
-        exempt_paths=exempt_paths,
+        **kwargs,
     )

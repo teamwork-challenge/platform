@@ -7,6 +7,7 @@ import requests
 import json
 import random
 import logging
+from typing import Optional
 from pydantic import TypeAdapter
 
 from api_models import (
