@@ -9,3 +9,4 @@ mypy
 typer>=0.16.1
 rich>=13.0.0
 requests>=2.32.5
+hjson>=3.1.0

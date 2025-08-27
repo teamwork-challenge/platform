@@ -20,12 +20,9 @@ Audience: new contributors. Keep this handy. Commands are shown for Windows Powe
 - Create venv and install deps:
   - `py -3.11 -m venv .venv`
   - `platform> .\.venv\Scripts\Activate.ps1`
-  - `platform> cd back & pip install -r \requirements-dev.txt`
-  - `platform> cd cli & pip install -r \requirements-dev.txt`
-  - (optional) `platform> cd tasks & pip install -r \requirements-dev.txt`
+  - `platform> pip install -r \requirements.txt`
 - Type checking: `mypy -c mypy.ini back cli`
-- Type checking for tasks: `mypy -c mypy.ini back cli tasks`
-- Run tests: `platform> cd cli; pytest -q`
+- Run tests: `platform> pytest -q`
 - Start API: `platform> python -m back.main`
 - Run CLI sample: `platform> python -m cli.main round list --json`
 

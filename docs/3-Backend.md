@@ -52,7 +52,7 @@ POST /teams                                        # batch-create teams
 
 ## Notes
 - Dashboard and leaderboard endpoints are not exposed in the current backend implementation.
-- Some endpoints require admin role; authorization is enforced by dependencies.
+- Some endpoints require an admin role; authorization is enforced by dependencies.
 
 ## Deadline handling
 

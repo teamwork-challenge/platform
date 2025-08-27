@@ -1,6 +1,0 @@
--r requirements-base.txt
-psycopg2>=2.9
--e ../api_models
-pytest
-types-requests
-boto3-stubs

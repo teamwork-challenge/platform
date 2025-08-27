@@ -10,35 +10,50 @@ The backend is built with FastAPI, a modern, high-performance web framework for 
 
 - **API Layer**: Handles HTTP requests and responses
 - **Service Layer**: Implements business logic
-- **Alchemy ORM** as data layer
+- **Data Layer**: Firebase Firestore (via official Python SDK)
 
 ## Installation
 
 1. Install the dependencies to be able to build and run the API:
-   ```bash
-   back> pip install -r requirements-dev.txt
+   ```powershell
+   back> pip install -r requirements.txt
    ```
 
 ## Running the API locally
 
-In the root directory:
+Use the Firebase Emulator Suite for local development. The app will auto-connect to the emulator if available.
 
-   ```bash
-   platform> cd back & python -m main
-   ```
+From repository root:
+
+```powershell
+platform> python -m back.main
+```
+
+- Default port (when run as module): 8089
+- Swagger UI: http://127.0.0.1:8089/docs
+
+Alternatively with uvicorn:
+
+```powershell
+platform> uvicorn back.main:app --reload --port 8088
+```
+
+Configure CLI or clients to use the chosen port (set CHALLENGE_API_URL accordingly).
+
+## Firebase (local dev)
+
+- Ensure you have the Firebase Emulator installed (see Firebase docs) or use the repo-provided config files (firebase.json, firestore.rules, firestore.indexes.json).
+- When the emulator is running, the backend uses it automatically; no real GCP project is required for local dev.
+
 ## Type checking
 
-In the root directory:
+From repository root:
 
-   ```bash
-   platform> mypy back
-   ```
-
-Once running, you can access:
-- API at: `http://localhost:8000`
-- Swagger UI documentation at: `http://localhost:8000/docs`
-- ReDoc documentation at: `http://localhost:8000/redoc`
+```powershell
+platform> mypy -c mypy.ini back
+```
 
 ## More details
 
-See [Backend Documentation](../docs/2-Backend.md) in the docs directory.
+- Backend endpoints and behavior: [Backend Documentation](../docs/3-Backend.md)
+- Migration details and Firestore data model: [Migration to Firebase](../docs/6-Migration-to-Firebase.md)

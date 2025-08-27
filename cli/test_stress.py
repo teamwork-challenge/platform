@@ -93,6 +93,7 @@ def stress_server() -> Iterator[None]:
         pass
 
 
+@pytest.mark.skip("stress tests for explicit run")
 def test_stress_claim() -> None:
     # Two teams work in parallel in the same round, claiming tasks and submitting the answers.
     cache_dir = Path('.pytest_cache')
@@ -157,6 +158,7 @@ def test_stress_claim() -> None:
     assert set(ids_a).isdisjoint(set(ids_b))
 
 
+@pytest.mark.skip("stress tests for explicit run")
 def test_stress_claim_3workers() -> None:
     # Three workers: Team A single worker; Team B two workers in parallel (may cause transaction conflicts)
     cache_dir = Path('.pytest_cache')

@@ -63,7 +63,7 @@ Subcollections:
 
 Subcollections:
 - tasks: {tid: TaskDocument}
-- submissions: {sid: SubmissionDocument}
+
 
 ### TaskTypeDocument
 
@@ -76,7 +76,7 @@ Subcollections:
 - generator_secret: str
 - score: int
 - time_to_solve: int
- 
+
 ### TaskDocument
 
 - tid: string
@@ -91,6 +91,9 @@ Subcollections:
 - score: int
 - claimed_at: datetime
 - solved_at: datetime
+
+Subcollections:
+- submissions: {sid: SubmissionDocument} 
 
 #### Indices 
 
@@ -159,12 +162,4 @@ back/
 * Minor adjustments of api_*.py files to new db models.
 * main.py to initialize emulator if local.
 
-
-### Implementation steps
-
-1. [x] Set up a Firebase emulator, create a test-database and test it in unit tests.
-2. [x] Migrate team_service.py to use Firebase, change the necessary models. Check with unit tests with emulators.
-3. [x] Migrate challenge_service.py to use Firebase, change the necessary models. Check service with unit tests.
-4. [x] Migrate task_service.py to use Firebase, change the necessary models. Check service with unit tests. 
-5. [x] Add scripts for backend deployment to Firebase Cloud as a container.
  

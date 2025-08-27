@@ -15,6 +15,7 @@ The Teamwork Challenge Platform is designed to create an intensive, game-like pr
 - **Integration Requirements**: Later tasks require integrating earlier solutions, reinforcing Git workflow
 - **Structured Retrospectives**: Teams analyze and improve their process after every round
 
+
 ## Components
 
 The platform consists of several components:
@@ -28,10 +29,11 @@ The platform consists of several components:
 For more detailed information, see the documentation in the `/docs` directory:
 
 - [Vision & Goals](/docs/1-Vision.md): Project vision and goals
-- [Specification](/docs/2-Specification.md): Detailed specifications
-- [Backend](/docs/3-Backend.md): Backend API details
-- [CLI](/docs/4-CLI.md): Command Line Interface details
-- [Task Generators](/docs/5-TaskGenerators.md): Task generator API details
+- [Specification](/docs/2-Specification.md): High-level specifications
+- [Backend API](/docs/3-Backend.md)
+- [Firestore Data Model](/docs/6-Migration-to-Firebase.md)
+- [Command Line Interface details](/docs/4-CLI.md)
+- [Task Generators API](/docs/5-TaskGenerators.md)
 
 ## Component-Specific Documentation
 
@@ -49,3 +51,16 @@ For more detailed information, see the documentation in the `/docs` directory:
 		- Generate New, Virtualenv, Python 3.11.
 	- Rename interpreter to "Python 3.11" to match commited `./idea/platform.iml`.
 
+## Scripts
+- Create venv and install deps:
+  - `platform> pip install -r \requirements.txt`
+- Install firebase tools: `platform> npm install -g firebase-tools`
+- Run firebase emulator: `platform> firebase emulators:start`
+- Type checking: `mypy .`
+- Run tests: `platform> py -m pytest`
+- Start API Locally: `platform>  python -m back.main dev`
+- Run CLI sample: `platform> python -m cli.main round list`
+
+## Test Data
+
+Test Data is created by back/tests/test_setup.py every time tests are run.
