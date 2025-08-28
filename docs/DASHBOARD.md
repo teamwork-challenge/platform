@@ -54,11 +54,13 @@ API:
 4. CLI форматирует ответ и выводит в терминал (или JSON при флаге --json).
 
 Реализация (денормализация для производительности):
-- Таблица dashboard 
-  - Поля: round_id, round_task_type_id, team_id, type (RoundTaskType.type), pending, ac, wa, remaining, updated_at.
+- Единая таблица board_rows (Board) — общая для Dashboard и Leaderboard
+  - Поля общие: round_id, team_id, type (RoundTaskType.type)
+  - Поля для дашборда: round_task_type_id, pending, ac, wa, remaining, updated_at.
+  - Поля для лидерборда: name, score, last_score_at (для тай‑брейка).
   - Уникальный ключ: (round_id, team_id, round_task_type_id).
-  - Создание строк выполняется, когда команда берет новую задачу.
-  - Обновления счетчиков не допускают отрицательных значений; если remaining = 0, задача не выдается.
+- Строка создаётся, когда команда берёт новую задачу данного типа в раунде.
+- Обновления счетчиков не допускают отрицательных значений; если remaining = 0, задача не выдается.
 
 Переходы состояний:
 - Генерация задачи команде: remaining → pending (pending += 1; remaining = max(0, remaining - 1)).
@@ -67,4 +69,4 @@ API:
   - pending → WA: pending -= 1; wa += 1
   - WA → AC: wa -= 1; ac += 1
   - WA → WA: счетчики не меняются
-  - AC -> AC: счетчики не меняются
+  - AC -> AC:  переоценка допустима
