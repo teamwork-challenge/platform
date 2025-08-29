@@ -1,7 +1,4 @@
 import logging
-import os
-import random
-import time
 from typing import Optional, Dict, Any
 
 import requests
@@ -32,7 +29,7 @@ class ApiClient:
         self.config_manager.remove_api_key()
         # Update headers without an API key
         self._headers = self._build_headers()
-        
+
     def _build_headers(self) -> Dict[str, str]:
         """Get headers for API requests."""
         headers = {"Content-Type": "application/json"}
@@ -46,65 +43,18 @@ class ApiClient:
         return self.config_manager.get_api_key() is not None
 
     def _make_request(self, method: str, endpoint: str, data: Dict[str, Any] | None = None) -> Any:
-        """Make a request to the API with polite backoff on HTTP 429.
-
-        Respects Retry-After if provided by the server. Retries are limited by
-        CH_CLI_MAX_RETRIES (env var, default 2). Adds small jitter (CH_CLI_RETRY_JITTER_MS, default 200ms).
-        """
+        """Make a request to the API."""
         base_url = self.config_manager.get_base_url()
         url = f"{base_url}{endpoint}"
 
-        max_retries_str = os.environ.get("CH_CLI_MAX_RETRIES", "2")
-        jitter_ms_str = os.environ.get("CH_CLI_RETRY_JITTER_MS", "200")
-        try:
-            max_retries = max(0, int(max_retries_str))
-        except ValueError:
-            max_retries = 2
-        try:
-            jitter_ms = max(0, int(jitter_ms_str))
-        except ValueError:
-            jitter_ms = 200
-
-        attempt = 0
-        last_response: requests.Response | None = None
-        while True:
-            logging.info("Make request: %s %s. Data: %s (attempt %s)", method, url, data, attempt + 1)
-            response = requests.request(method, url, headers=self._headers, json=data)
-            last_response = response
-            res_text = response.text
-            logging.info("Received response: %s %s", response.status_code, res_text)
-
-            if response.status_code != 429:
-                if 400 <= response.status_code <= 500:
-                    # Preserve existing behavior and error transparency
-                    raise requests.HTTPError(f"{res_text} (status code: {response.status_code})")
-                response.raise_for_status()
-                return response.json()
-
-            if attempt >= max_retries:
-                raise requests.HTTPError(f"{res_text} (status code: {response.status_code})")
-
-            retry_after_hdr = response.headers.get("Retry-After")
-            wait_secs: float
-            if retry_after_hdr is not None:
-                try:
-                    wait_secs = float(retry_after_hdr)
-                except ValueError:
-                    wait_secs = 1.0
-            else:
-                # Fallback to X-RateLimit-Reset if present (seconds until reset)
-                reset_hdr = response.headers.get("X-RateLimit-Reset")
-                try:
-                    wait_secs = float(reset_hdr) if reset_hdr is not None else 1.0
-                except ValueError:
-                    wait_secs = 1.0
-
-            jitter = random.uniform(0, jitter_ms / 1000.0)
-            sleep_time = max(0.0, wait_secs) + jitter
-            logging.info("HTTP 429 received. Sleeping for %.3f seconds before retrying...", sleep_time)
-            time.sleep(sleep_time)
-
-            attempt += 1
+        logging.info("Make request: %s %s. Data: %s", method, url, data)
+        response = requests.request(method, url, headers=self._headers, json=data)
+        res = response.text
+        logging.info("Received response: %s %s", response.status_code, res)
+        if 400 <= response.status_code <= 500:
+            raise requests.HTTPError(f"{res} (status code: {response.status_code})")
+        response.raise_for_status()
+        return response.json()
 
     # Team-related methods
     def auth(self) -> str:
@@ -152,7 +102,7 @@ class ApiClient:
             # Get the current challenge ID
             challenge = self.get_challenge_info(None)
             challenge_id = challenge.id
-            
+
         endpoint = f"/rounds?challenge_id={challenge_id}"
         data = self._make_request("GET", endpoint)
         # Wrap the list of rounds in a dictionary with a "rounds" key
@@ -177,7 +127,7 @@ class ApiClient:
     def update_round(self, round_id: int, update_data: RoundUpdateRequest) -> Round:
         # First, get the round info to get the challenge_id and other required fields
         round_info = self.get_round_info(round_id)
-        
+
         # Create a dictionary with all the required fields from the existing round
         # Convert datetime objects to ISO format strings
         data_dict = {
@@ -198,11 +148,11 @@ class ApiClient:
             "score_decay": round_info.score_decay,
             "status": round_info.status
         }
-        
+
         # Update with the new values
         update_dict = update_data.model_dump(mode="json", exclude_none=True)
         data_dict.update(update_dict)
-        
+
         # Make the request with all required fields
         data = self._make_request("PUT", f"/rounds/{round_id}", data_dict)
         return Round.model_validate(data)
@@ -210,7 +160,7 @@ class ApiClient:
     def create_round(self, round_data: RoundCreateRequest) -> Round:
         data = self._make_request("POST", "/rounds", round_data.model_dump(mode="json"))
         return Round.model_validate(data)
-        
+
     def delete_round(self, round_id: int) -> DeleteResponse:
         return DeleteResponse.model_validate(self._make_request("DELETE", f"/rounds/{round_id}"))
 
@@ -218,29 +168,29 @@ class ApiClient:
     def get_round_task_types(self, round_id: int) -> list[RoundTaskType]:
         data = self._make_request("GET", f"/task-types?round_id={round_id}")
         return [RoundTaskType.model_validate(d) for d in data]
-    
+
     def get_round_task_type(self, task_type_id: int) -> RoundTaskType:
         """Get a specific task type."""
         data = self._make_request("GET", f"/task-types/{task_type_id}")
         return RoundTaskType.model_validate(data)
-    
+
     def create_round_task_type(self, task_type_data: RoundTaskTypeCreateRequest) -> RoundTaskType:
         data = self._make_request(
-            "POST", 
+            "POST",
             "/task-types",
             task_type_data.model_dump(mode="json")
         )
         return RoundTaskType.model_validate(data)
-    
+
     def update_round_task_type(self, task_type_id: int,
                                task_type_data: RoundTaskTypeCreateRequest) -> RoundTaskType:
         data = self._make_request(
-            "PUT", 
+            "PUT",
             f"/task-types/{task_type_id}",
             task_type_data.model_dump(mode="json")
         )
         return RoundTaskType.model_validate(data)
-    
+
     def delete_round_task_type(self, task_type_id: int) -> RoundTaskType:
         return RoundTaskType.model_validate(self._make_request("DELETE", f"/task-types/{task_type_id}"))
 
@@ -269,10 +219,10 @@ class ApiClient:
         return Submission.model_validate(data)
 
     def list_tasks(self,
-                    status: Optional[str] = None,
-                    task_type: Optional[str] = None,
-                    round_id: Optional[int] = None,
-                    since: Optional[str] = None) -> TaskList:
+                   status: Optional[str] = None,
+                   task_type: Optional[str] = None,
+                   round_id: Optional[int] = None,
+                   since: Optional[str] = None) -> TaskList:
         """List tasks with optional filters."""
         params = []
         if status:

@@ -9,6 +9,7 @@ import random
 import logging
 from typing import Optional
 from pydantic import TypeAdapter
+from urllib.parse import urlparse
 
 from api_models import (
     GenRequest, GenResponse, TaskProgress, CheckRequest, CheckResult, CheckStatus, CheckResponse,
@@ -19,7 +20,22 @@ from back.boards_service import BoardsService
 
 
 class TaskGenClient:
+    def _is_generator_available(self, generator_url: str) -> bool:
+        try:
+            parsed = urlparse(generator_url)
+            return bool(parsed.scheme) and bool(parsed.netloc)
+        except Exception:
+            return False
+
     def generate_task(self, generator_url: str, generator_secret: str, gen_request: GenRequest) -> GenResponse:
+        if not self._is_generator_available(generator_url):
+            # Fallback for test/demo types without a real generator
+            return GenResponse(
+                statement_version="0",
+                statement="Task generator is not available",
+                input="",
+                checker_hint="",
+            )
         try:
             response = requests.post(
                 f"{generator_url}/gen",
@@ -38,6 +54,13 @@ class TaskGenClient:
             checker_hint=checker_hint,
             task_id=task_id
         )
+
+        if not self._is_generator_available(generator_url):
+            # Return a default wrong answer response when no generator is available
+            adapter = TypeAdapter(list[CheckResult])
+            return CheckResponse([
+                CheckResult(status=CheckStatus.WRONG_ANSWER, error="Task generator is not available")
+            ])
 
         try:
             response = requests.post(

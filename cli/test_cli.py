@@ -45,8 +45,9 @@ def wait_endpoint_up(server_url: str, max_wait_time: float) -> None:
     start_time = time.time()
     while time.time() - start_time < max_wait_time:
         try:
-            response = requests.get(server_url, timeout=1)
-            if response.status_code == 200:
+            # Check docs endpoint which returns 200 when server is ready
+            response = requests.get(server_url + "/docs", timeout=1)
+            if 200 <= response.status_code < 500:
                 break
         except RequestException:
             time.sleep(0.1)

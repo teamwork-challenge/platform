@@ -1,13 +1,17 @@
-from urllib.request import Request
+import os
 
 import uvicorn
 from fastapi import FastAPI
-from fastapi.exceptions import RequestValidationError
 from fastapi.responses import RedirectResponse
 from mangum import Mangum
-from starlette.responses import PlainTextResponse
-from back.rate_limiter import setup_rate_limiter
-
+try:
+    from slowapi import Limiter, _rate_limit_exceeded_handler  # type: ignore[import-not-found]
+    from slowapi.errors import RateLimitExceeded  # type: ignore[import-not-found]
+    from slowapi.middleware import SlowAPIMiddleware  # type: ignore[import-not-found]
+    from slowapi.util import get_remote_address  # type: ignore[import-not-found]
+    SLOWAPI_AVAILABLE: bool = True
+except Exception:  # pragma: no cover - optional dependency fallback
+    SLOWAPI_AVAILABLE = False
 # Routers split by domain
 from back.api_teams import router as team_router
 from back.api_challenges import router as challenges_router
@@ -21,6 +25,14 @@ app = FastAPI(title="Teamwork Challenge API",
               version="1.0.0",
               debug=True)
 
+# Global rate limiting using SlowAPI (optional)
+if SLOWAPI_AVAILABLE:
+    _rate = os.getenv("CHALLENGE_RATE_LIMIT", "1000/minute")
+    limiter = Limiter(key_func=get_remote_address, default_limits=[_rate])
+    app.state.limiter = limiter
+    app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+    app.add_middleware(SlowAPIMiddleware)
+
 # Include split routers
 app.include_router(team_router)
 app.include_router(challenges_router)
@@ -30,9 +42,6 @@ app.include_router(boards_router)
 
 # Hide task generators from OpenAPI
 app.include_router(task_gen_router, include_in_schema=False)
-
-# Optional rate limiter (disabled by default via env)
-setup_rate_limiter(app)
 
 
 @app.get("/", include_in_schema=False)
