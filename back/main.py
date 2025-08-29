@@ -5,12 +5,12 @@ from fastapi import FastAPI
 from fastapi.responses import RedirectResponse
 from mangum import Mangum
 try:
-    from slowapi import Limiter, _rate_limit_exceeded_handler  # type: ignore[import-not-found]
-    from slowapi.errors import RateLimitExceeded  # type: ignore[import-not-found]
-    from slowapi.middleware import SlowAPIMiddleware  # type: ignore[import-not-found]
-    from slowapi.util import get_remote_address  # type: ignore[import-not-found]
+    from slowapi import Limiter, _rate_limit_exceeded_handler
+    from slowapi.errors import RateLimitExceeded
+    from slowapi.middleware import SlowAPIMiddleware
+    from slowapi.util import get_remote_address
     SLOWAPI_AVAILABLE: bool = True
-except Exception:  # pragma: no cover - optional dependency fallback
+except Exception:
     SLOWAPI_AVAILABLE = False
 # Routers split by domain
 from back.api_teams import router as team_router
