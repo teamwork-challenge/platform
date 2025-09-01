@@ -27,10 +27,19 @@ app = FastAPI(title="Teamwork Challenge API",
 
 # Global rate limiting using SlowAPI (optional)
 if SLOWAPI_AVAILABLE:
+    from typing import cast
+    from starlette.requests import Request
+    from starlette.responses import Response
+
     _rate = os.getenv("CHALLENGE_RATE_LIMIT", "1000/minute")
     limiter = Limiter(key_func=get_remote_address, default_limits=[_rate])
     app.state.limiter = limiter
-    app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+    # Wrap SlowAPI handler to satisfy Starlette's exception handler type signature
+    def _rate_limit_wrapper(request: Request, exc: Exception) -> Response:
+        return _rate_limit_exceeded_handler(request, cast(RateLimitExceeded, exc))
+
+    app.add_exception_handler(RateLimitExceeded, _rate_limit_wrapper)
     app.add_middleware(SlowAPIMiddleware)
 
 # Include split routers
@@ -57,5 +66,5 @@ if __name__ == "__main__":
         "back.main:app",
         reload=True,
         reload_dirs=[".", "../api_models"],
-        port=8088,
+        port=8918,
     )

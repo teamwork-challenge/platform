@@ -11,11 +11,8 @@ from requests import Response
 
 
 # Skip these tests gracefully if slowapi is not available in the environment
-try:
-    import slowapi  # type: ignore
-    SLOWAPI_AVAILABLE = True
-except Exception:  # pragma: no cover
-    SLOWAPI_AVAILABLE = False
+from importlib.util import find_spec
+SLOWAPI_AVAILABLE = find_spec("slowapi") is not None
 
 
 RATE_LIMIT_PORT = 8920
