@@ -6,6 +6,7 @@ from back.services.challenge_service import ChallengeService
 from back.db_models import RoundDocument, TaskDocument
 from back.services.task_service import TaskService
 from back.services.team_service import TeamService
+from back.services.boards_service import BoardService
 
 
 # Services providers
@@ -20,6 +21,10 @@ def get_task_service() -> TaskService:
 
 def get_team_service() -> TeamService:
     return TeamService()
+
+
+def get_board_service() -> BoardService:
+    return BoardService()
 
 
 # Auth
