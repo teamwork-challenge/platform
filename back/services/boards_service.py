@@ -42,14 +42,6 @@ class BoardService:
             total_pending += pending
             total_remaining += remaining
 
-        stats["total"] = TypeStats(
-            total=total_ac + total_wa + total_pending,
-            pending=total_pending,
-            ac=total_ac,
-            wa=total_wa,
-            remaining=total_remaining,
-        )
-
         return Dashboard(round_id=resolved_round_id, stats=stats)
 
     def round_ref(self, challenge_id: str, round_id: str):
