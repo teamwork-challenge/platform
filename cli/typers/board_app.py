@@ -84,20 +84,19 @@ def board_leaderboard(
     table = Table(title=f"Leaderboard for Round {leaderboard.round_id}")
     table.add_column("Rank", justify="right", style="cyan")
     table.add_column("Team")
-    table.add_column("General", justify="right")
-    table.add_column("Math", justify="right")
-    table.add_column("Coding", justify="right")
+
+    # Build dynamic columns from all score types present across teams
+    score_types: list[str] = sorted({t for team in leaderboard.teams for t in team.scores.keys()})
+    for t in score_types:
+        table.add_column(t, justify="right")
     table.add_column("Total", justify="right", style="green")
 
     for team in leaderboard.teams:
-        table.add_row(
-            str(team.rank),
-            team.name,
-            str(team.scores.get('general', 'N/A')),
-            str(team.scores.get('math', 'N/A')),
-            str(team.scores.get('coding', 'N/A')),
-            str(team.total_score)
-        )
+        row = [str(team.rank), team.name]
+        # Add per-type scores in the same order as columns
+        row.extend(str(team.scores.get(t, 0)) for t in score_types)
+        row.append(str(team.total_score))
+        table.add_row(*row)
 
     console.print(table)
 

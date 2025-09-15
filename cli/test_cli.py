@@ -366,7 +366,6 @@ def test_board_dashboard() -> None:
     assert "Dashboard for Round" in result.output
 
 
-@pytest.mark.skip(reason="Board app is not yet implemented")
 def test_board_leaderboard() -> None:
     login_team1()
     result = run_ok("board", "leaderboard")

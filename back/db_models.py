@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from api_models import TaskStatus, SubmissionStatus
 
@@ -99,3 +99,13 @@ class TeamDashboardDocument(BaseModel):
     round_id: str  # denormalized
     score: int
     task_types: list[TeamTaskDashboardDocument]
+
+
+class LeaderboardRowDocument(BaseModel):
+    team_id: str
+    challenge_id: str  # denormalized
+    round_id: str  # denormalized
+    team_name: str
+    total_score: int = 0
+    scores: dict[str, int] = Field(default_factory=dict)
+    last_score_at: datetime
