@@ -1,9 +1,9 @@
 from typing import Dict, Optional, Any
-from datetime import datetime
 
 from api_models import Dashboard, TypeStats, AuthData, Leaderboard, TeamScore
-from back.db_models import TeamDashboardDocument, RoundDocument, LeaderboardRowDocument
+from back.db_models import TeamDashboardDocument, RoundDocument
 from back.services.db import get_firestore_db
+from back.services.team_service import TeamService
 
 
 class BoardService:
@@ -66,29 +66,26 @@ class BoardService:
         if not resolved_round_id:
             raise ValueError("Round not found")
 
-        lb_ref = self.round_ref(auth.challenge_id, resolved_round_id).collection('leaderboard')
-        docs = list(lb_ref.stream())
+        dash_ref = self.round_ref(auth.challenge_id, resolved_round_id).collection('dashboards')
+        docs = list(dash_ref.stream())
         if not docs:
-            # Fallback: empty leaderboard when a collection is missing/empty
             return Leaderboard(round_id=resolved_round_id, teams=[])
 
-        rows: list[LeaderboardRowDocument] = [
-            LeaderboardRowDocument.model_validate(doc.to_dict()) for doc in docs
+        dashboards: list[TeamDashboardDocument] = [
+            TeamDashboardDocument.model_validate(doc.to_dict()) for doc in docs
         ]
-        sorted_rows = self.sort_leaderboard(rows)
-        teams = self.build_team_scores(sorted_rows)
+        team_service = TeamService()
+        teams = team_service.get_teams_by_challenge(auth.challenge_id)
+        id_to_name: dict[str, str] = {t.id: t.name for t in teams}
+
+        data: list[tuple[str, int, dict[str, int]]] = []
+        for d in dashboards:
+            team_name = id_to_name.get(d.team_id, d.team_id)
+            type_scores: dict[str, int] = {tt.task_type: int(tt.score) for tt in d.task_types}
+            data.append((team_name, int(d.score), type_scores))
+
+        # Sort by total_score desc, then team name asc
+        data_sorted = sorted(data, key=lambda t: (-t[1], t[0]))
+        teams = [TeamScore(rank=idx, name=name, total_score=score, scores=scores)
+                 for idx, (name, score, scores) in enumerate(data_sorted, start=1)]
         return Leaderboard(round_id=resolved_round_id, teams=teams)
-
-    def sort_leaderboard(self, rows: list[LeaderboardRowDocument]) -> list[LeaderboardRowDocument]:
-        """Sort rows: total_score desc, last_score_at asc, team name asc."""
-        def sort_key(row: LeaderboardRowDocument) -> tuple[int, datetime, str]:
-            lsa: datetime = row.last_score_at
-            return -int(row.total_score), lsa, row.team_name
-        return sorted(rows, key=sort_key)
-
-    def build_team_scores(self, rows: list[LeaderboardRowDocument]) -> list[TeamScore]:
-        """Build TeamScore models with sequential ranks starting from 1."""
-        teams: list[TeamScore] = []
-        for idx, r in enumerate(rows, start=1):
-            teams.append(TeamScore(rank=idx, name=r.team_name, total_score=int(r.total_score), scores=r.scores or {}))
-        return teams

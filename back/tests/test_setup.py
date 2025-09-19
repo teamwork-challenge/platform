@@ -5,8 +5,7 @@ from api_models import TaskStatus
 from back.services.db import get_firestore_db, FirebaseDatabase
 from back.db_models import (
     ChallengeDocument, TeamDocument, APIKeyDocument, RoundDocument,
-    TaskTypeDocument, TaskDocument, TeamDashboardDocument, TeamTaskDashboardDocument,
-    LeaderboardRowDocument
+    TaskTypeDocument, TaskDocument, TeamDashboardDocument, TeamTaskDashboardDocument
 )
 
 
@@ -249,30 +248,20 @@ def create_test_firebase_data() -> None:
     )
     dash_ref.set(dashboard.model_dump())
 
-    # Create leaderboard rows for round_1 (challenge_1)
-    lb_ref = challenge1_rounds.document(round1_id).collection('leaderboard')
-    lb_rows = [
-        LeaderboardRowDocument(
-            team_id=team1_id,
-            challenge_id=challenge1_id,
-            round_id=round1_id,
-            team_name=team1.name,
-            total_score=200,
-            scores={"a_plus_b": 0, "sum_a_b": 0, "test-type": 200},
-            last_score_at=now - timedelta(minutes=9),
-        ),
-        LeaderboardRowDocument(
-            team_id="team_X",
-            challenge_id=challenge1_id,
-            round_id=round1_id,
-            team_name="Rival Team",
-            total_score=180,
-            scores={"a_plus_b": 100, "test-type": 80},
-            last_score_at=now - timedelta(minutes=5),
-        ),
-    ]
-    for row in lb_rows:
-        lb_ref.document(row.team_id).set(row.model_dump())
+    # Add a second demo dashboard entry to populate leaderboard
+    rival_team_id = "team_X"
+    rival_dash_ref = challenge1_rounds.document(round1_id).collection('dashboards').document(rival_team_id)
+    rival_dashboard = TeamDashboardDocument(
+        team_id=rival_team_id,
+        challenge_id=challenge1_id,
+        round_id=round1_id,
+        score=180,
+        task_types=[
+            TeamTaskDashboardDocument(task_type="a_plus_b", score=100, ac=1, wa=0, pending=0),
+            TeamTaskDashboardDocument(task_type="test-type", score=80, ac=0, wa=0, pending=0),
+        ]
+    )
+    rival_dash_ref.set(rival_dashboard.model_dump())
 
     # Create API keys
     api_keys = [
