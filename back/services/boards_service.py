@@ -75,8 +75,8 @@ class BoardService:
             TeamDashboardDocument.model_validate(doc.to_dict()) for doc in docs
         ]
         team_service = TeamService()
-        teams = team_service.get_teams_by_challenge(auth.challenge_id)
-        id_to_name: dict[str, str] = {t.id: t.name for t in teams}
+        existing_teams = team_service.get_teams_by_challenge(auth.challenge_id)
+        id_to_name: dict[str, str] = {t.id: t.name for t in existing_teams}
 
         data: list[tuple[str, int, dict[str, int]]] = []
         for d in dashboards:
@@ -86,6 +86,6 @@ class BoardService:
 
         # Sort by total_score desc, then team name asc
         data_sorted = sorted(data, key=lambda t: (-t[1], t[0]))
-        teams = [TeamScore(rank=idx, name=name, total_score=score, scores=scores)
-                 for idx, (name, score, scores) in enumerate(data_sorted, start=1)]
-        return Leaderboard(round_id=resolved_round_id, teams=teams)
+        lb_teams: list[TeamScore] = [TeamScore(rank=idx, name=name, total_score=score, scores=scores)
+                                     for idx, (name, score, scores) in enumerate(data_sorted, start=1)]
+        return Leaderboard(round_id=resolved_round_id, teams=lb_teams)
