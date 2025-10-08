@@ -256,3 +256,81 @@ def test_stress_claim_3workers() -> None:
 
     # Allow a bit more headroom on a remote backend
     assert duration < N*2
+
+
+
+@pytest.mark.skip("stress tests for explicit run")
+def test_leaderboard_stress_reads() -> None:
+    """
+    Stress the /leaderboard endpoint with ~3 teams and 2 participants per team.
+    Each participant performs multiple leaderboard fetches concurrently.
+    """
+    cache_dir = Path('.pytest_cache')
+    cache_dir.mkdir(exist_ok=True)
+
+    # Admin client to manage teams and fetch keys
+    admin_cfg = ConfigManager(cache_dir / 'stress_lb_admin_in_stresspy.json')
+    admin_cfg.save_base_url(REAL_BACKEND_URL)
+    admin_client = ApiClient(admin_cfg)
+    admin_client.save_api_key(STRESS_ADMIN_KEY)
+
+    # Ensure we have three teams in the challenge and capture their keys
+    from api_models import TeamsImportRequest, TeamCreateRequest
+
+    teams = admin_client.get_teams("stress_test")
+
+    if len(teams) < 3:
+        need = 3 - len(teams)
+        extra = [TeamCreateRequest(name=f'StressLB Team {i+1}', members='X', captain_contact='@x') for i in range(need)]
+        if extra:
+            admin_client.create_teams(TeamsImportRequest(challenge_id="stress_test", teams=extra))
+            teams = admin_client.get_teams("stress_test")
+    teams = teams[:3]
+    team_keys = [t.api_key for t in teams if t.api_key]
+    assert len(team_keys) == 3, "Expected 3 teams with API keys"
+
+    # Create 2 clients per team (6 workers total)
+    def make_client(cfg_path: Path, api_key: str) -> ApiClient:
+        cfg = ConfigManager(cfg_path)
+        cfg.save_base_url(REAL_BACKEND_URL)
+        c = ApiClient(cfg)
+        c.save_api_key(api_key)
+        return c
+
+    clients: list[ApiClient] = []
+    for i, key in enumerate(team_keys):
+        for j in range(2):
+            clients.append(make_client(cache_dir / f'stress_lb_team{i+1}_p{j+1}.json', key))
+
+    # Each worker will fetch leaderboard K times
+    K = int(os.environ.get("LB_STRESS_FETCHES", "20"))
+
+    def worker(client: ApiClient, count: int) -> tuple[int, float]:
+        ok = 0
+        total_time = 0.0
+        for _ in range(count):
+            start = time.time()
+            lb = client.get_leaderboard(round_id='stress_round')
+            elapsed = time.time() - start
+            total_time += elapsed
+            # basic validation
+            assert lb.round_id == 'stress_round'
+            assert isinstance(lb.teams, list)
+            ok += 1
+        return ok, total_time
+
+    start = time.time()
+    with concurrent.futures.ThreadPoolExecutor(max_workers=len(clients)) as ex:
+        futures = [ex.submit(worker, c, K) for c in clients]
+        results = [f.result(timeout=600) for f in futures]
+    duration = time.time() - start
+
+    total_requests = sum(ok for ok, _ in results)
+    total_client_time = sum(t for _, t in results)
+
+    print(f"Leaderboard stress: {total_requests} requests in {duration:.2f}s; avg wall {duration/total_requests:.4f}s/req; avg client {total_client_time/total_requests:.4f}s/req")
+
+    # Sanity expectations (very lenient; adjust as needed)
+    assert total_requests == len(clients) * K
+    # Avoid extremely slow behavior
+    assert duration < max(60.0, len(clients) * K * 0.5)
