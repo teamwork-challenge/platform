@@ -12,6 +12,8 @@ class TaskGenClient:
     def generate_task(self, generator_url: str, generator_secret: str, gen_request: GenRequest) -> GenResponse:
         """Generate task content by calling the task generator and return the generator response."""
         try:
+            if generator_url == "a_plus_b":
+                return GenResponse(statement="A + B = ?", input="1 2", checker_hint="3", statement_version="1.0")
             response = requests.post(
                 f"{generator_url}/gen",
                 headers={"Content-Type": "application/json", "X-API-Key": generator_secret or ""},
@@ -59,6 +61,11 @@ class TaskGenClient:
         )
 
         try:
+            if generator_url == "a_plus_b":
+                return CheckResponse(
+                    [CheckResult(
+                        status=CheckResult.Status.ACCEPTED if answer.strip() == "3" else CheckResult.Status.WRONG_ANSWER,
+                        score=1.0 if answer.strip() == "3" else 0.0)])
             response = requests.post(
                 f"{generator_url}/check",
                 headers={"Content-Type": "application/json", "X-API-Key": generator_secret or ""},

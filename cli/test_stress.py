@@ -52,12 +52,9 @@ def stress_server() -> Iterator[None]:
     admin_client.put_challenge(ch)
 
     # 2) Delete only THIS challenge’s rounds to start clean (no global cleanup)
-    try:
-        for rd in admin_client.list_rounds(challenge_id):
-            admin_client.delete_round(challenge_id, rd.id)
-    except Exception:
-        # If the challenge was just created and has no rounds yet, ignore
-        pass
+    # TODO: clear subcollections too!
+    for rd in admin_client.list_rounds(challenge_id):
+        admin_client.delete_round(challenge_id, rd.id)
 
     # 3) Create the fresh round with a_plus_b generator pointing to the backend’s internal task generator
     #    The taskgen endpoints are served by the backend under /task_gen and secured via X-API-Key "secret"
@@ -259,12 +256,14 @@ def test_stress_claim_3workers() -> None:
 
 
 
-@pytest.mark.skip("stress tests for explicit run")
+#@pytest.mark.skip("stress tests for explicit run")
 def test_leaderboard_stress_reads() -> None:
     """
     Stress the /leaderboard endpoint with ~3 teams and 2 participants per team.
     Each participant performs multiple leaderboard fetches concurrently.
     """
+    leaderboard_requests_per_worker = 20
+
     cache_dir = Path('.pytest_cache')
     cache_dir.mkdir(exist_ok=True)
 
@@ -302,9 +301,6 @@ def test_leaderboard_stress_reads() -> None:
         for j in range(2):
             clients.append(make_client(cache_dir / f'stress_lb_team{i+1}_p{j+1}.json', key))
 
-    # Each worker will fetch leaderboard K times
-    K = int(os.environ.get("LB_STRESS_FETCHES", "20"))
-
     def worker(client: ApiClient, count: int) -> tuple[int, float]:
         ok = 0
         total_time = 0.0
@@ -315,13 +311,13 @@ def test_leaderboard_stress_reads() -> None:
             total_time += elapsed
             # basic validation
             assert lb.round_id == 'stress_round'
-            assert isinstance(lb.teams, list)
+            assert len(lb.teams) > 0
             ok += 1
         return ok, total_time
 
     start = time.time()
     with concurrent.futures.ThreadPoolExecutor(max_workers=len(clients)) as ex:
-        futures = [ex.submit(worker, c, K) for c in clients]
+        futures = [ex.submit(worker, c, leaderboard_requests_per_worker) for c in clients]
         results = [f.result(timeout=600) for f in futures]
     duration = time.time() - start
 
@@ -331,6 +327,6 @@ def test_leaderboard_stress_reads() -> None:
     print(f"Leaderboard stress: {total_requests} requests in {duration:.2f}s; avg wall {duration/total_requests:.4f}s/req; avg client {total_client_time/total_requests:.4f}s/req")
 
     # Sanity expectations (very lenient; adjust as needed)
-    assert total_requests == len(clients) * K
+    assert total_requests == len(clients) * leaderboard_requests_per_worker
     # Avoid extremely slow behavior
-    assert duration < max(60.0, len(clients) * K * 0.5)
+    assert duration < max(60.0, len(clients) * leaderboard_requests_per_worker * 0.5)

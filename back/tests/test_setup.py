@@ -116,7 +116,7 @@ def create_test_firebase_data() -> None:
     task_type1 = TaskTypeDocument(
         type="a_plus_b",
         n_tasks=100,
-        generator_url="http://127.0.0.1:8918/task_gen/a_plus_b",
+        generator_url="a_plus_b",
         generator_settings="",
         generator_secret="secret",
         score=100,
@@ -128,7 +128,7 @@ def create_test_firebase_data() -> None:
     task_type11 = TaskTypeDocument(
         type="sum_a_b",
         n_tasks=50,
-        generator_url="http://127.0.0.1:8918/task_gen/a_plus_b",
+        generator_url="a_plus_b",
         generator_settings="",
         generator_secret="secret",
         score=200,

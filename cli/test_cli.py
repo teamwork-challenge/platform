@@ -360,10 +360,13 @@ def test_submission_attempts_limit_and_time_decay() -> None:
     assert 45 <= int(payload['score']) <= 55
 
 
+
 def test_board_dashboard() -> None:
     login_team1()
     result = run_ok("board", "dashboard")
     assert "Dashboard for Round" in result.output
+    assert "a_plus_b" in result.output
+    assert "sum_a_b" in result.output
 
 
 def test_board_leaderboard() -> None:
