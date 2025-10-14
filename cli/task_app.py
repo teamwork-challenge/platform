@@ -70,15 +70,20 @@ def task_show(task_id: str, json: bool = json_output_option) -> None:
             console.print("\n[bold]Input:[/bold] (too long to display inline)")
             console.print(f"Use `task show-input {task_id}` to see the full input.")
 
+    subs = getattr(task, "submissions", None) or []
     console.print("\n[bold]Submissions:[/bold]")
-    if not task.submissions:
+    if len(subs) == 0:
         console.print("No submissions yet.")
     else:
-        for submission in task.submissions:
-            console.print(f"ID: {submission.id}")
-            console.print(f"Status: {submission.status}")
-            console.print(f"Submitted At: {submission.submitted_at}")
-            console.print("")
+        table = Table(show_header=True, header_style="bold")
+        table.add_column("ID", style="cyan")
+        table.add_column("Status")
+        table.add_column("Submitted At")
+        table.add_column("Score", justify="right")
+        for s in subs:
+            status_str = f"SubmissionStatus.{s.status.name}" if hasattr(s.status, "name") else str(s.status)
+            table.add_row(str(s.id), status_str, str(s.submitted_at), str(getattr(s, "score", "")))
+        console.print(table)
 
     return None
 

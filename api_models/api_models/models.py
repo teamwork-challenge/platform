@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import Dict, List, Optional
 from enum import StrEnum
 from datetime import datetime
@@ -79,7 +79,7 @@ class Task(BaseModel):
     statement: Optional[str] = None
     input: Optional[str] = None
     claimed_at: Optional[datetime] = None
-    submissions: List[Submission] = []
+    submissions: List[Submission] = Field(default_factory=list)
     last_attempt_at: Optional[datetime] = None
     solved_at: Optional[datetime] = None
 
