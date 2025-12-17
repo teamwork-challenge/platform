@@ -81,7 +81,10 @@ def get_task(
         raise HTTPException(status_code=404, detail="Task not in the DB")
     if task_doc.challenge_id != challenge_id or (auth_data.role == UserRole.PLAYER and task_doc.team_id != auth_data.team_id):
         raise HTTPException(status_code=403, detail="Access to this task is forbidden")
-    return Task.model_validate(task_doc, from_attributes=True)
+    submissions = task_service.list_submissions_for_task(task_doc.challenge_id, task_doc.round_id, task_doc.id)
+    answer = Task.model_validate(task_doc, from_attributes=True)
+    answer.submissions = submissions
+    return answer
 
 
 @router.post("/submissions")

@@ -64,7 +64,7 @@ class TaskGenClient:
             if generator_url == "a_plus_b":
                 return CheckResponse(
                     [CheckResult(
-                        status=CheckResult.Status.ACCEPTED if answer.strip() == "3" else CheckResult.Status.WRONG_ANSWER,
+                        status=CheckResult.status.ACCEPTED if answer.strip() == "3" else CheckResult.status.WRONG_ANSWER,
                         score=1.0 if answer.strip() == "3" else 0.0)])
             response = requests.post(
                 f"{generator_url}/check",
