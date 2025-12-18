@@ -138,7 +138,8 @@ def task_submit(
     console.print(f"[green]Successfully submitted answer for task {id_for_msg}[/green]")
     console.print(f"Submission ID: {submission.id}")
     console.print(f"Status: {status_str}")
-
+    if submission.checker_output != "":
+        console.print(f"Message: {submission.checker_output}")
     return None
 
 
