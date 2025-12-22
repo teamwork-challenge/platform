@@ -1,0 +1,30 @@
+id: round_1
+challenge_id: challenge_1
+published: true
+start_time: "2025-01-01"
+end_time: "2125-01-01"
+claim_by_type: true
+task_types: [
+    {
+      type: "a_plus_b"
+      n_tasks: 20
+      generator_url: "http://localhost:8089/a_plus_b"
+      generator_settings: "8-8"
+      generator_secret:  "secret"
+      score: 100
+      time_to_solve: 30,
+      score_decay_with_time: false,
+      n_attempts: 5
+    },
+    {
+      type: "decoding"
+      n_tasks: 20
+      generator_url: "http://localhost:8089/decoding"
+      generator_settings: "1-8"
+      generator_secret:  "secret"
+      score: 100
+      time_to_solve: 30,
+      score_decay_with_time: false,
+      n_attempts: 5
+    }
+]

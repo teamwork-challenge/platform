@@ -6,7 +6,7 @@ end_time: "2125-01-01"
 claim_by_type: true
 task_types: [
     {
-      type: "a_plus_b"
+      type: "a_plus_b_test"
       n_tasks: 100
       generator_url: "http://127.0.0.1:8918/task_gen/a_plus_b"
       generator_settings: ""

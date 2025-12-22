@@ -8,5 +8,5 @@ python -m cli.main task submit task_ced73f7d -- -350775154342610666813428812442
 ---
 # check if for complex numbers answer can be submitted in format 1+2j, 2j+1... (Junie submitted only in format (78+83j))
 
-## decodeing
+## decoding
 # How can I add sentences.txt to the router, so it's accessible from the POST request in the task generator?

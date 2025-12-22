@@ -1,0 +1,21 @@
+Your goal is to solve all tasks in the round. Dont change any code, work
+inside the terminal.
+
+# Setup:
+1. Run: ```firebase emulators:start``` to start emulator for a database.
+2. Run backend: ```python -m back.main dev```
+
+# Pretesting phase:
+
+1. Login as admin in CLI: ```python -m cli.main login admin1```
+2. Update round: ``` python -m cli.main round update cli/contest/round1.hjson```
+3. Login as a team1: ```python -m cli.main login team1```
+
+# Testing phase:
+Until there is no available task repeat this process:
+1. Run: ```python -m cli.main task claim --type "a_plus_b"``` to get a task_id of this type (a_plus_b here)
+P.S. List of available task types you can find in cli/contest/round1.hjson
+2. See the task statement using: ```python -m cli.main task show task_id``` (you get task_id from a previous step)
+3. Solve a task and submit your answer: ```python -m cli.main task submit task_id answer```
+
+After there are no tasks left, don't terminate anything and just finish executing
