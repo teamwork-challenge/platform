@@ -10,6 +10,39 @@ from back.services.task_service import TaskService
 
 router = APIRouter(prefix="/challenges/{challenge_id}/rounds/{round_id}", tags=["Tasks"])
 
+# Explicit error message to HTTP status code mapping
+# Status codes: 400 = Bad Request, 409 = Conflict
+TASK_ERROR_MAPPING: dict[str, int] = {
+    # Resource limit errors (409 Conflict)
+    "Maximum number of tasks": 409,
+    "already taken": 409,
+    "All tasks were already taken": 409,
+    # Validation errors (400 Bad Request)
+    "Challenge not found": 400,
+    "Round not found": 400,
+    "Round is not published": 400,
+    "Round has not started yet": 400,
+    "Round has already ended": 400,
+    "No task type found": 400,
+    "Task not found": 400,
+    "Task does not belong to this team": 400,
+    "Task type not found": 400,
+    "Attempts limit exceeded": 400,
+    "Time limit exceeded": 400,
+}
+
+def map_value_error_to_http(e: ValueError) -> HTTPException:
+    """Map ValueError to appropriate HTTPException with explicit status code."""
+    msg = str(e)
+    
+    # Check for exact matches first
+    for error_key, status_code in TASK_ERROR_MAPPING.items():
+        if error_key in msg:
+            return HTTPException(status_code=status_code, detail=msg)
+    
+    # Default fallback for unmapped errors
+    return HTTPException(status_code=400, detail=msg)
+
 
 @router.get("/tasks")
 def list_tasks(
@@ -53,11 +86,16 @@ def create_task(
     if auth_data.team_id is None:
         raise HTTPException(status_code=400, detail="Invalid team context")
     if task_type is None:
-        task_type = task_service.get_random_task_type(game_round, auth_data.team_id).type
+        try:
+            task_type = task_service.get_random_task_type(game_round, auth_data.team_id).type
+        except ValueError as e:
+            raise map_value_error_to_http(e)
     elif not game_round.claim_by_type:
         raise HTTPException(status_code=400, detail="Round does not allow task creation by type")
     try:
         created = task_service.create_task(challenge_id, round_id, auth_data.team_id, task_type)
+    except ValueError as e:
+        raise map_value_error_to_http(e)
     except Exception as e:
         msg = str(e)
         if "Failed to commit transaction" in msg:
@@ -99,4 +137,7 @@ def submit_task_answer(
         raise HTTPException(status_code=400, detail="Team not found")
     challenge_id = fix_challenge_id(auth_data, challenge_id)
     round_id = fix_round_id(auth_data, round_id)
-    return task_service.submit_task_answer(submission.task_id, auth_data.team_id, challenge_id, round_id, submission.answer)
+    try:
+        return task_service.submit_task_answer(submission.task_id, auth_data.team_id, challenge_id, round_id, submission.answer)
+    except ValueError as e:
+        raise map_value_error_to_http(e)

@@ -22,6 +22,13 @@ class ApiClient:
         """Initialize the API client."""
         self.config_manager = config_manager
 
+        # Create a session that disables proxy for localhost connections
+        self._session = requests.Session()
+        # Disable proxy detection for localhost/127.0.0.1 to avoid proxy issues
+        base_url = self.config_manager.get_base_url()
+        if '127.0.0.1' in base_url or 'localhost' in base_url:
+            self._session.trust_env = False
+
         # Store headers as instance variable to avoid rebuilding for every request
         self._headers = self._build_headers()
 
@@ -55,7 +62,7 @@ class ApiClient:
         url = f"{base_url}{endpoint}"
 
         logging.info("Make request: %s %s. Data: %s", method, url, data)
-        response = requests.request(method, url, headers=self._headers, data=data)
+        response = self._session.request(method, url, headers=self._headers, data=data)
         res = response.text
         elapsed_time = response.elapsed.total_seconds()
         logging.info("Received response: %s %s %s", response.status_code, elapsed_time, res)

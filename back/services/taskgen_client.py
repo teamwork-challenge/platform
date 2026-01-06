@@ -3,18 +3,35 @@ import json
 import requests
 from pydantic import TypeAdapter
 
-from api_models import GenRequest, GenResponse, CheckRequest, CheckResult, CheckResponse
+from api_models import GenRequest, GenResponse, CheckRequest, CheckResult, CheckResponse, CheckStatus
 
 
 class TaskGenClient:
     """Client for interacting with task generator service."""
+    
+    def __init__(self):
+        """Initialize the task generator client with a session that bypasses proxy for localhost."""
+        self._session = requests.Session()
+        # Disable proxy detection for localhost connections to avoid proxy issues
+        # This will be checked per-request based on the URL
+    
+    def _get_session(self, url: str) -> requests.Session:
+        """Get a session configured for the given URL."""
+        # Disable proxy for localhost connections
+        if '127.0.0.1' in url or 'localhost' in url:
+            # Create a temporary session without proxy for this request
+            session = requests.Session()
+            session.trust_env = False
+            return session
+        return self._session
     
     def generate_task(self, generator_url: str, generator_secret: str, gen_request: GenRequest) -> GenResponse:
         """Generate task content by calling the task generator and return the generator response."""
         try:
             if generator_url == "a_plus_b":
                 return GenResponse(statement="A + B = ?", input="1 2", checker_hint="3", statement_version="1.0")
-            response = requests.post(
+            session = self._get_session(generator_url)
+            response = session.post(
                 f"{generator_url}/gen",
                 headers={"Content-Type": "application/json", "X-API-Key": generator_secret or ""},
                 data=json.dumps(gen_request.model_dump())
@@ -64,9 +81,10 @@ class TaskGenClient:
             if generator_url == "a_plus_b":
                 return CheckResponse(
                     [CheckResult(
-                        status=CheckResult.status.ACCEPTED if answer.strip() == "3" else CheckResult.status.WRONG_ANSWER,
+                        status=CheckStatus.ACCEPTED if answer.strip() == "3" else CheckStatus.WRONG_ANSWER,
                         score=1.0 if answer.strip() == "3" else 0.0)])
-            response = requests.post(
+            session = self._get_session(generator_url)
+            response = session.post(
                 f"{generator_url}/check",
                 headers={"Content-Type": "application/json", "X-API-Key": generator_secret or ""},
                 data=json.dumps(check_request.model_dump())

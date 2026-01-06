@@ -9,7 +9,7 @@ task_types: [
       type: "a_plus_b"
       n_tasks: 20
       generator_url: "http://localhost:8089/a_plus_b"
-      generator_settings: "8-8"
+      generator_settings: "1-8"
       generator_secret:  "secret"
       score: 100
       time_to_solve: 30,
@@ -20,11 +20,33 @@ task_types: [
       type: "decoding"
       n_tasks: 20
       generator_url: "http://localhost:8089/decoding"
-      generator_settings: "1-8"
+      generator_settings: "5-5"
       generator_secret:  "secret"
       score: 100
       time_to_solve: 30,
       score_decay_with_time: false,
-      n_attempts: 5
+      n_attempts: 1
+    },
+    {
+      type: "interpreter"
+      n_tasks: 30
+      generator_url: "http://localhost:8089/interpreter"
+      generator_settings: "1-14"
+      generator_secret:  "secret"
+      score: 100
+      time_to_solve: 30,
+      score_decay_with_time: false,
+      n_attempts: 1
+    },
+    {
+      type: "tricky_maze"
+      n_tasks: 30
+      generator_url: "http://localhost:8089/tricky_maze"
+      generator_settings: "1-14"
+      generator_secret:  "secret"
+      score: 100
+      time_to_solve: 30,
+      score_decay_with_time: false,
+      n_attempts: 1
     }
 ]
