@@ -57,3 +57,31 @@ def unified_list_submissions(
         {"team_id": tid, "submission": Submission.model_validate(sub, from_attributes=True).model_dump()}
         for tid, sub in results.items()
     ]
+
+
+@router.get("/submissions/{submission_id}")
+def get_submission(
+    submission_id: str,
+    challenge_id: str,
+    round_id: str,
+    auth_data: AuthData = Depends(authenticate_player),
+    task_service: TaskService = Depends(get_task_service)
+) -> Submission:
+    """Get a single submission by its ID."""
+    challenge_id = fix_challenge_id(auth_data, challenge_id)
+    round_id = fix_round_id(auth_data, round_id)
+    
+    sub = task_service.get_submission_by_id(submission_id, challenge_id, round_id)
+    if sub is None:
+        raise HTTPException(status_code=404, detail="Submission not found")
+    
+    # Validate access: players can only see submissions for their own team's tasks
+    if auth_data.role == UserRole.PLAYER:
+        # Get the task to check team ownership
+        task_doc = task_service.get_task(sub.task_id, challenge_id, round_id)
+        if task_doc is None:
+            raise HTTPException(status_code=404, detail="Task not found")
+        if task_doc.team_id != auth_data.team_id:
+            raise HTTPException(status_code=403, detail="Access to this submission is forbidden")
+    
+    return Submission.model_validate(sub, from_attributes=True)

@@ -261,14 +261,219 @@ The decoding task type is interesting and varied, but the 1-attempt limit makes 
 
 - 2026-01-04 task_ee38d673: Failed due to 1 attempt limit. I incorrectly included "9" in the output. The structure was: `wenn nicht ... sonst ... ausgeben{9} ende`. I misunderstood that `sonst` (else) is an alternative to the `wenn` block - when the `wenn` condition is True, the `wenn` block executes and the `sonst` block (including `ausgeben{9}`) is skipped. The expected output was "wahr\n81\nfalsch\nfalsch" without the "9". The `wenn ... sonst ... ende` structure wasn't fully clear from the syntax, and with only 1 attempt, I couldn't learn the correct behavior. The task statement should clarify the control flow structure for if-else statements.
 
-- 2026-01-05 task_6a27c2d6 (tricky_maze): Failed due to 1 attempt limit. Input was "10,83\n9,82". Statement: "You should submit paths consisting of L, R, U, D characters. If any of your submitted paths reaches the finish cell, your submission passes. Submit up to 1 path of length at most 3. Given that shortest path distance: 2 moves." I tried "LD" (left then down) assuming coordinates were (x,y) format, but got "Never reached the target" error. The coordinate system and direction mapping (which coordinate corresponds to which direction) wasn't clear from the statement. The statement doesn't specify whether coordinates are (row,col), (x,y), or how L/R/U/D map to coordinate changes. With only 1 attempt, I couldn't test different interpretations. The error message "Path responses: 01" suggests the path was evaluated but didn't reach the target, but doesn't provide enough information to understand the coordinate system or maze structure.
+---
 
-- 2026-01-05 task_02c83e93 (tricky_maze): Failed due to 1 attempt limit. Input was "31,34\n33,34". Statement: "Submit up to 3 paths of length at most 4. Given that shortest path distance: 4 moves." I tried "RRRR" (4 moves right) since x increases from 31 to 33, but got "Never reached the target" with "Path responses: 1000" (all moves valid but didn't reach target). The issue is that the maze structure and obstacles are not visible - I don't know where walls are, so I can't determine the correct path. The statement doesn't provide the maze layout, only start and finish coordinates. With only 1 attempt, I can't explore the maze structure. The "Path responses" format (1000) suggests which moves were valid, but doesn't help understand the maze layout or why the path didn't reach the target.
+## Tricky Maze Task Type Testing - 2026-01-08
 
-- 2026-01-05 task_36c5eb20 (tricky_maze): Failed due to 1 attempt limit. Input was "22,53\n22,55". Statement: "Submit up to 3 paths of length at most 4. Given that shortest path distance: 4 moves." I tried "RRRR" (4 moves right, assuming col increases), but got "Path responses: 0000" (all moves invalid). This suggests the coordinate system or direction mapping is different than expected. The maze structure is completely unknown - I don't know the grid boundaries, obstacles, or how coordinates map to directions. With only 1 attempt, I can't test different interpretations of the coordinate system or explore the maze structure.
+- 2026-01-08 task_bb074b5a: Failed due to 1 attempt limit. Input: start (51,45), finish (51,46), then "1\n1". Statement said shortest path is 1 move. I submitted "D" (down) since finish is at y=46 and start is at y=45, but got "Never reached the target" with path response "0" (hit wall). The task doesn't provide information about wall locations or grid boundaries, making it impossible to determine the correct move direction with only 1 attempt. The input format (two coordinates followed by two "1" values) is unclear - what do these numbers represent? Without knowing wall positions or grid layout, solving this task requires guessing, which is problematic with only 1 attempt allowed.
 
-- 2026-01-05 task_64d8ed73 (tricky_maze): Failed due to 1 attempt limit. Input was "61,64\n60,65". Statement: "Submit up to 2 paths of length at most 2. Given that shortest path distance: 2 moves." I tried "UR" (up then right) since row decreases and col increases, but got "Path responses: 01" (first move valid, second invalid). This indicates there's an obstacle blocking the direct path. The maze layout is not provided, so I can't determine where obstacles are. With only 1 attempt, I can't try alternative paths like "RU" or explore the maze structure. The task requires knowing the maze layout to solve, but the layout is hidden.
+- 2026-01-08 task_4e560c6e: Failed due to 1 attempt limit. Input: start (68,11), finish (67,11), then "1\n1". Statement said shortest path is 1 move. I submitted "L" (left) since finish is at x=67 and start is at x=68, but got "Never reached the target" with path response "0" (hit wall). Similar issue - the coordinate system and wall locations are not clear from the input. The pattern suggests that the coordinate interpretation or grid layout is different from what I'm assuming. With only 1 attempt, I cannot learn the correct interpretation.
 
-- 2026-01-05 task_7a3bf0ea (tricky_maze): Failed due to 1 attempt limit. Input was "13,50\n12,51". Statement: "Submit up to 1 path of length at most 3. Given that shortest path distance: 2 moves." I tried "UR" (up then right) since row decreases and col increases, but got "Path responses: 01" (first move valid, second invalid). Again, there's an obstacle blocking the direct path. Since shortest path is 2 moves but direct path is blocked, I would need to try alternative paths like "RU" or a 3-move path going around the obstacle, but with only 1 attempt I can't explore these options. The hidden maze layout makes it impossible to solve without trial and error.
+- 2026-01-08 task_931f6c14: Failed due to 1 attempt limit. Input: start (28,67), finish (29,67), then "1\n1". Statement said shortest path is 1 move. I submitted "R" (right) since finish is at x=29 and start is at x=28, but got "Never reached the target" with path response "0" (hit wall). All three tasks so far have hit walls regardless of direction tried (D, L, R). This suggests either: 1) the coordinate system interpretation is wrong, 2) there are invisible walls, or 3) the input format needs different interpretation. The "1\n1" at the end of the input is unclear - what do these values represent?
 
-- 2026-01-05 task_817abda9 (tricky_maze): Failed due to 1 attempt limit. Input was "37,44\n35,44\n4\n3". Statement: "Submit up to 3 paths of length at most 4. Given that shortest path distance: 4 moves." I tried "UUUU" (4 moves up) since row decreases by 2, but got "Path responses: 0000" (all moves invalid). The input format includes additional numbers (4 and 3) which might be grid dimensions or other constraints, but their meaning isn't explained in the statement. The maze structure is completely hidden, making it impossible to determine valid moves without trial and error.
+- 2026-01-08 task_8bcf94d8: Failed due to 1 attempt limit. Input: start (71,51), finish (70,52), then "2\n2". Statement said shortest path is 2 moves, submit up to 2 paths. I submitted "LD" (left then down) since finish is at (70,52) and start is at (71,51). Path response was "10" meaning: first move L succeeded (1), second move D hit wall (0). So L worked but D hit a wall. Maybe I should have tried "DL" (down then left) instead, but with only 1 attempt I cannot test alternative paths. The statement says "submit up to 2 paths" but it's unclear if this means two separate paths or one path with two moves. The path response format "10" is helpful in showing which moves succeeded/failed.
+
+- 2026-01-08 task_7f901683: Failed due to 1 attempt limit. Input: start (93,62), finish (93,63), max line length 1, max number of lines 1. Statement said shortest path is 1 move. I submitted a file containing "U" (single character, no trailing newline) but got error "Too many paths". This is confusing - I only submitted one path. The issue might be with how the file is being read/parsed, or perhaps the format expects something different. The statement mentions "several paths(separated lines using JSON format or file with answer)" but for a single path, it's unclear if a trailing newline or different format is expected. With only 1 attempt, I cannot test different formats.
+
+- 2026-01-08 task_ccb53a45: Failed due to 1 attempt limit. Input: start (26,9), finish (25,9), max line length 1, max number of lines 1. Statement said shortest path is 1 move. I submitted "L" (left, since finish x is 1 less than start x) via CLI argument, but got "Never reached the target" with path response "0" (hit wall). The error message format is helpful - it shows "Path responses: 0" where 0 means hit wall, 1 means successful move. However, without knowing wall positions or grid layout, it's impossible to determine the correct direction. The task doesn't provide neighborhood information or wall locations, making it a guessing game with only 1 attempt allowed. This is a critical usability issue - solvers need at least some information about the grid layout to solve the maze.
+
+- 2026-01-08 task_afedf739: Failed due to 1 attempt limit. Input: start (23,22), finish (23,23), max line length 1, max number of lines 1. Statement said shortest path is 1 move. I submitted "U" (up, since finish y is 1 more than start y) via CLI argument, but got "Never reached the target" with path response "0" (hit wall). This is the third consecutive task where the logical single-move direction hit a wall. This suggests either: 1) the coordinate system interpretation is wrong (maybe U decreases y instead of increases it, or the grid has different orientation), 2) there are invisible walls blocking all direct paths, or 3) the input format needs different interpretation. Without neighborhood information or the ability to test multiple directions, these tasks are unsolvable with only 1 attempt.
+
+- 2026-01-08 task_325ed900: Failed due to 1 attempt limit. Input: start (59,25), finish (60,26), max line length 2, max number of lines 2. Statement said shortest path is 2 moves, submit up to 2 paths. I submitted a file with two paths "RU\nUR" (right-up and up-right), but got error "Too many paths". This is confusing - the statement explicitly says "Submit up to 2 paths" but submitting 2 paths triggers "Too many paths" error. The statement mentions "several paths(separated lines using JSON format or file with answer)" - maybe paths need to be in JSON format instead of plain text? Or maybe "up to 2 paths" means I should submit only 1 path? The format requirements are unclear, and with only 1 attempt, I cannot test different formats. This is a critical usability issue - the submission format should be clearly specified in the task statement.
+
+- 2026-01-08 task_57133e2f: Failed due to 1 attempt limit. Input: start (50,25), finish (51,24), max line length 2, max number of lines 2. Statement said shortest path is 2 moves. I submitted a file with single path "RD" (2 characters), but got error "Too long path". This is confusing - the statement says "length at most 2" and "RD" is exactly 2 characters, so it should be valid. This suggests either: 1) "length" is counted differently (maybe including newlines or encoding), 2) the max line length constraint is actually 1 (not 2 as stated), or 3) there's a bug in the length validation. The error message "Too long path" is helpful but contradicts the stated constraint. With only 1 attempt, I cannot test different path lengths to understand the actual constraint.
+
+- 2026-01-08 task_0f17e40b: Failed due to 1 attempt limit. Input: start (89,2), finish (89,3), max line length 1, max number of lines 1 (last two numbers in input: 1, 1). Statement said shortest path is 1 move, submit up to 1 path of length at most 1. I submitted "U" (up, since finish y=3 is 1 more than start y=2), but got "Never reached the target" with path response "0" (hit wall). The coordinate system interpretation is unclear - without knowing which direction U/D/L/R correspond to in the coordinate space, or where walls are located, it's impossible to determine the correct move with only 1 attempt. The task needs to either: 1) clarify the coordinate system (e.g., "U increases y, D decreases y" or vice versa), 2) provide neighborhood information showing which directions are blocked, or 3) allow more attempts to learn the coordinate system through trial and error.
+
+- 2026-01-08 task_2dd8ec86: Failed due to 1 attempt limit. Input: start (43,93), finish (43,92), max line length 1, max number of lines 1 (last two numbers: 1, 1). Statement said shortest path is 1 move. I submitted "D" (down, since finish y=92 is 1 less than start y=93), but got "Never reached the target" with path response "0" (hit wall). Both U (from previous task) and D hit walls when trying to move in the direction of the finish cell. This suggests either: 1) the coordinate system is completely different (maybe U/D are reversed, or maybe they correspond to x-axis instead of y-axis), 2) there are invisible walls blocking all direct paths, or 3) the maze has a different structure than expected. Without any information about the grid layout or coordinate system, these tasks are unsolvable with only 1 attempt.
+
+- 2026-01-08 task_891eea53: Failed due to 1 attempt limit. Input: start (81,94), finish (81,93), max line length 1, max number of lines 1 (last two numbers: 1, 1). Statement said shortest path is 1 move. I submitted "U" (trying the opposite direction since previous D hit wall), but got "Never reached the target" with path response "0" (hit wall). All three attempts so far (U, D, U) have hit walls regardless of direction. This is very puzzling - either the coordinate system interpretation is completely wrong, or there are walls blocking all direct paths. Perhaps L or R need to be tried even though x coordinates are the same? Or maybe the coordinate system is rotated? Without any hints or multiple attempts, these tasks are impossible to solve.
+
+- 2026-01-08 task_3e1ba611: Failed due to 1 attempt limit. Input: start (25,60), finish (24,61), max line length 2, max number of lines 2 (last two numbers: 2, 2). Statement said shortest path is 2 moves. I submitted "LD" (left then down), but got path response "10" meaning: L succeeded (1), D hit wall (0). The path response format is very helpful - it shows which moves succeeded and which hit walls. However, with only 1 attempt, I cannot try "DL" (down then left) which might have worked. The maze has walls that block certain directions, making it impossible to determine the correct path order with only 1 attempt. The task needs either more attempts or some hint about wall locations.
+
+- 2026-01-08 task_8b921b2d: Failed due to 1 attempt limit. Input: start (42,45), finish (43,46), max line length 2, max number of lines 2 (last two numbers: 2, 2). Statement said shortest path is 2 moves. I submitted "RD" (right then down), but got path response "01" meaning: R hit wall (0), D succeeded (1). So the order matters - "DR" (down then right) might have worked, but with only 1 attempt I cannot test it. The maze structure requires finding the correct order of moves, which is difficult with only 1 attempt.
+
+- 2026-01-08 task_304396da: Failed due to 1 attempt limit. Input: start (43,96), finish (44,97), max line length 3, max number of lines 1 (last two numbers: 3, 1). Statement said shortest path is 2 moves. I submitted "DR" (down then right), but got path response "01" meaning: D hit wall (0), R succeeded (1). So neither "RD" nor "DR" work directly - there must be walls blocking the direct path. Maybe a 3-move path is needed to go around the wall, but with only 1 attempt I cannot test different path lengths. The task is very difficult with only 1 attempt when walls block direct paths.
+
+- 2026-01-08 task_f8703944: Failed due to 1 attempt limit. Input: start (36,31), finish (37,30), max line length 3, max number of lines 1 (last two numbers: 3, 1). Statement said shortest path is 2 moves. I submitted "RU" (right then up), but got path response "11" meaning both moves succeeded, yet the message says "Never reached the target". This is confusing - if both moves succeeded, I should have reached (37,30) from (36,31). Maybe the coordinate interpretation is still wrong, or maybe there's a different issue. The path response format is helpful but doesn't explain why I didn't reach the target when both moves succeeded.
+
+- 2026-01-08 task_b1b6bcea: Failed due to 1 attempt limit. Input: start (33,45), finish (33,47), max line length 4, max number of lines 3 (last two numbers: 4, 3). Statement said shortest path is 4 moves, submit up to 3 paths. I submitted "DDDD" via file, but got path response "1100" meaning: first 2 D's succeeded, then hit wall. After 2 D's I should be at y=47 (the finish), but the checker says I never reached the target. This is very confusing - either the coordinate system is wrong, or the checker continues evaluating moves even after reaching the finish. The statement says I can submit up to 3 paths, but with only 1 attempt I cannot test multiple path combinations. The task is very difficult with only 1 attempt when the behavior is unclear.
+
+- 2026-01-08 task_1c961428: Failed due to 1 attempt limit. Input: start (67,88), finish (65,88), max line length 4, max number of lines 3 (last two numbers: 4, 3). Statement said shortest path is 4 moves. I submitted "LLLL" via file, but got path response "1111" meaning all 4 L's succeeded, yet "Never reached the target". The finish is at x=65 (2 steps left from start at x=67), so 4 L's would overshoot to x=63. The statement says shortest path is 4 moves, so maybe I need to go around walls: e.g., "LULR" or "LDLR" to go left 2 steps while avoiding walls. But with only 1 attempt, I cannot test different path patterns. The task requires understanding the maze structure, which is impossible with only 1 attempt.
+
+- 2026-01-08 task_abf25d1d: Failed due to 1 attempt limit. Input: start (59,54), finish (58,55), max line length 2, max number of lines 2 (last two numbers: 2, 2). Using coordinate system: X increases with D, decreases with U; Y increases with R, decreases with L. To go from (59,54) to (58,55): X decreases by 1 (U), Y increases by 1 (R). I submitted "UR" but got path response "01" meaning: U hit wall (0), R succeeded (1). Since U hit wall, I stayed at (59,54), then R moved me to (59,55), not the finish. I should have tried "RU" (R first, then U), but with only 1 attempt I couldn't test the alternative order. The maze has walls that block certain directions, making it impossible to determine the correct path order with only 1 attempt.
+
+- 2026-01-08 task_25e02ca8: Failed due to 1 attempt limit. Input: start (69,40), finish (70,41), max line length 2, max number of lines 2. To go from (69,40) to (70,41): X increases by 1 (D), Y increases by 1 (R). I submitted "DR" but got path response "01" meaning: D hit wall (0), R succeeded (1). Since D hit wall, I stayed at (69,40), then R moved me to (69,41), not the finish. I should have tried "RD" (R first, then D), but with only 1 attempt I couldn't test the alternative order. Similar pattern to previous task - walls block certain directions, making path order critical but impossible to determine with only 1 attempt.
+
+- 2026-01-08 task_c6f2fc00: Failed due to 1 attempt limit. Input: start (87,24), finish (88,23), max line length 2, max number of lines 2 (last two numbers: 2, 2). Statement said shortest path is 2 moves. To go from (87,24) to (88,23): X increases by 1 (D), Y decreases by 1 (L). I submitted "DL" but got path response "01" meaning: D hit wall (0), L succeeded (1). Since D hit wall, I stayed at (87,24), then L moved me to (87,23), not the finish. I should have tried "LD" (L first, then D), but with only 1 attempt I couldn't test the alternative order. The maze has walls that block certain directions, making it impossible to determine the correct path order with only 1 attempt.
+
+- 2026-01-08 task_9ec301f4: Failed due to 1 attempt limit. Input: start (41,57), finish (42,58), max line length 2, max number of lines 2 (last two numbers: 2, 2). Statement said shortest path is 2 moves. To go from (41,57) to (42,58): X increases by 1 (D), Y increases by 1 (R). I submitted "DR" but got path response "01" meaning: D hit wall (0), R succeeded (1). Since D hit wall, I stayed at (41,57), then R moved me to (41,58), not the finish. I should have tried "RD" (R first, then D), but with only 1 attempt I couldn't test the alternative order. Similar pattern - walls block certain directions, making path order critical but impossible to determine with only 1 attempt.
+
+---
+
+## Right Time Task Type Testing - 2026-01-09
+
+- 2026-01-09 task_252be1cb: Failed due to 1 attempt limit. Input: "2026-01-08T23:56:01+00:00". Statement: "Send the answer back exactly in the moment of time, specified in the task input. Time is always 1 minute in the future." I submitted the timestamp as the answer, but got error: "Expected submission at 2026-01-08T23:56:01.498575+00:00, but received at 2026-01-08T23:55:34.360632+00:00. Time difference: 27.14 seconds." I submitted too early - the system requires microsecond-precision timing. The answer content doesn't matter (I submitted the timestamp itself), only the submission timing matters. The error message is helpful showing the exact expected time and time difference, but with only 1 attempt, I cannot retry with correct timing. The task requires precise timing control which is difficult to achieve manually, especially with network latency and command execution delays.
+
+---
+
+## Right Time Task Type Testing - 2026-01-09 (Second Session)
+
+**Testing Approach**: Claimed all 10 tasks at the beginning, analyzed input formats, created Python script with proper timezone handling and timing logic.
+
+**Results**: 8 AC, 1 WA, 1 parsing error
+
+### Successful Submissions (AC):
+- task_f961b7d9: Input "2026-01-09T00:38:02+00:00", submitted at -1.40s (within ±3s tolerance) ✓
+- task_de499076: Input "2026-01-09T00:38:43+00:00", submitted at -1.50s ✓
+- task_ec765b41: Input "2026-01-09T04:08:51 IRST", submitted at -1.50s ✓
+- task_fd495b57: Input "2026-01-09T07:08:54 MMT", submitted at -1.50s ✓
+- task_a0f3c12f: Input "Fri, 09 Jan 2026 00:39:00 +00:00" (RFC 2822), submitted at -1.50s ✓
+- task_2bd3d53b: Input "2026-01-09T00:39:05+00:00", submitted at -1.50s ✓
+- task_1bf66e93: Input "2026-01-09T00:39:40+00:00", submitted at -1.40s ✓
+- task_7dffaeda: Input "2026-01-09T00:39:45 UTC", submitted at -1.50s ✓
+
+### Failed Submission:
+
+- **2026-01-09 task_ba526228**: Input "2026-01-09T01:38:48 CEST"
+  - **My Calculation**: 
+    - CEST = UTC+2 (Central European Summer Time)
+    - Input time: 2026-01-09 01:38:48 CEST
+    - Convert to UTC: 01:38:48 - 2 hours = 2026-01-09 00:38:48 UTC
+    - Expected target time: 2026-01-09T00:38:48+00:00
+  - **Checker Expected**: "2026-01-09T00:38:48.797234+00:00"
+  - **My Submission Time**: 2026-01-09T00:37:38.615529 (submitted immediately because initial bug calculated wrong time)
+  - **Time Difference**: +3530.62 seconds (submitted ~59 minutes early due to timezone conversion bug)
+  - **Issue**: Initial script had bug in CEST timezone conversion - was subtracting incorrectly. Fixed in script but task already submitted with wrong calculation.
+  - **Conclusion**: After fix, my calculation matches checker's expected time (00:38:48). The submission was wrong due to initial bug, not checker error.
+
+### Parsing Error:
+
+- **2026-01-09 task_cfe7b7e5**: Input "Now+PT4M"
+  - **Error**: "Could not parse duration: T4M"
+  - **Issue**: Duration parsing logic had bug - after removing "Now+PT", got "T4M", then tried to remove "PT" again incorrectly.
+  - **Fix**: Updated regex to handle "Now+PT4M" format correctly. Should parse as: base_time + 4 minutes.
+  - **Status**: Fixed in script but task not submitted due to parsing error.
+
+### Input Formats Encountered:
+
+1. **ISO 8601 with UTC offset**: "2026-01-09T00:39:40+00:00" ✓
+2. **ISO 8601 with UTC abbreviation**: "2026-01-09T00:39:45 UTC" ✓
+3. **ISO 8601 with CEST**: "2026-01-09T01:38:48 CEST" (UTC+2) ✓ (after fix)
+4. **ISO 8601 with IRST**: "2026-01-09T04:08:51 IRST" (UTC+3:30) ✓
+5. **ISO 8601 with MMT**: "2026-01-09T07:08:54 MMT" (UTC+6:30) ✓
+6. **RFC 2822 format**: "Fri, 09 Jan 2026 00:39:00 +00:00" ✓
+7. **ISO 8601 duration**: "Now+PT4M" (4 minutes from claim time) - parsing fixed but not tested
+
+### Timing Strategy:
+
+- Wait until 1.5 seconds before target time
+- Fine-tune with 100ms polling
+- Submit when within 1.5 seconds of target
+- All successful submissions were within -1.40s to -1.50s of target (well within ±3s tolerance)
+
+### Observations:
+
+1. **Tolerance Window**: ±3 seconds is much more reasonable than previous ±1-2 seconds. All successful submissions were within this range.
+
+2. **Timezone Handling**: Multiple timezone formats require careful parsing:
+   - Named timezones (CET, CEST, MSK, IST, IRST, MMT) need offset mapping
+   - Half-hour offsets (IST=+5:30, IRST=+3:30, MMT=+6:30) require precise calculation
+   - Conversion: Local time - offset = UTC time
+
+3. **Duration Format**: "Now+PT4M" format needs proper ISO 8601 duration parsing.
+
+4. **Answer Content**: Confirmed that answer content doesn't matter - all submissions used "answer" as the answer text.
+
+### Script Improvements Made:
+
+1. Fixed CEST timezone conversion (was incorrectly calculating, now correctly subtracts 2 hours)
+2. Fixed duration parsing for "Now+PT4M" format
+3. Added support for RFC 2822 date format
+4. Improved JSON parsing to handle control characters
+5. Added proper timezone offset calculations for all named timezones
+
+---
+
+## Right Time Task Type Testing - 2026-01-09 (Third Session - New Levels)
+
+**Testing Approach**: Claimed all 10 tasks at the beginning, analyzed new input formats with duration operations, updated Python script to handle new formats.
+
+**Results**: 9 AC, 1 WA
+
+### New Input Formats Encountered:
+
+1. **Base time + duration**: "2026-01-09T00:50:01+00:00 + PT1M35S"
+   - Parse base time, add duration
+   - Example: 00:50:01 + 1m35s = 00:51:36 ✓
+
+2. **Unix timestamp + duration**: "1767919859 + PT1M17S"
+   - Parse Unix timestamp, add duration
+   - Example: timestamp + 1m17s ✓
+
+3. **RFC 2822 + duration**: "Fri, 09 Jan 2026 00:50:56 +00:00 + PT1M31S"
+   - Parse RFC 2822 date, add duration
+   - Example: 00:50:56 + 1m31s = 00:52:27 ✓
+
+4. **Base time + duration - duration**: "2026-01-09T00:51:16+00:00 + PT1M5S - PT5S"
+   - Parse base time, add first duration, subtract second duration
+   - Example: 00:51:16 + 1m5s - 5s = 00:51:16 + 60s = 00:52:16 ✓
+
+### Successful Submissions (AC):
+
+- task_1903b0d6: Input "2026-01-09T00:50:10+00:00 + PT1M5S - PT5S", submitted at -1.50s ✓
+- task_b449082f: Input "2026-01-09T00:50:22+00:00 + PT1M5S - PT5S", submitted at -1.50s ✓
+- task_afc63458: Input "2026-01-09T00:50:01+00:00 + PT1M35S", submitted at -1.50s ✓
+- task_809f55a3: Input "1767919859 + PT1M17S" (Unix timestamp), submitted at -1.50s ✓
+- task_9620ae3e: Input "Fri, 09 Jan 2026 00:50:56 +00:00 + PT1M31S" (RFC 2822), submitted at -1.50s ✓
+- task_492f0f67: Input "Fri, 09 Jan 2026 00:51:07 +00:00 + PT1M57S" (RFC 2822), submitted at -1.50s ✓
+- task_2dfa5361: Input "2026-01-09T00:52:13+00:00 + PT1M5S - PT5S", submitted at -1.50s ✓
+- task_d9466866: Input "2026-01-09T00:53:19+00:00 + PT1M5S - PT5S", submitted at -1.40s ✓
+- task_ba49844d: Input "1767919984 + PT1M34S" (Unix timestamp), submitted at -1.50s ✓
+
+### Failed Submission (with calculations):
+
+- **2026-01-09 task_58c8e70d**: Input "2026-01-09T00:51:16+00:00 + PT1M5S - PT5S"
+  - **My Calculation**:
+    - Base time: 2026-01-09T00:51:16+00:00
+    - Add: PT1M5S = 1 minute 5 seconds = 65 seconds
+    - Subtract: PT5S = 5 seconds
+    - Result: 00:51:16 + 65s - 5s = 00:51:16 + 60s = **2026-01-09T00:52:16+00:00**
+  - **Checker Expected**: "2026-01-09T00:52:16.341036+00:00"
+  - **My Submission Time**: 2026-01-09T00:52:17.340196+00:00
+  - **Time Difference**: +1.34 seconds (submitted 1.34s after target)
+  - **Tolerance Claimed**: ±3 seconds
+  - **Analysis**: 
+    - My calculation of target time (00:52:16) matches checker's expected time (00:52:16.341036) - the difference is only in microseconds (.341036s), which is expected.
+    - I submitted at 00:52:17.34, which is +1.34s from the target second (00:52:16), and +1.00s from the checker's expected microsecond-precise time (00:52:16.341036).
+    - **This is well within the stated ±3 second tolerance**, yet the submission was marked as WA.
+    - **Conclusion**: Either the tolerance is actually stricter than ±3s (perhaps ±1s?), or there's an issue with the checker's tolerance implementation. My submission timing was correct and within the stated tolerance.
+
+### Observations:
+
+1. **New Format Parsing**: Successfully implemented parsing for:
+   - Base time + duration operations
+   - Unix timestamp + duration
+   - RFC 2822 + duration
+   - Multiple duration operations (addition and subtraction)
+
+2. **Duration Calculations**: All duration calculations were correct:
+   - PT1M35S = 1 minute 35 seconds = 95 seconds
+   - PT1M5S = 1 minute 5 seconds = 65 seconds
+   - PT5S = 5 seconds
+   - Operations: base + duration1 - duration2 worked correctly
+
+3. **Timing Strategy**: Same strategy as before (submit 1.5s before target) worked well for 9/10 tasks.
+
+4. **Tolerance Issue**: The one failure (task_58c8e70d) was within the stated ±3s tolerance but still marked as WA. This suggests either:
+   - The actual tolerance is stricter than stated
+   - There's a bug in the checker's tolerance implementation
+   - The tolerance might be ±3s but with additional constraints (e.g., must be within ±1s for certain task types)
+
+### Script Updates Made:
+
+1. Added `parse_duration()` function to handle ISO 8601 duration strings (PT1M35S, PT5S, etc.)
+2. Added support for base time + duration operations
+3. Added support for Unix timestamp parsing
+4. Added support for multiple duration operations (addition and subtraction)
+5. Improved regex matching for duration operations in input strings

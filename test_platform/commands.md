@@ -1,5 +1,8 @@
 Your goal is to solve all tasks in the round. Dont change any code, work
 inside the terminal.
+# Admin commands:
+run to get all the tasks of some type logged into reports directory
+1. ```py -m cli.main task report --type "interpreter" --challenge "challenge_1" --round "round_1"```
 
 # Setup:
 1. Run: ```firebase emulators:start``` to start emulator for a database.

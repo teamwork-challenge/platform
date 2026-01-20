@@ -2,9 +2,9 @@ from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException
 
-from api_models import Task, SubmitAnswerRequest, Submission, AuthData, UserRole
+from api_models import Task, SubmitAnswerRequest, Submission, AuthData, UserRole, TaskWithHint
 from api_models import TaskStatus
-from back.api.deps import authenticate_player, get_task_service, get_challenge_service, get_round_or_404, fix_challenge_id, fix_round_id
+from back.api.deps import authenticate_player, authenticate_admin, get_task_service, get_challenge_service, get_round_or_404, fix_challenge_id, fix_round_id
 from back.services.challenge_service import ChallengeService
 from back.services.task_service import TaskService
 
@@ -139,5 +139,40 @@ def submit_task_answer(
     round_id = fix_round_id(auth_data, round_id)
     try:
         return task_service.submit_task_answer(submission.task_id, auth_data.team_id, challenge_id, round_id, submission.answer)
+    except ValueError as e:
+        raise map_value_error_to_http(e)
+
+
+@router.get("/tasks/report/{task_type}")
+def generate_tasks_report(
+    task_type: str,
+    challenge_id: str,
+    round_id: str,
+    auth_data: AuthData = Depends(authenticate_admin),  # Admin only!
+    task_service: TaskService = Depends(get_task_service)
+) -> list[TaskWithHint]:
+    """Generate all tasks of a specific type for reporting (admin only).
+    Calls task generator /gen endpoint repeatedly and returns tasks with checker_hint.
+    """
+    challenge_id = fix_challenge_id(auth_data, challenge_id)
+    round_id = fix_round_id(auth_data, round_id)
+    
+    try:
+        generated_tasks = task_service.generate_tasks_for_report(
+            challenge_id,
+            round_id,
+            task_type
+        )
+        
+        # Convert GenResponse to TaskWithHint
+        return [
+            TaskWithHint(
+                statement=task.statement,
+                input=task.input,
+                checker_hint=task.checker_hint,
+                statement_version=task.statement_version
+            )
+            for task in generated_tasks
+        ]
     except ValueError as e:
         raise map_value_error_to_http(e)

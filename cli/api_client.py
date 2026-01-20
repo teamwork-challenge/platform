@@ -5,7 +5,7 @@ from typing import Optional, Dict, Any, List
 import requests
 
 from api_models import Task, Team, Challenge, Round, Submission, \
-    TaskList, Dashboard, Leaderboard, DeleteResponse, SubmitAnswerRequest, TeamsImportRequest, TeamsImportResponse
+    TaskList, Dashboard, Leaderboard, DeleteResponse, SubmitAnswerRequest, TeamsImportRequest, TeamsImportResponse, TaskWithHint
 from cli.config_manager import ConfigManager
 
 
@@ -204,3 +204,16 @@ class ApiClient:
             endpoint += f"?round_id={round_id}"
         data = self._make_request("GET", endpoint)
         return Leaderboard.model_validate(data)
+
+    def get_tasks_report(
+        self,
+        task_type: str,
+        challenge_id: Optional[str] = None,
+        round_id: Optional[str] = None
+    ) -> list[TaskWithHint]:
+        """Get all generated tasks of a type for reporting (admin only)."""
+        data = self._make_request(
+            "GET",
+            _build_round_path(challenge_id, round_id, f"/tasks/report/{task_type}")
+        )
+        return [TaskWithHint.model_validate(task) for task in data]

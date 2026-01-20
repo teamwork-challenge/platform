@@ -1,4 +1,5 @@
 import typer
+import json
 from pathlib import Path
 
 from api_models import SubmitAnswerRequest
@@ -119,7 +120,7 @@ def task_submit(
             console.print(f"[red]File not found: {file_path}[/red]")
             raise typer.Exit(1)
 
-        with open(file_path) as f:
+        with open(file_path, encoding='utf-8') as f:
             answer = f.read()
 
     if answer is None:
@@ -153,7 +154,17 @@ def task_show_answer(submit_id: str, json: bool = json_output_option) -> None:
     if json:
         return print_as_json(submission)
 
-    raise Exception("Not implemented yet")
+    console.print(f"[bold]Submission {submit_id} Information:[/bold]")
+    console.print(f"Task ID: {submission.task_id}")
+    console.print(f"Status: {submission.status}")
+    console.print(f"Score: {submission.score}")
+    console.print(f"Submitted At: {submission.submitted_at}")
+    if submission.checker_output:
+        console.print(f"Checker Output: {submission.checker_output}")
+    console.print("\n[bold]Answer:[/bold]")
+    console.print(submission.answer)
+
+    return None
 
 
 @task_app.command("list")
@@ -208,5 +219,63 @@ def task_list(
 
     if watch:
         console.print("[yellow]Watch mode enabled. Press Ctrl+C to exit.[/yellow]")
+
+    return None
+
+
+def _format_checker_hint(hint: str, task_type: str) -> str:
+    """Format checker hint, pretty-printing JSON if it's valid JSON.
+    For tricky_maze tasks, only display the neighborhood field with decoded escape sequences.
+    """
+    try:
+        # Try to parse as JSON
+        parsed = json.loads(hint)
+        
+        # Special handling for tricky_maze: only show neighborhood field
+        if task_type == "tricky_maze" and isinstance(parsed, dict) and "neighborhood" in parsed:
+            neighborhood = parsed["neighborhood"]
+            # Decode escape sequences (e.g., \n -> actual newline)
+            if isinstance(neighborhood, str):
+                return neighborhood.encode('latin-1').decode('unicode_escape')
+            return str(neighborhood)
+        
+        # For other types, pretty-print the full JSON
+        return json.dumps(parsed, indent=2, ensure_ascii=False)
+    except (json.JSONDecodeError, TypeError):
+        # If it's not JSON, return as-is
+        return hint
+
+
+@task_app.command("report")
+def task_report(
+    task_type: str = typer.Option(..., "--type", "-t", help="Task type to generate report for"),
+    challenge_id: str = typer.Option(..., "--challenge", "-c", help="Challenge ID"),
+    round_id: str = typer.Option(..., "--round", "-r", help="Round ID"),
+) -> None:
+    """Generate a report of all tasks of a specific type.
+    Generates all tasks by calling task generator and saves to reports/report_{task_type}.txt
+    Admin only. Requires explicit challenge_id and round_id.
+    """
+    ensure_logged_in()
+    
+    # Get all generated tasks
+    tasks = api_client.get_tasks_report(task_type, challenge_id, round_id)
+    
+    # Create reports directory if it doesn't exist
+    reports_dir = Path("reports")
+    reports_dir.mkdir(exist_ok=True)
+    
+    # Write report file
+    report_file = reports_dir / f"report_{task_type}.txt"
+    with open(report_file, "w", encoding="utf-8") as f:
+        for i, task in enumerate(tasks, 1):
+            f.write(f"=== Task {i} ===\n")
+            f.write(f"Statement:\n{task.statement}\n\n")
+            f.write(f"Input:\n{task.input}\n\n")
+            f.write(f"Checker Hint:\n{_format_checker_hint(task.checker_hint, task_type)}\n\n")
+            f.write("-" * 80 + "\n\n")
+    
+    console.print(f"[green]Report generated: {report_file}[/green]")
+    console.print(f"Generated {len(tasks)} tasks of type '{task_type}'")
 
     return None

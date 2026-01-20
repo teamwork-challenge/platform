@@ -49,7 +49,38 @@ add to interpreter numbers in format from a_plus_b
 add to decoding expressions from a_plus_b
 
 TODO:
-take task type -> generatr all tasks and show input, hint answer ... -> report in file 
+take task type -> generatr all tasks and show input, hint answer ... -> report in file. FIXED!
+
+CHECK ALL WAYS OF SUBMISSION (CLI, JSON, file for all tasks)
 
 
+## tricky_maze
+LLM can't solve this task, tried infinite amount of prompts, none of them worked!
 
+show-answer in CLI doesnt work. FIXED!
+
+## right_time
+INFO from CLI:
+Task ID: task_58c8e70d
+Status: wa
+Score: 0
+Submitted At: 2026-01-09 00:52:17.954767+00:00
+Checker Output: Expected submission at 2026-01-09T00:52:16.341036+00:00, but received at 
+2026-01-09T00:52:19.987816+00:00. Time difference: 3.65 seconds.
+
+
+INFO from LLM:
+- **2026-01-09 task_58c8e70d**: Input "2026-01-09T00:51:16+00:00 + PT1M5S - PT5S"
+  - **My Calculation**:
+    - Base time: 2026-01-09T00:51:16+00:00
+    - Add: PT1M5S = 1 minute 5 seconds = 65 seconds
+    - Subtract: PT5S = 5 seconds
+    - Result: 00:51:16 + 65s - 5s = 00:51:16 + 60s = **2026-01-09T00:52:16+00:00**
+  - **Checker Expected**: "2026-01-09T00:52:16.341036+00:00"
+  - **My Submission Time**: 2026-01-09T00:52:17.340196+00:00
+  - **Time Difference**: +1.34 seconds (submitted 1.34s after target)
+  - **Tolerance Claimed**: ±3 seconds
+
+checked task 8 using report file, all checker_hints are correct!
+
+TODO: level 7 fix hard code

@@ -4,7 +4,7 @@ Your goal is to test a cli platform tasks. Here are some rules for you and flow 
 - You should not terminate until you can't claim tasks (You will get an error signaling there are no left tasks!). 
 - Backend and emulator already running.
 - For each wrong submission write shortly your opinion about it and what was wrong in this file platform/test_platform/suggestions.md!
-YOU NEED TO TEST ONLY THIS TASKS TYPES (If not specified test all tasks listed in platform/cli/contest/round1.hjson): "interpreter"
+YOU NEED TO TEST ONLY THIS TASKS TYPES (If not specified test all tasks listed in platform/cli/contest/round1.hjson): "tricky_maze"
 Do next steps:
 1. Login as a team1: ```py -m cli.main login team1``` 
 2. Run: ```py -m cli.main task claim --type "a_plus_b"``` to get a task_id of this type (a_plus_b here) this will give you:

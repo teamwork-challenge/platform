@@ -260,6 +260,59 @@ class TaskService:
             gen_request
         )
 
+    def generate_tasks_for_report(self, challenge_id: str, round_id: str, task_type: str) -> list[GenResponse]:
+        """Generate all tasks of a specific type for reporting (admin only).
+        Calls task generator /gen endpoint repeatedly for each task index (0 to n_tasks-1).
+        """
+        # Get round and task type config
+        challenge_ref = self.db.collection('challenges').document(challenge_id)
+        if not challenge_ref.get().exists:
+            raise ValueError("Challenge not found")
+        
+        rounds_ref = challenge_ref.collection('rounds')
+        rd_doc = rounds_ref.document(round_id).get()
+        if not rd_doc.exists:
+            raise ValueError("Round not found")
+        
+        round = RoundDocument.model_validate(rd_doc.to_dict())
+        task_type_data = round.get_task_type(task_type)
+        if task_type_data is None:
+            raise ValueError(f"Task type '{task_type}' not found")
+        
+        # Calculate progress info
+        current_time = datetime.now(timezone.utc)
+        round_start = round.start_time
+        round_end = round.end_time
+        total_time = int((round_end - round_start).total_seconds() / 60)
+        
+        generated_tasks = []
+        
+        # Generate all tasks (0 to n_tasks-1)
+        for task_index in range(task_type_data.n_tasks):
+            task_id = f"report_task_{uuid.uuid4().hex[:8]}"
+            
+            # Create task progress
+            task_progress = TaskProgress(
+                task_index=task_index,
+                task_count=task_type_data.n_tasks,
+                elapsed_time=int((current_time - round_start).total_seconds() / 60),
+                total_time=total_time
+            )
+            
+            # Generate task content
+            gen_response = self.generate_task_content(
+                task_id,
+                challenge_id,
+                round_id,
+                "admin_report",  # Dummy team ID for report
+                task_type_data,
+                task_progress
+            )
+            
+            generated_tasks.append(gen_response)
+        
+        return generated_tasks
+
     def submit_task_answer(self, task_id: str, team_id: str, challenge_id: str, round_id: str, answer: str) -> ApiSubmission:
         """Submit an answer for a task. If round_id provided, directly access the task within that round; otherwise scan rounds."""
         challenge_ref = self.db.collection('challenges').document(challenge_id)
@@ -447,6 +500,32 @@ class TaskService:
         if not docs:
             return None
         d = SubmissionDocument.model_validate(docs[0].to_dict())
+        return ApiSubmission(
+            id=d.id,
+            status=d.status,
+            submitted_at=d.submitted_at,
+            task_id=d.task_id,
+            answer=d.answer,
+            checker_output=d.checker_output,
+            score=d.score
+        )
+
+    def get_submission_by_id(self, submission_id: str, challenge_id: str, round_id: str) -> ApiSubmission | None:
+        """Get a submission by its ID. Returns None if not found."""
+        # Search across all submissions in the challenge/round using collection_group
+        # Query by the 'id' field which is stored in the document data
+        q = (self.db.collection_group('submissions')
+             .where('challenge_id', '==', challenge_id)
+             .where('round_id', '==', round_id)
+             .where('id', '==', submission_id)
+             .limit(1))
+        docs = list(q.stream())
+        if not docs:
+            return None
+        doc = docs[0]
+        # The document ID might differ from the id field, so use the id field from the document data
+        doc_data = doc.to_dict()
+        d = SubmissionDocument.model_validate(doc_data)
         return ApiSubmission(
             id=d.id,
             status=d.status,

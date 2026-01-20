@@ -80,6 +80,14 @@ class TaskList(BaseModel):
     tasks: List[Task]
 
 
+class TaskWithHint(BaseModel):
+    """Task model with checker_hint - admin only, for reporting"""
+    statement: str
+    input: str
+    checker_hint: str
+    statement_version: str
+
+
 class Team(BaseModel):
     id: str
     challenge_id: str
